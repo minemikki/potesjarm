@@ -1,72 +1,196 @@
-const styles=[
-["Adventure","NORSK NATUR. STORE OPPLEVELSER.","https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=90"],
-["Royal","KONGELIG PERSONLIGHET.","https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=90"],
-["Cinematic","SOM EN FILMPLAKAT.","https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=900&q=90"],
-["Studio","TIDLØST OG ELEGANT.","https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=90"],
-["Memorial","ET KJÆRT MINNE FOR ALLTID.","https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=900&q=90"],
-["Fun & Creative","SLIPP FANTASIEN LØS.","https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=900&q=90"]
+const styles = [
+  { name: "Natur", sub: "Naturlig & tidløs", img: "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=1000&q=90" },
+  { name: "Royal", sub: "Konge for en dag", img: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1000&q=90" },
+  { name: "Cinematic", sub: "Filmatisk stemning", img: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=1000&q=90" },
+  { name: "Kunstnerisk", sub: "Unik & kreativ", img: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1000&q=90" },
+  { name: "Memorial", sub: "Et vakkert minne", img: "https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=1000&q=90" },
+  { name: "Sesong", sub: "Jul, sommer & mer", img: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1000&q=90" },
 ];
-const packs=[
-["DIGITAL","349 kr",["1 premium bilde","Høyoppløselig fil","Klar for print og sosiale medier"]],
-["PLUS","549 kr",["3 unike bilder","Mobilbakgrunn","Sosiale medier format","Klar for print"]],
-["CINEMATIC","799 kr",["3 bilder + kort video","5–10 sek AI-video","Flere formater","Perfekt for deling"]]
+
+const packs = [
+  {
+    name: "Basic",
+    price: "349 kr",
+    items: ["1 bilde", "1 stil", "Høy oppløsning", "Digital levering"],
+  },
+  {
+    name: "Premium",
+    price: "549 kr",
+    badge: "Mest valgt",
+    items: ["3 bilder", "Valgfri stil", "Høy oppløsning", "Ubegrensede revisjoner"],
+  },
+  {
+    name: "Ultimate",
+    price: "799 kr",
+    items: ["5 bilder", "Alle stiler", "Høy oppløsning", "Eksklusiv bakgrunn"],
+  },
 ];
-export default function Home(){
-return <main>
-<header className="top">
-<a className="logo" href="#top"><span className="paw">●</span><span><b>Potesjarm</b><small>FOR LIVET MED HUND</small></span></a>
-<nav><a href="#studio">Studio</a><a href="#stiler">Produkter</a><a href="#inspirasjon">Inspirasjon</a><a href="#om">Om oss</a></nav>
-<div className="right">⌕ <span>🛒</span><a className="cta" href="#pakker">Lag ditt portrett</a></div>
-</header>
 
-<section className="hero" id="top">
-<div className="heroBg"/>
-<div className="heroOverlay"/>
-<div className="heroCopy">
-<div className="eyebrow light">POTESJARM STUDIO</div>
-<h1>Mer enn et bilde.<br/>Et minne for livet.</h1>
-<p>Vi forvandler dine bilder til unike, profesjonelle portretter<br/>av hunden din – i stiler som passer deres personlighet.<br/>Perfekt som gave, til veggen eller for å bevare et kjært minne.</p>
-<div className="actions"><a className="primary" href="#pakker">Lag ditt portrett →</a><a className="ghost" href="#stiler">Se eksempler</a></div>
-<div className="trust"><span>⚡ <b>Rask levering</b><small>1–3 dager</small></span><span>∞ <b>Høyoppløselig</b><small>klar for print</small></span><span>♡ <b>100% fornøyd</b><small>garanti</small></span></div>
-</div>
-<div className="scribble">Same<br/>Adventures<br/>Different<br/>Pawspective<br/><span>🐾</span></div>
-</section>
+const reviews = [
+  ["Ingrid H.", "Helt nydelig resultat! Jeg ble faktisk rørt. Fantastisk service og super rask levering!"],
+  ["Thomas K.", "Bedre enn jeg forventet. Bildene ser helt magiske ut!"],
+  ["Sofie M.", "Den beste gaven til en hundeeier. Kommer garantert til å bestille igjen!"],
+];
 
-<section className="styles" id="stiler">
-<div className="styleHead"><div><div className="eyebrow">VELG DIN STIL</div><h2>Hver hund har sin historie</h2><p>Utforsk våre mest populære stiler. Du laster opp bildene – vi skaper magien.</p></div><a href="#pakker">Se alle stiler →</a></div>
-<div className="cards">{styles.map(([n,s,img])=><article className="card" key={n}><img src={img} alt=""/><div className="shade"/><div className="cardText"><h3>{n}</h3><span>{s}</span></div></article>)}</div>
-</section>
+export default function Home() {
+  return (
+    <main>
+      <div className="trustbar">
+        <span>🚚 Gratis frakt over 799 kr</span>
+        <span>🇳🇴 Norsk nettbutikk</span>
+        <span>🛡 Trygg betaling med Vipps/Klarna</span>
+        <span>★★★★★ 4,8/5 fra hundeeiere</span>
+      </div>
 
-<section className="mid" id="studio">
-<div className="how">
-<div className="eyebrow">SLIK FUNGERER DET</div><h2>Enkelt. Raskt. Magisk.</h2>
-<div className="steps">
-<div><div className="icon">▣</div><b>1. Last opp bilder</b><p>Last opp 2–3 bilder<br/>av hunden din.</p></div>
-<div><div className="icon">●</div><b>2. Velg stil og pakke</b><p>Finn stilen som passer<br/>deres personlighet.</p></div>
-<div><div className="icon">↓</div><b>3. Motta ditt kunstverk</b><p>Få dine bilder digitalt<br/>innen 1–3 dager.</p></div>
-</div>
-<div className="note">Fra ditt bilde<br/>til et kunstverk ♡</div>
-</div>
+      <header className="nav">
+        <a className="brand" href="#top">
+          <span className="paw">🐾</span>
+          <span>
+            <strong>Potesjarm</strong>
+            <small>MER ENN BARE EN HUNDEBUTIKK</small>
+          </span>
+        </a>
 
-<div className="pricing" id="pakker">
-<div className="eyebrow">VELG DIN PAKKE</div>
-<div className="packGrid">{packs.map(([n,p,items],i)=><article className={"pack "+(i===1?"featured":"")} key={n}>
-{i===1&&<div className="popular">MEST POPULÆR</div>}
-<h3>{n}</h3><div className="price">{p}</div>
-<ul>{items.map(x=><li key={x}>✓ {x}</li>)}</ul>
-<button>Velg pakke</button>
-</article>)}</div>
-</div>
-</section>
+        <nav>
+          <a className="active" href="#top">Hjem</a>
+          <a href="#stiler">Digitale produkter</a>
+          <a href="#stiler">Kategorier</a>
+          <a href="#inspirasjon">Inspirasjon</a>
+          <a href="#om">Om oss</a>
+          <a href="#kontakt">Kundeservice</a>
+        </nav>
 
-<section className="gallery" id="inspirasjon">
-<div className="quote">“<br/>Dette ble helt utrolig!<br/>Gråt når jeg så det.<br/>Tusen takk!<small>– Line & Max</small><span>★★★★★</span></div>
-<img src="https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&w=900&q=90" alt=""/>
-<img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=900&q=90" alt=""/>
-<img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=90" alt=""/>
-<div className="quote">“<br/>Den beste gaven<br/>jeg har gitt.<br/>Anbefales på det<br/>varmeste!<small>– Thomas & Luna</small><span>★★★★★</span></div>
-</section>
+        <div className="icons">
+          <span>⌕</span><span>♡</span><span>♙</span><span>▣</span>
+        </div>
+      </header>
 
-<footer id="om"><span>—</span> Potesjarm Studio <span>—</span><small>HUNDER GJØR LIVET BEDRE. VI GJØR MINNENE VAKRERE. 🐾</small></footer>
-</main>
+      <section className="hero" id="top">
+        <div className="heroBg" />
+        <div className="heroShade" />
+        <div className="heroCopy">
+          <div className="eyebrow light">FOR ET AKTIVT, LYKKELIGERE HUNDELIV</div>
+          <h1>Mer enn et bilde.<br />Et minne for livet.</h1>
+          <p>
+            Unike, personlige hundeportretter i fantastiske stiler.<br />
+            Skapt med kjærlighet – fra ditt bilde til et kunstverk du vil elske.
+          </p>
+          <div className="heroBtns">
+            <a className="pill lightBtn" href="#stiler">Utforsk stilene →</a>
+            <a className="pill outlineBtn" href="#inspirasjon">▶ Se video (0:45)</a>
+          </div>
+          <div className="heroStats">
+            <div>▣<span><b>Digital levering</b><small>1–24 timer</small></span></div>
+            <div>♙<span><b>Ubegrensede revisjoner</b><small>på premium</small></span></div>
+            <div>◇<span><b>Fornøydgaranti</b><small>100% trygghet</small></span></div>
+            <div>♧<span><b>Elsket av</b><small>1000+ hundeeiere</small></span></div>
+          </div>
+        </div>
+        <div className="scribble">Eventyr ser<br />bedre ut sammen ♡</div>
+      </section>
+
+      <section className="styleSection" id="stiler">
+        <div className="sectionRow">
+          <h2>Velg din stil →</h2>
+          <div className="micro">Samme hund. Uendelige muligheter. &nbsp; ◀ ▶</div>
+        </div>
+        <div className="styleGrid">
+          {styles.map((s) => (
+            <article className="styleCard" key={s.name}>
+              <img src={s.img} alt="" />
+              <div className="styleShade" />
+              <div className="styleText">
+                <h3>{s.name}</h3>
+                <p>{s.sub}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="howPrice">
+        <div className="how">
+          <h2>Enkelt. Raskt. Magisk.</h2>
+          <p>Last opp et bilde, velg stil, og få et unikt kunstverk av hunden din – klart på kort tid.</p>
+          <div className="steps">
+            <div><div className="circle">📷</div><b>1. Last opp bilde</b><span>Velg dine favorittbilder av hunden din.</span></div>
+            <div><div className="circle">🎨</div><b>2. Velg stil</b><span>Utforsk våre unike stiler og tilpass.</span></div>
+            <div><div className="circle">➤</div><b>3. Motta kunstverk</b><span>Få ditt bilde digitalt på e-post.</span></div>
+          </div>
+        </div>
+
+        <div className="pricing" id="pakker">
+          <h2>Våre populære pakker</h2>
+          <div className="priceGrid">
+            {packs.map((p) => (
+              <article className={"priceCard " + (p.badge ? "featured" : "")} key={p.name}>
+                {p.badge && <div className="badge">{p.badge}</div>}
+                <h3>{p.name}</h3>
+                <div className="price">{p.price}</div>
+                <ul>{p.items.map((i) => <li key={i}>✓ {i}</li>)}</ul>
+                <button>Velg {p.name}</button>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="results" id="inspirasjon">
+        <div className="resultsCopy">
+          <h2>Virkelige hunder.<br />Utrolige resultater.</h2>
+          <p>Se hvordan vanlige bilder blir til unike kunstverk.</p>
+          <a className="pill lightBtn" href="#stiler">Se flere transformasjoner →</a>
+        </div>
+        <div className="beforeAfter">
+          <div className="label left">Før</div>
+          <div className="label right">Etter</div>
+          <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1200&q=90" alt="" />
+          <div className="divider" />
+          <div className="knob">↔</div>
+        </div>
+        <div className="miniGallery">
+          <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=90" alt="" />
+          <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=700&q=90" alt="" />
+          <img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=700&q=90" alt="" />
+        </div>
+      </section>
+
+      <section className="reviews">
+        <div className="sectionRow">
+          <h2>Hva kundene våre sier</h2>
+          <div className="micro">◀ ▶</div>
+        </div>
+        <div className="reviewGrid">
+          {reviews.map(([name, text], i) => (
+            <article className="review" key={name}>
+              <div className="avatar">{i + 1}</div>
+              <div>
+                <div className="stars">★★★★★</div>
+                <p>“{text}”</p>
+                <b>{name}</b>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="finalCta" id="om">
+        <div className="finalBg" />
+        <div className="finalShade" />
+        <div className="finalCopy">
+          <h2>Skap minner som varer</h2>
+          <p>Gjør ditt bilde til et kunstverk i dag.</p>
+        </div>
+        <a className="pill lightBtn finalBtn" href="#pakker">Kom i gang →</a>
+        <div className="finalScript">Livet er<br />bedre med hund ♡</div>
+      </section>
+
+      <footer id="kontakt">
+        <div>🇳🇴 Norsk nettbutikk</div>
+        <div>🛡 Trygg betaling med Vipps/Klarna</div>
+        <div>◉ Digital levering 1–24t</div>
+        <div>Følg oss &nbsp; ◎ ♪ f ▶</div>
+      </footer>
+    </main>
+  );
 }
