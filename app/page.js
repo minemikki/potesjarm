@@ -1,10 +1,10 @@
 const styles = [
-  { name: "Natur", sub: "Naturlig & tidløs", img: "/images/potesjarm-ai-1.webp" },
-  { name: "Royal", sub: "Konge for en dag", img: "/images/potesjarm-ai-2.webp" },
-  { name: "Cinematic", sub: "Filmatisk stemning", img: "/images/potesjarm-ai-3.webp" },
-  { name: "Kunstnerisk", sub: "Unik & kreativ", img: "/images/potesjarm-ai-4.webp" },
-  { name: "Memorial", sub: "Et vakkert minne", img: "/images/potesjarm-ai-5.webp" },
-  { name: "Sesong", sub: "Jul, sommer & mer", img: "/images/potesjarm-ai-6.webp" },
+  { name: "Natur", sub: "Naturlig & tidløs", img: "https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=1000&q=88" },
+  { name: "Royal", sub: "Konge for en dag", img: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1000&q=88" },
+  { name: "Cinematic", sub: "Filmatisk stemning", img: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=1000&q=88" },
+  { name: "Kunstnerisk", sub: "Unik & kreativ", img: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1000&q=88" },
+  { name: "Memorial", sub: "Et vakkert minne", img: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1000&q=88" },
+  { name: "Sesong", sub: "Sesong & spesial", img: "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&w=1000&q=88" },
 ];
 
 const packs = [
@@ -17,7 +17,7 @@ const packs = [
     name: "Premium",
     price: "549 kr",
     badge: "Mest valgt",
-    items: ["3 bilder", "Valgfri stil", "Høy oppløsning", "Ubegrensede revisjoner"],
+    items: ["3 bilder", "Valgfri stil", "Høy oppløsning", "2 revisjoner"],
   },
   {
     name: "Ultimate",
@@ -36,10 +36,10 @@ export default function Home() {
   return (
     <main>
       <div className="trustbar">
-        <span>🚚 Gratis frakt over 799 kr</span>
+        <span>⚡ Digital levering 1–3 dager</span>
         <span>🇳🇴 Norsk nettbutikk</span>
         <span>🛡 Trygg betaling med Vipps/Klarna</span>
-        <span>★★★★★ 4,8/5 fra hundeeiere</span>
+        <span>♡ Personlig kvalitetssjekk</span>
       </div>
 
       <header className="nav">
@@ -81,9 +81,9 @@ export default function Home() {
           </div>
           <div className="heroStats">
             <div>▣<span><b>Digital levering</b><small>1–24 timer</small></span></div>
-            <div>♙<span><b>Ubegrensede revisjoner</b><small>på premium</small></span></div>
+            <div>♙<span><b>2 revisjoner</b><small>på premium</small></span></div>
             <div>◇<span><b>Fornøydgaranti</b><small>100% trygghet</small></span></div>
-            <div>♧<span><b>Elsket av</b><small>1000+ hundeeiere</small></span></div>
+            <div>♧<span><b>Elsket av</b><small>laget for din hund</small></span></div>
           </div>
         </div>
         <div className="scribble">Eventyr ser<br />bedre ut sammen ♡</div>
@@ -144,14 +144,14 @@ export default function Home() {
         <div className="beforeAfter">
           <div className="label left">Før</div>
           <div className="label right">Etter</div>
-          <img src="/images/potesjarm-ai-2.webp" alt="" />
+          <img src="https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=1200&q=90" alt="" />
           <div className="divider" />
           <div className="knob">↔</div>
         </div>
         <div className="miniGallery">
-          <img src="/images/potesjarm-ai-2.webp" alt="" />
-          <img src="/images/potesjarm-ai-6.webp" alt="" />
-          <img src="/images/potesjarm-ai-3.webp" alt="" />
+          <img src="https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=1200&q=90" alt="" />
+          <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=700&q=88" alt="" />
+          <img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=700&q=88" alt="" />
         </div>
       </section>
 
