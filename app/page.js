@@ -1,10 +1,10 @@
 const styles = [
-  { name: "Natur", sub: "Naturlig & tidløs", img: "https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=1000&q=88" },
-  { name: "Royal", sub: "Konge for en dag", img: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1000&q=88" },
-  { name: "Cinematic", sub: "Filmatisk stemning", img: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=1000&q=88" },
-  { name: "Kunstnerisk", sub: "Unik & kreativ", img: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1000&q=88" },
-  { name: "Memorial", sub: "Et vakkert minne", img: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1000&q=88" },
-  { name: "Sesong", sub: "Sesong & spesial", img: "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&w=1000&q=88" },
+  { name: "Natur", sub: "Naturlig & tidløs" },
+  { name: "Royal", sub: "Konge for en dag" },
+  { name: "Cinematic", sub: "Filmatisk stemning" },
+  { name: "Kunstnerisk", sub: "Unik & kreativ" },
+  { name: "Memorial", sub: "Et vakkert minne" },
+  { name: "Sesong", sub: "Sesong & spesial" },
 ];
 
 const packs = [
@@ -97,7 +97,6 @@ export default function Home() {
         <div className="styleGrid">
           {styles.map((s) => (
             <article className="styleCard" key={s.name}>
-              <img src={s.img} alt="" />
               <div className="styleShade" />
               <div className="styleText">
                 <h3>{s.name}</h3>
@@ -144,14 +143,12 @@ export default function Home() {
         <div className="beforeAfter">
           <div className="label left">Før</div>
           <div className="label right">Etter</div>
-          <img src="https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=1200&q=90" alt="" />
           <div className="divider" />
           <div className="knob">↔</div>
         </div>
         <div className="miniGallery">
-          <img src="https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=1200&q=90" alt="" />
-          <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=700&q=88" alt="" />
-          <img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=700&q=88" alt="" />
+
+
         </div>
       </section>
 
