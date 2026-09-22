@@ -1,10 +1,10 @@
 const styles = [
-  { name: "Natur", sub: "Naturlig & tidløs", img: "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=1000&q=90" },
-  { name: "Royal", sub: "Konge for en dag", img: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1000&q=90" },
-  { name: "Cinematic", sub: "Filmatisk stemning", img: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=1000&q=90" },
-  { name: "Kunstnerisk", sub: "Unik & kreativ", img: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1000&q=90" },
-  { name: "Memorial", sub: "Et vakkert minne", img: "https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=1000&q=90" },
-  { name: "Sesong", sub: "Jul, sommer & mer", img: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=1000&q=90" },
+  { name: "Natur", sub: "Naturlig & tidløs", img: "/images/potesjarm-ai-1.webp" },
+  { name: "Royal", sub: "Konge for en dag", img: "/images/potesjarm-ai-2.webp" },
+  { name: "Cinematic", sub: "Filmatisk stemning", img: "/images/potesjarm-ai-3.webp" },
+  { name: "Kunstnerisk", sub: "Unik & kreativ", img: "/images/potesjarm-ai-4.webp" },
+  { name: "Memorial", sub: "Et vakkert minne", img: "/images/potesjarm-ai-5.webp" },
+  { name: "Sesong", sub: "Jul, sommer & mer", img: "/images/potesjarm-ai-6.webp" },
 ];
 
 const packs = [
@@ -144,14 +144,14 @@ export default function Home() {
         <div className="beforeAfter">
           <div className="label left">Før</div>
           <div className="label right">Etter</div>
-          <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=1200&q=90" alt="" />
+          <img src="/images/potesjarm-ai-2.webp" alt="" />
           <div className="divider" />
           <div className="knob">↔</div>
         </div>
         <div className="miniGallery">
-          <img src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=700&q=90" alt="" />
-          <img src="https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=700&q=90" alt="" />
-          <img src="https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=700&q=90" alt="" />
+          <img src="/images/potesjarm-ai-2.webp" alt="" />
+          <img src="/images/potesjarm-ai-6.webp" alt="" />
+          <img src="/images/potesjarm-ai-3.webp" alt="" />
         </div>
       </section>
 
