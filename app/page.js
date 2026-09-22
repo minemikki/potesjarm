@@ -1,122 +1,244 @@
 const styles = [
-  { name: "Adventure", sub: "Norsk natur. Store opplevelser.", cls: "adventure" },
-  { name: "Royal", sub: "Kongelig personlighet.", cls: "royal" },
-  { name: "Cinematic", sub: "Som en filmplakat.", cls: "cinematic" },
-  { name: "Studio", sub: "Tidløst og elegant.", cls: "studio" },
-  { name: "Memorial", sub: "Et kjært minne for alltid.", cls: "memorial" },
-  { name: "Fun & Creative", sub: "Slipp fantasien løs.", cls: "fun" },
+  {
+    name: "Adventure",
+    text: "Norsk natur. Store opplevelser.",
+    image: "https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    name: "Royal",
+    text: "Kongelig personlighet.",
+    image: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    name: "Cinematic",
+    text: "Som en filmplakat.",
+    image: "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    name: "Studio",
+    text: "Rent. Tidløst. Elegant.",
+    image: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    name: "Memorial",
+    text: "Et kjært minne for alltid.",
+    image: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=900&q=85",
+  },
+  {
+    name: "Fun & Creative",
+    text: "Slipp fantasien løs.",
+    image: "https://images.unsplash.com/photo-1507146426996-ef05306b995a?auto=format&fit=crop&w=900&q=85",
+  },
 ];
 
 const packages = [
-  { name: "Digital", price: "349 kr", items: ["1 premiumbilde", "Høyoppløselig fil", "Klar for print og sosiale medier"] },
-  { name: "Plus", price: "549 kr", popular: true, items: ["3 unike bilder", "Mobilbakgrunn", "Sosiale medier-format", "Klar for print"] },
-  { name: "Cinematic", price: "799 kr", items: ["3 bilder + kort video", "5–10 sek AI-video", "Flere formater", "Perfekt for deling"] },
+  {
+    name: "Digital",
+    price: "349",
+    desc: "For deg som vil ha ett sterkt portrett.",
+    items: ["1 premiumportrett", "Høyoppløselig JPG", "Mobil + printformat", "1 revisjon"],
+  },
+  {
+    name: "Plus",
+    price: "549",
+    desc: "Vår mest populære pakke.",
+    badge: "Mest populær",
+    items: ["3 premiumportretter", "3 ulike komposisjoner", "Mobil + printformat", "2 revisjoner"],
+  },
+  {
+    name: "Cinematic",
+    price: "799",
+    desc: "Når du vil ha noe som virkelig skiller seg ut.",
+    items: ["3 premiumportretter", "Kort cinematic AI-video", "Story/Reels-format", "2 revisjoner"],
+  },
 ];
 
 export default function Home() {
   return (
-    <main>
+    <main id="top">
+      <div className="announcement">
+        <span>Nyhet: Potesjarm Studio er åpent</span>
+        <span>•</span>
+        <span>Personlige hundeportretter laget med omtanke</span>
+      </div>
+
       <header className="nav">
-        <a className="brand" href="#top">
-          <span className="paw">●</span>
-          <span><b>Potesjarm</b><small>FOR LIVET MED HUND</small></span>
+        <a className="brand" href="#top" aria-label="Potesjarm hjem">
+          <span className="brandMark">P</span>
+          <span className="brandType">
+            <strong>Potesjarm</strong>
+            <small>FOR LIVET MED HUND</small>
+          </span>
         </a>
+
         <nav>
           <a href="#studio">Studio</a>
           <a href="#stiler">Stiler</a>
-          <a href="#pakker">Pakker</a>
-          <a href="#om">Om oss</a>
+          <a href="#pakker">Priser</a>
+          <a href="#om">Om</a>
         </nav>
+
         <a className="navCta" href="#pakker">Lag ditt portrett</a>
       </header>
 
-      <section className="hero" id="top">
-        <div className="heroShade" />
+      <section className="hero">
+        <div className="heroMedia" />
+        <div className="heroVeil" />
         <div className="heroContent">
-          <span className="kicker">POTESJARM STUDIO</span>
-          <h1>Mer enn et bilde.<br/>Et minne for livet.</h1>
-          <p>Vi forvandler favorittbildet av hunden din til et unikt, profesjonelt portrett med personlighet.</p>
-          <div className="heroBtns">
-            <a className="primary" href="#pakker">Lag ditt portrett →</a>
-            <a className="secondary" href="#stiler">Se eksempler</a>
+          <div className="eyebrow light">POTESJARM STUDIO</div>
+          <h1>Mer enn et bilde.<br />Et minne for livet.</h1>
+          <p>
+            Vi forvandler favorittbildet av hunden din til et personlig kunstverk —
+            laget for å føles som hunden din, ikke som et tilfeldig filter.
+          </p>
+
+          <div className="heroActions">
+            <a className="button primary" href="#pakker">Lag ditt portrett <span>→</span></a>
+            <a className="button ghost" href="#stiler">Se stilene</a>
           </div>
-          <div className="heroTrust">
-            <span>⚡ 1–3 dager</span>
-            <span>∞ Høyoppløselig</span>
-            <span>♡ Personlig kvalitetssjekk</span>
+
+          <div className="trustRow">
+            <span><b>1–3</b> dager</span>
+            <span><b>HD</b> filer</span>
+            <span><b>100%</b> personlig</span>
           </div>
         </div>
-        <div className="heroDog">
-          <div className="dogHead">🐕</div>
-          <div className="glasses">◐━◑</div>
-          <div className="heroNote">Samme hund.<br/>En helt ny historie.</div>
+
+        <div className="heroCard">
+          <div className="heroCardTop">POTESJARM ORIGINAL</div>
+          <div className="heroCardQuote">“Samme hund.<br />En helt ny historie.”</div>
+          <div className="heroCardFoot">Custom portrait / 2026</div>
         </div>
       </section>
 
-      <section className="section" id="stiler">
-        <div className="sectionHead">
+      <section className="intro" id="studio">
+        <div>
+          <div className="eyebrow">ET LITE STUDIO FOR STORE PERSONLIGHETER</div>
+          <h2>Hunden din er ikke generisk.<br />Portrettet burde heller ikke være det.</h2>
+        </div>
+        <p>
+          Du sender oss bildene. Vi bygger uttrykket rundt hundens personlighet,
+          farger og særpreg, og kvalitetssjekker resultatet før levering.
+        </p>
+      </section>
+
+      <section className="stylesSection" id="stiler">
+        <div className="sectionTitleRow">
           <div>
-            <span className="kicker dark">VELG DIN STIL</span>
-            <h2>Hver hund har sin historie.</h2>
+            <div className="eyebrow">VELG ET UNIVERS</div>
+            <h2>Finn uttrykket som passer.</h2>
           </div>
-          <p>Velg uttrykket som passer hunden din. Du laster opp bildene — vi tar oss av resten.</p>
+          <a href="#pakker">Se pakker <span>↗</span></a>
         </div>
 
         <div className="styleGrid">
-          {styles.map((s) => (
-            <article key={s.name} className={"styleCard " + s.cls}>
-              <div className="fakeDog">🐶</div>
-              <div className="styleOverlay">
-                <h3>{s.name}</h3>
-                <span>{s.sub}</span>
+          {styles.map((style, index) => (
+            <article className="styleCard" key={style.name}>
+              <img src={style.image} alt="" />
+              <div className="styleShade" />
+              <span className="styleIndex">0{index + 1}</span>
+              <div className="styleCopy">
+                <h3>{style.name}</h3>
+                <p>{style.text}</p>
               </div>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="process" id="studio">
-        <div className="processCopy">
-          <span className="kicker dark">SLIK FUNGERER DET</span>
-          <h2>Enkelt. Raskt. Magisk.</h2>
-          <div className="steps">
-            <div><b>1</b><h3>Last opp bilder</h3><p>Send 2–3 tydelige bilder av hunden din.</p></div>
-            <div><b>2</b><h3>Velg stil</h3><p>Velg univers og pakken som passer best.</p></div>
-            <div><b>3</b><h3>Motta kunstverket</h3><p>Vi leverer filene digitalt når de er kvalitetssjekket.</p></div>
-          </div>
+      <section className="howItWorks">
+        <div className="howHeading">
+          <div className="eyebrow light">SLIK FUNGERER DET</div>
+          <h2>Fra kamerarull<br />til kunstverk.</h2>
+          <p>Tre enkle steg. Resten tar vi oss av.</p>
         </div>
 
-        <div className="packages" id="pakker">
-          {packages.map((p) => (
-            <article key={p.name} className={"package " + (p.popular ? "featured" : "")}>
-              {p.popular && <span className="popular">MEST POPULÆR</span>}
-              <h3>{p.name}</h3>
-              <div className="price">{p.price}</div>
-              <ul>{p.items.map((item)=><li key={item}>✓ {item}</li>)}</ul>
-              <button>Velg pakke</button>
+        <div className="steps">
+          <article>
+            <span>01</span>
+            <h3>Last opp</h3>
+            <p>Velg 2–3 tydelige bilder som viser ansikt, pels og uttrykk godt.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Velg stil</h3>
+            <p>Adventure, Royal, Cinematic, Studio, Memorial eller Creative.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Vi lager</h3>
+            <p>Vi skaper, finjusterer og kvalitetssjekker før du mottar filene.</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="pricingSection" id="pakker">
+        <div className="pricingIntro">
+          <div className="eyebrow">VELG PAKKE</div>
+          <h2>Enkelt priset.<br />Laget personlig.</h2>
+          <p>Ingen abonnement. Ingen skjulte kostnader.</p>
+        </div>
+
+        <div className="pricingGrid">
+          {packages.map((pack) => (
+            <article className={"priceCard " + (pack.badge ? "featured" : "")} key={pack.name}>
+              {pack.badge && <div className="badge">{pack.badge}</div>}
+              <div className="priceTop">
+                <h3>{pack.name}</h3>
+                <p>{pack.desc}</p>
+              </div>
+              <div className="price"><span>{pack.price}</span> kr</div>
+              <ul>
+                {pack.items.map((item) => <li key={item}>✓ {item}</li>)}
+              </ul>
+              <button>Velg {pack.name}</button>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="gallery">
-        <article className="quote darkBox">“Dette ble helt utrolig. Gråt når jeg så det.”<small>— Eksempel på kundesitat</small></article>
-        <article className="galleryArt one"><span>ADVENTURE</span><div>🐕</div></article>
-        <article className="galleryArt two"><span>CINEMATIC</span><div>🐶</div></article>
-        <article className="galleryArt three"><span>ROYAL</span><div>🐕‍🦺</div></article>
-        <article className="quote darkBox">“Den perfekte gaven til en hundeeier.”<small>— Eksempel på kundesitat</small></article>
+      <section className="showcase">
+        <div className="showcaseImage leftImg" />
+        <div className="showcaseCenter">
+          <div className="eyebrow light">LAGET FOR Å BLI TATT VARE PÅ</div>
+          <blockquote>“Et bilde du faktisk har lyst til å henge på veggen.”</blockquote>
+          <p>Digital levering først. Print og canvas kommer senere.</p>
+        </div>
+        <div className="showcaseImage rightImg" />
       </section>
 
       <section className="about" id="om">
-        <span className="kicker dark">POTESJARM STUDIO</span>
-        <h2>Hunden din er ikke generisk.<br/>Portrettet burde heller ikke være det.</h2>
-        <p>Vi bygger Potesjarm rundt én idé: personlige produkter og minner som faktisk føles verdt å ta vare på.</p>
-        <a className="primary darkBtn" href="#pakker">Start ditt portrett →</a>
+        <div className="aboutCard">
+          <div className="eyebrow">POTESJARM</div>
+          <h2>For livet med hund.</h2>
+          <p>
+            Potesjarm skal være mer enn en nettbutikk. Vi bygger et norsk hundebrand
+            rundt ting som føles personlige, gjennomførte og verdt å beholde.
+          </p>
+          <a className="textLink" href="#pakker">Start med et portrett <span>→</span></a>
+        </div>
+        <div className="aboutImage">
+          <img
+            src="https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=1400&q=90"
+            alt="Hund ute i naturen"
+          />
+        </div>
       </section>
 
       <footer>
-        <div className="brand"><span className="paw">●</span><span><b>Potesjarm</b><small>FOR LIVET MED HUND</small></span></div>
-        <span>© 2026 Potesjarm</span>
+        <div className="brand footerBrand">
+          <span className="brandMark">P</span>
+          <span className="brandType">
+            <strong>Potesjarm</strong>
+            <small>FOR LIVET MED HUND</small>
+          </span>
+        </div>
+        <div className="footerText">© 2026 Potesjarm Studio</div>
+        <div className="footerLinks">
+          <a href="#stiler">Stiler</a>
+          <a href="#pakker">Priser</a>
+          <a href="#om">Om</a>
+        </div>
       </footer>
     </main>
   );
