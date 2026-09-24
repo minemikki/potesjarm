@@ -1,16 +1,38 @@
-# Potesjarm
+# Potesjarm Community
 
-Potesjarm Studio — custom dog portrait storefront.
+Potesjarm er et bybasert sosialt hundecommunity for Norge.
 
-## Local development
+## MVP som er bygget
+- For deg-feed
+- lokale Signals med deltakelse
+- Sirkler
+- hunde-discovery og matchscore
+- kartprototype
+- turtracking-demo
+- streaks, badges og challenge-progresjon
+- hundeprofil
+- søk
+- varsler
+- onboarding
+- opprette innlegg
+- opprette Signals
+- lokal demo-persistens i browser
+- responsiv desktop/mobil UI
 
-```bash
-npm install
-npm run dev
-```
+## Backend
+Datamodellen ligger i `supabase/schema.sql` og dekker:
+profiles, dogs, posts, likes, comments, signals, signal participants, circles,
+circle members, follows, walks, challenges, badges og notifications.
 
-## Deploy
+Schemaet er bevisst **ikke** kjørt automatisk mot en Supabase-instans.
 
-Import this GitHub repository into Vercel. Vercel will detect Next.js automatically.
+## Neste produksjonskobling
+1. Aktiver/velg Potesjarm Supabase-prosjekt.
+2. Installer Supabase JS-klient og koble auth.
+3. Kjør schema.sql og verifiser RLS.
+4. Bytt demo-arrays/localStorage mot realtime queries.
+5. Koble kartleverandør og ekte GPS.
+6. Push-varsler og bildeopplasting.
+7. Moderasjon, rapportering og blokkering før offentlig launch.
 
-Current phase: visual storefront foundation. Next phases: image upload, Supabase, checkout/payment, order admin, and AI/Higgsfield workflow.
+SiamConnect-databasen skal ikke brukes av dette prosjektet.
