@@ -82,6 +82,25 @@ const moments = [
   { name:"Nala", label:"Strand", image:dogImg("photo-1517849845537-4d257902454a") },
 ];
 
+const places = [
+  {id:1,name:"Mosvatnet",type:"Tursti",meta:"4,8 ★ · 1,2 km",tags:["Vann","Bånd"],icon:"🌲"},
+  {id:2,name:"Sørmarka hundepark",type:"Hundepark",meta:"4,6 ★ · 2,4 km",tags:["Inngjerdet","Lek"],icon:"🎾"},
+  {id:3,name:"Sola hundestrand",type:"Strand",meta:"4,9 ★ · 11 km",tags:["Bad","Åpent"],icon:"🌊"},
+  {id:4,name:"Potevenn Kafé",type:"Hundvennlig",meta:"4,7 ★ · 850 m",tags:["Inne","Vannskål"],icon:"☕"},
+];
+
+const routes = [
+  {id:1,title:"Mosvatnet rundt",distance:"3,2 km",time:"42 min",difficulty:"Lett",saves:128,icon:"🌿"},
+  {id:2,title:"Dalsnuten med hund",distance:"5,7 km",time:"1 t 35 min",difficulty:"Moderat",saves:94,icon:"⛰️"},
+  {id:3,title:"Sola strandrunde",distance:"4,4 km",time:"58 min",difficulty:"Lett",saves:76,icon:"🌊"},
+];
+
+const safetyItems = [
+  {title:"Nødprofil",body:"Kontaktperson, veterinær og viktig info hvis noe skjer.",icon:"🛡️"},
+  {title:"Mistet hund",body:"Send hastevarsel til hundeeiere i nærområdet.",icon:"🚨"},
+  {title:"Trygge møter",body:"Møt offentlig, se profilhistorikk og rapporter enkelt.",icon:"🤝"},
+];
+
 export default function Home() {
   const [tab, setTab] = useState("For deg");
   const [city, setCity] = useState("Stavanger");
@@ -136,6 +155,19 @@ export default function Home() {
   const [walkSummary, setWalkSummary] = useState(null);
   const [privacyNearby, setPrivacyNearby] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
+  const [showMore, setShowMore] = useState(false);
+  const [exploreView, setExploreView] = useState("Steder");
+  const [savedPlaces, setSavedPlaces] = useState({});
+  const [savedRoutes, setSavedRoutes] = useState({});
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteCount, setInviteCount] = useState(2);
+  const [showLostDog, setShowLostDog] = useState(false);
+  const [lostDogText, setLostDogText] = useState("");
+  const [lostDogActive, setLostDogActive] = useState(false);
+  const [showWeeklyRecap, setShowWeeklyRecap] = useState(false);
+  const [showSafety, setShowSafety] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
 
   useEffect(() => {
     try {
@@ -147,15 +179,19 @@ export default function Home() {
       if (saved.followedDogs) setFollowedDogs(saved.followedDogs);
       if (saved.savedPosts) setSavedPosts(saved.savedPosts);
       if (saved.eventJoined) setEventJoined(saved.eventJoined);
+      if (saved.savedPlaces) setSavedPlaces(saved.savedPlaces);
+      if (saved.savedRoutes) setSavedRoutes(saved.savedRoutes);
+      if (saved.lostDogActive) setLostDogActive(saved.lostDogActive);
+      if (saved.verified) setVerified(saved.verified);
       if (!localStorage.getItem("potesjarm-onboarded")) setShowOnboarding(true);
     } catch {}
   }, []);
 
   useEffect(() => {
     try {
-      localStorage.setItem("potesjarm-demo", JSON.stringify({ city, joined, liked, joinedCircles, followedDogs, savedPosts, eventJoined }));
+      localStorage.setItem("potesjarm-demo", JSON.stringify({ city, joined, liked, joinedCircles, followedDogs, savedPosts, eventJoined, savedPlaces, savedRoutes, lostDogActive, verified }));
     } catch {}
-  }, [city, joined, liked, joinedCircles, followedDogs, savedPosts, eventJoined]);
+  }, [city, joined, liked, joinedCircles, followedDogs, savedPosts, eventJoined, savedPlaces, savedRoutes, lostDogActive, verified]);
 
   useEffect(() => {
     if (!walkActive) return;
@@ -245,9 +281,12 @@ export default function Home() {
           <button onClick={() => setTab("Kart")} className={tab === "Kart" ? "active" : ""}><span>⌖</span>Kart</button>
           <button onClick={() => setTab("Aktivitet")} className={tab === "Aktivitet" ? "active" : ""}><span>🔥</span>Aktivitet</button>
           <button onClick={() => setTab("Events")} className={tab === "Events" ? "active" : ""}><span>◫</span>Events</button>
+          <button onClick={() => setTab("Utforsk")} className={tab === "Utforsk" ? "active" : ""}><span>✦</span>Utforsk</button>
         </nav>
 
         <button className="primaryCta" onClick={() => setShowComposer(true)}>＋ Send signal</button>
+        <button className="settingsLink" onClick={() => setShowInvite(true)}>🎁 Inviter venner</button>
+        <button className="settingsLink" onClick={() => setShowSafety(true)}>🛡 Trygghet</button>
         <button className="settingsLink" onClick={() => setShowSettings(true)}>⚙ Innstillinger</button>
 
         <button className="miniProfile" onClick={() => setShowProfile(true)}>
@@ -289,6 +328,7 @@ export default function Home() {
               <div className="heroBadge"><b>12</b><span>aktive nå</span></div>
             </section>
 
+            {lostDogActive && <div className="lostDogBanner"><div><span>🚨 AKTIVT HASTEVARSEL</span><b>Santos er meldt savnet i {city}</b><small>Varsel er synlig for lokale brukere i demoen.</small></div><button onClick={()=>{setLostDogActive(false);flash("Hastevarsel avsluttet")}}>Funnet ✓</button></div>}
             <div className="momentsRow">
               <button className="moment addMoment" onClick={()=>setShowPostComposer(true)}><span>＋</span><small>Din story</small></button>
               {moments.map(m=><button className="moment" key={m.name} onClick={()=>setShowMoment(m)}><span><img src={m.image} alt=""/></span><b>{m.name}</b><small>{m.label}</small></button>)}
@@ -296,6 +336,8 @@ export default function Home() {
             <div className="homeShortcuts">
               <button onClick={()=>setTab("Aktivitet")}><span>🔥</span><div><b>18 dagers streak</b><small>Se fremgang og challenges</small></div><strong>→</strong></button>
               <button onClick={()=>setTab("Events")}><span>◫</span><div><b>3 events nær deg</b><small>Neste: Mosvatnet fredag</small></div><strong>→</strong></button>
+              <button onClick={()=>setTab("Utforsk")}><span>✦</span><div><b>Oppdag hundelivet</b><small>Steder, ruter og lokale tips</small></div><strong>→</strong></button>
+              <button onClick={()=>setShowWeeklyRecap(true)}><span>↗</span><div><b>Uka deres</b><small>Lag delbart ukeskort</small></div><strong>→</strong></button>
             </div>
             <div className="sectionTitle"><div><span>AKKURAT NÅ</span><h2>Signals nær deg</h2></div><button onClick={() => setTab("Signals")}>Se alle →</button></div>
             <div className="signalStrip">
@@ -370,6 +412,16 @@ export default function Home() {
           </>
         )}
 
+        {tab === "Utforsk" && (
+          <>
+            <section className="simpleIntro exploreIntro"><span>OPPDAG LOKALT</span><h2>Hele hundelivet rundt deg.</h2><p>Finn gode steder, lagre turer og oppdag det andre hundeeiere anbefaler.</p></section>
+            <div className="activityTabs">{["Steder","Turruter","Trygghet"].map(v=><button key={v} onClick={()=>setExploreView(v)} className={exploreView===v?"active":""}>{v}</button>)}</div>
+            {exploreView==="Steder" && <div className="placeGrid">{places.map(p=><article key={p.id}><div className="placeIcon">{p.icon}</div><div><span>{p.type}</span><h3>{p.name}</h3><p>{p.meta}</p><div>{p.tags.map(t=><small key={t}>{t}</small>)}</div></div><button onClick={()=>setSavedPlaces({...savedPlaces,[p.id]:!savedPlaces[p.id]})}>{savedPlaces[p.id]?"★":"☆"}</button></article>)}</div>}
+            {exploreView==="Turruter" && <div className="routeList">{routes.map(r=><article key={r.id}><div className="routeIcon">{r.icon}</div><div><span>{r.difficulty}</span><h3>{r.title}</h3><p>{r.distance} · {r.time} · {r.saves} lagret</p></div><button onClick={()=>setSavedRoutes({...savedRoutes,[r.id]:!savedRoutes[r.id]})}>{savedRoutes[r.id]?"Lagret ✓":"Lagre"}</button></article>)}</div>}
+            {exploreView==="Trygghet" && <div className="safetyGrid">{safetyItems.map(i=><article key={i.title}><span>{i.icon}</span><h3>{i.title}</h3><p>{i.body}</p><button onClick={()=>i.title==="Mistet hund"?setShowLostDog(true):setShowSafety(true)}>Åpne →</button></article>)}</div>}
+          </>
+        )}
+
         {tab === "Aktivitet" && (
           <>
             <section className="simpleIntro activityIntro"><span>GAMIFICATION</span><h2>Gjør hver tur til fremgang.</h2><p>Bygg streak, samle merker og se hvordan dere ligger an lokalt.</p></section>
@@ -425,8 +477,11 @@ export default function Home() {
       </aside>
 
       <nav className="bottomNav">
-        {nav.map(item => <button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}><span>{item==="For deg"?"⌂":item==="Signals"?"◉":item==="Sirkler"?"◎":"♙"}</span><small>{item}</small></button>)}
-        <button onClick={()=>setTab("Kart")} className={tab==="Kart"?"active":""}><span>⌖</span><small>Kart</small></button>
+        <button className={tab==="For deg"?"active":""} onClick={()=>setTab("For deg")}><span>⌂</span><small>Hjem</small></button>
+        <button className={tab==="Utforsk"?"active":""} onClick={()=>setTab("Utforsk")}><span>✦</span><small>Utforsk</small></button>
+        <button className={tab==="Signals"?"active":""} onClick={()=>setTab("Signals")}><span>◉</span><small>Signals</small></button>
+        <button className={tab==="Hunder"?"active":""} onClick={()=>setTab("Hunder")}><span>♙</span><small>Hunder</small></button>
+        <button onClick={()=>setShowMore(true)}><span>•••</span><small>Mer</small></button>
       </nav>
       <button className="mobileFab" onClick={()=>setShowComposer(true)}>＋</button>
 
@@ -438,8 +493,20 @@ export default function Home() {
 
       {showNotifications && <div className="drawerBackdrop" onClick={()=>setShowNotifications(false)}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>AKTIVITET</span><h2>Varsler</h2></div><button onClick={()=>setShowNotifications(false)}>×</button></div><div className="notification"><b>🐾 Luna vil bli turvenn</b><p>94% match med Santos · 8 min siden</p></div><div className="notification"><b>🔥 18 dagers streak!</b><p>Én tur i dag holder streaken levende.</p></div><div className="notification"><b>🌲 Ny challenge i Stavanger</b><p>Utforsk 5 nye steder før søndag.</p></div><div className="notification"><b>🎾 Signal nær deg</b><p>Milo søker lekekamerat på Tjensvoll.</p></div></aside></div>}
 
-      {showProfile && <div className="drawerBackdrop" onClick={()=>setShowProfile(false)}><aside className="drawer profileDrawer" onClick={e=>e.stopPropagation()}><div className="profileCover"><button onClick={()=>setShowProfile(false)}>×</button></div><div className="profileAvatar dogAvatar"/>{editingProfile ? <div className="profileEdit"><input value={profileName} onChange={e=>setProfileName(e.target.value)}/><input value={profileBio} onChange={e=>setProfileBio(e.target.value)}/></div> : <><h2>{profileName}</h2><p className="profileSub">{profileBio}</p></>}<div className="profileStats"><div><b>18</b><span>streak</span></div><div><b>243</b><span>turer</span></div><div><b>812 km</b><span>sammen</span></div></div><div className="profileChips"><span>⚡ Høy energi</span><span>🌲 Fjelltur</span><span>🎾 Røff lek</span><span>🐕 Store hunder</span></div><h3>Merker</h3><div className="badgeRow"><span>🏔️<small>Fjellpote</small></span><span>🌧️<small>Regnkriger</small></span><span>🔥<small>14 dager</small></span><span>🌙<small>Nattugle</small></span></div><button className="profileAction" onClick={()=>setEditingProfile(!editingProfile)}>{editingProfile ? "Lagre profil" : "Rediger hundeprofil"}</button></aside></div>}
+      {showProfile && <div className="drawerBackdrop" onClick={()=>setShowProfile(false)}><aside className="drawer profileDrawer" onClick={e=>e.stopPropagation()}><div className="profileCover"><button onClick={()=>setShowProfile(false)}>×</button></div><div className="profileAvatar dogAvatar"/><div className="profileIdentity">{verified && <span className="verifiedBadge">✓ Verifisert</span>}</div>{editingProfile ? <div className="profileEdit"><input value={profileName} onChange={e=>setProfileName(e.target.value)}/><input value={profileBio} onChange={e=>setProfileBio(e.target.value)}/></div> : <><h2>{profileName}</h2><p className="profileSub">{profileBio}</p></>}<div className="profileStats"><div><b>18</b><span>streak</span></div><div><b>243</b><span>turer</span></div><div><b>812 km</b><span>sammen</span></div></div><div className="profileChips"><span>⚡ Høy energi</span><span>🌲 Fjelltur</span><span>🎾 Røff lek</span><span>🐕 Store hunder</span></div><h3>Merker</h3><div className="badgeRow"><span>🏔️<small>Fjellpote</small></span><span>🌧️<small>Regnkriger</small></span><span>🔥<small>14 dager</small></span><span>🌙<small>Nattugle</small></span></div><button className="profileAction" onClick={()=>setEditingProfile(!editingProfile)}>{editingProfile ? "Lagre profil" : "Rediger hundeprofil"}</button><button className="profileGhost" onClick={()=>setShowPremium(true)}>✦ Potesjarm+ preview</button></aside></div>}
 
+
+      {showMore && <div className="actionSheetBackdrop" onClick={()=>setShowMore(false)}><div className="moreSheet" onClick={e=>e.stopPropagation()}><div className="sheetHandle"/><h3>Mer i Potesjarm</h3><div className="moreGrid"><button onClick={()=>{setTab("Aktivitet");setShowMore(false)}}><span>🔥</span><b>Aktivitet</b><small>Streaks & merker</small></button><button onClick={()=>{setTab("Sirkler");setShowMore(false)}}><span>◎</span><b>Sirkler</b><small>Finn flokken</small></button><button onClick={()=>{setTab("Events");setShowMore(false)}}><span>◫</span><b>Events</b><small>Møt folk</small></button><button onClick={()=>{setTab("Kart");setShowMore(false)}}><span>⌖</span><b>Kart</b><small>Rundt deg</small></button><button onClick={()=>{setShowInbox(true);setShowMore(false)}}><span>✉</span><b>Meldinger</b><small>Samtaler</small></button><button onClick={()=>{setShowInvite(true);setShowMore(false)}}><span>🎁</span><b>Inviter</b><small>Bygg byen</small></button><button onClick={()=>{setShowSafety(true);setShowMore(false)}}><span>🛡</span><b>Trygghet</b><small>Nødprofil</small></button><button onClick={()=>{setShowSettings(true);setShowMore(false)}}><span>⚙</span><b>Innstillinger</b><small>Personvern</small></button></div></div></div>}
+
+      {showInvite && <div className="modalBackdrop" onClick={()=>setShowInvite(false)}><div className="inviteModal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowInvite(false)}>×</button><span>BYGG FLOKKEN</span><h2>Inviter 3 hundevenner.</h2><p>Når flere i samme område blir med, blir Signals, events og hundematching mye bedre.</p><div className="inviteProgress"><div><i style={{width:Math.min(100,(inviteCount/3)*100)+"%"}}/></div><b>{inviteCount}/3 invitert</b></div><div className="inviteReward"><span>🎁</span><div><b>Lås opp Founder-merket</b><small>+ 500 Poter når 3 venner blir med</small></div></div><button className="inviteButton" onClick={()=>{setInviteCount(Math.min(3,inviteCount+1));flash("Invitasjon simulert ✓")}}>Inviter en venn</button></div></div>}
+
+      {showLostDog && <div className="modalBackdrop urgentBackdrop" onClick={()=>setShowLostDog(false)}><div className="lostDogModal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowLostDog(false)}>×</button><span>🚨 HASTEVARSEL</span><h2>Mistet hund</h2><p>Lag et tydelig varsel til hundeeiere i området. Del aldri privat adresse offentlig.</p><div className="lostDogDog"><div className="avatar dogAvatar"/><div><b>{profileName}</b><small>{profileBio}</small></div></div><textarea value={lostDogText} onChange={e=>setLostDogText(e.target.value)} placeholder="Sist sett ved Mosvatnet, blå sele..."/><div className="urgentReach"><b>Estimert lokal rekkevidde</b><span>Hundeeiere i {city} og nærliggende områder</span></div><button onClick={()=>{setLostDogActive(true);setShowLostDog(false);flash("Hastevarsel aktivert i demo")}}>Aktiver hastevarsel</button></div></div>}
+
+      {showWeeklyRecap && <div className="modalBackdrop" onClick={()=>setShowWeeklyRecap(false)}><div className="recapCard" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowWeeklyRecap(false)}>×</button><span>POTESJARM · UKE 39</span><div className="recapDog dogAvatar"/><h2>Santos + Michael</h2><p>En uke ute sammen.</p><div className="recapBig">36,9 <small>km</small></div><div className="recapStats"><span><b>7</b>Turer</span><span><b>18</b>Streak</span><span><b>2 840</b>Poter</span></div><div className="recapBadge">🏔️ Fjellpote nærmer seg · 3/5 steder</div><button onClick={()=>flash("Delingskort klart i demo")}>Del ukekort ↗</button></div></div>}
+
+      {showSafety && <div className="drawerBackdrop" onClick={()=>setShowSafety(false)}><aside className="drawer safetyDrawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>TRYGGHET</span><h2>Potesjarm Safe</h2></div><button onClick={()=>setShowSafety(false)}>×</button></div><div className="safetyStatus"><span>🛡️</span><div><b>Nødprofil: 75% ferdig</b><p>Legg til veterinær og nødnummer før dere trenger det.</p></div></div><button className="safetyAction" onClick={()=>{setVerified(true);flash("Profil markert som verifisert i demo")}}>✓ Verifiser profil</button><button className="safetyAction urgent" onClick={()=>{setShowSafety(false);setShowLostDog(true)}}>🚨 Meld hund savnet</button><section><h3>Trygge møter</h3><p>Møt nye hundeeiere på offentlig sted, sjekk historikk og avslutt møtet hvis noe føles feil.</p></section><section><h3>Rapportering</h3><p>Blokker eller rapporter profiler og innlegg direkte fra menyene i appen.</p></section></aside></div>}
+
+      {showPremium && <div className="modalBackdrop premiumBackdrop" onClick={()=>setShowPremium(false)}><div className="premiumModal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowPremium(false)}>×</button><span>✦ POTESJARM+</span><h2>Mer av livet dere lever sammen.</h2><p>Dette er bare en produkt-preview nå — ingen betaling er koblet til.</p><div className="premiumFeatures"><div>📊<b>Dypere turstatistikk</b><small>Historikk, rekorder og trender</small></div><div>🏆<b>Eksklusive challenges</b><small>Sesongmerker og mål</small></div><div>🐕<b>Flere hunder</b><small>Én konto, hele flokken</small></div><div>🗺️<b>Avanserte ruter</b><small>Lagre og planlegg favoritter</small></div></div><button onClick={()=>{setShowPremium(false);flash("Potesjarm+ interessert lagret i demo")}}>Jeg er interessert</button></div></div>}
 
       {showComments && <div className="drawerBackdrop" onClick={()=>setShowComments(null)}><aside className="drawer commentsDrawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>SAMTALE</span><h2>Kommentarer</h2></div><button onClick={()=>setShowComments(null)}>×</button></div><div className="commentsList">{(commentsByPost[showComments.id]||[]).map((c,i)=><div className="commentItem" key={i}><div className="avatar dogAvatar small"/><div><b>{c.name}</b><p>{c.text}</p><span>Lik · Svar</span></div></div>)}</div><form className="commentComposer" onSubmit={e=>{e.preventDefault();addComment()}}><input value={commentDraft} onChange={e=>setCommentDraft(e.target.value)} placeholder="Skriv en kommentar..."/><button>Send</button></form></aside></div>}
 
