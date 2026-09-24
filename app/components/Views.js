@@ -278,7 +278,7 @@ export function MapView() {
           <path d="M22 30 C 30 40, 40 42, 46 62" stroke="#ff7a5c" strokeWidth=".8" strokeDasharray="1.6 1.4" fill="none" />
         </svg>
         {areas.slice(0, 4).map((a, i) => (
-          <span key={a} className="mapLabel" style={{ left: [12, 58, 40, 70][i] + "%", top: [16, 12, 48, 80][i] + "%" }}>{a}</span>
+          <span key={a} className="mapLabel" style={{ left: [8, 52, 58, 70][i] + "%", top: [12, 10, 72, 86][i] + "%" }}>{a}</span>
         ))}
         {pins.map((p, i) => (
           <button key={i} className={"mapPin tint-" + p.color + (sel === p ? " sel" : "")} style={{ left: p.x + "%", top: p.y + "%" }} onClick={() => setSel(p)}>

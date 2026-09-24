@@ -6,6 +6,8 @@ import { useApp } from "./store";
 import { Avatar, AvatarStack, Bar, CloseBtn, Layer, LayerHead, Meter, RouteSketch } from "./ui";
 import { cities, conversations, dogById, dogs, fmtKm, groups, img, meetupTypes, ME, notifications, places, PHOTO, stories } from "../lib/data";
 
+export const genitive = (n) => (/[sxz]$/i.test(n) ? n + "'" : n + "s");
+
 export default function Overlays() {
   const app = useApp();
   return (
@@ -276,7 +278,7 @@ function DogProfile({ data: id, onClose }) {
           <span><small>Størrelse</small><b>{d.size}</b></span>
           <span><small>Streak</small><b><Icon name="flame" size={15} /> {d.streak} d</b></span>
         </div>
-        <div className="tags">{d.play.map((p) => <small key={p}>{p}</small>)}<small>Liker {app.profile.name}s tempo</small></div>
+        <div className="tags">{d.play.map((p) => <small key={p}>{p}</small>)}<small>Liker {genitive(app.profile.name)} tempo</small></div>
         {shared.length > 0 && (
           <>
             <h4>Felles grupper</h4>

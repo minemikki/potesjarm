@@ -80,9 +80,15 @@ export function Bar({ value, max = 100, tone = "blue" }) {
 // Felles ramme for modaler, skuffer og bunnark. Lukk med Esc eller klikk på bakgrunnen.
 export function Layer({ kind = "modal", onClose, className = "", children, label, tone }) {
   const closeRef = useRef(onClose);
+  const rootRef = useRef(null);
   closeRef.current = onClose;
   useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && closeRef.current?.();
+    // Esc lukker bare det øverste laget.
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      const all = document.querySelectorAll(".layer");
+      if (all[all.length - 1] === rootRef.current) closeRef.current?.();
+    };
     window.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -92,7 +98,7 @@ export function Layer({ kind = "modal", onClose, className = "", children, label
     };
   }, []);
   return (
-    <div className={"layer layer-" + kind + (tone ? " tone-" + tone : "")} onClick={onClose}>
+    <div ref={rootRef} className={"layer layer-" + kind + (tone ? " tone-" + tone : "")} onClick={onClose}>
       <div className={"layerBox " + className} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={label}>
         {children}
       </div>
