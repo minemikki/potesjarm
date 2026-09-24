@@ -154,10 +154,10 @@ export default function Home() {
 
         <button className="primaryCta" onClick={() => setShowComposer(true)}>＋ Send signal</button>
 
-        <div className="miniProfile">
+        <button className="miniProfile" onClick={() => setShowProfile(true)}>
           <div className="avatar dogAvatar" />
           <div><b>Michael & Santos</b><span>18 dagers streak 🔥</span></div>
-        </div>
+        </button>
       </aside>
 
       <section className="mainColumn">
@@ -205,8 +205,9 @@ export default function Home() {
             </div>
 
             <div className="sectionTitle"><div><span>FOR DEG</span><h2>Fra hundelivet rundt deg</h2></div><button>Tilpass</button></div>
+            <div className="quickPost"><button onClick={() => setShowPostComposer(true)}>＋ Del et øyeblikk fra hundelivet</button></div>
             <div className="feed">
-              {feed.map((post) => (
+              {localPosts.map((post) => (
                 <article className="post" key={post.id}>
                   <div className="postHead">
                     <div className="avatar dogAvatar small" />
