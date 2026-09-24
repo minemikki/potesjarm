@@ -1,193 +1,245 @@
-const styles = [
-  { name: "Natur", sub: "Naturlig & tidløs" },
-  { name: "Royal", sub: "Konge for en dag" },
-  { name: "Cinematic", sub: "Filmatisk stemning" },
-  { name: "Kunstnerisk", sub: "Unik & kreativ" },
-  { name: "Memorial", sub: "Et vakkert minne" },
-  { name: "Sesong", sub: "Sesong & spesial" },
+"use client";
+
+import { useMemo, useState } from "react";
+
+const dogImg = (id) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=86`;
+
+const feed = [
+  {
+    id: 1,
+    owner: "Lise & Luna",
+    meta: "2 t siden · Stavanger",
+    title: "Magisk kveldstur ved Mosvatnet i dag",
+    body: "Sola, frisk luft og glade hunder! 🐾💙",
+    image: dogImg("photo-1552053831-71594a27632d"),
+    likes: 56,
+    comments: 8,
+  },
+  {
+    id: 2,
+    owner: "Anders & Balto",
+    meta: "34 min siden · Madla",
+    title: "Fant en ny favorittsti",
+    body: "Rolig på morgenen, masse plass og perfekt for langline.",
+    image: dogImg("photo-1561037404-61cd46aa615b"),
+    likes: 31,
+    comments: 5,
+  },
 ];
 
-const packs = [
-  {
-    name: "Basic",
-    price: "349 kr",
-    items: ["1 bilde", "1 stil", "Høy oppløsning", "Digital levering"],
-  },
-  {
-    name: "Premium",
-    price: "549 kr",
-    badge: "Mest valgt",
-    items: ["3 bilder", "Valgfri stil", "Høy oppløsning", "2 revisjoner"],
-  },
-  {
-    name: "Ultimate",
-    price: "799 kr",
-    items: ["5 bilder", "Alle stiler", "Høy oppløsning", "Eksklusiv bakgrunn"],
-  },
+const signals = [
+  { title: "Tur rundt Mosvatnet kl. 18", by: "Anders & Balto", meta: "Nå · 1,2 km unna", action: "Bli med", tone: "blue", members: 4 },
+  { title: "Lekekamerat i kveld?", by: "Kari & Milo", meta: "12 min siden · Tjensvoll", action: "Vis interesse", tone: "amber", members: 3 },
+  { title: "Noen på hundeparken nå?", by: "Henrik & Nala", meta: "25 min siden · Madla", action: "Jeg kommer", tone: "green", members: 5 },
+  { title: "Rolig kveldstur i Sandnes", by: "Siri & Max", meta: "1 t siden · Sandnes", action: "Se signal", tone: "violet", members: 2 },
 ];
 
-const reviews = [
-  ["Ingrid H.", "Helt nydelig resultat! Jeg ble faktisk rørt. Fantastisk service og super rask levering!"],
-  ["Thomas K.", "Bedre enn jeg forventet. Bildene ser helt magiske ut!"],
-  ["Sofie M.", "Den beste gaven til en hundeeier. Kommer garantert til å bestille igjen!"],
+const circles = [
+  { title: "Schæfer Rogaland", body: "For alle med schæfer og schæfer-interesse i Rogaland.", members: "482", image: dogImg("photo-1589941013453-ec89f33b5e95") },
+  { title: "Valper Stavanger", body: "For valpeeiere og deg som venter valp.", members: "1,1k", image: dogImg("photo-1558788353-f76d92427f16") },
+  { title: "Små hunder", body: "Chihuahua, pomeranian, fransk bulldog og flere.", members: "689", image: dogImg("photo-1517849845537-4d257902454a") },
+  { title: "Fjelltur med hund", body: "For turglade hunder og eiere i Rogaland.", members: "1,4k", image: dogImg("photo-1507146426996-ef05306b995a") },
+];
+
+const dogs = [
+  { name: "Luna", breed: "Golden retriever · 2 år", distance: "1,2 km unna", image: dogImg("photo-1552053831-71594a27632d"), streak: 28, match: 94 },
+  { name: "Balto", breed: "Schæfer · 3 år", distance: "2,8 km unna", image: dogImg("photo-1589941013453-ec89f33b5e95"), streak: 41, match: 91 },
+  { name: "Milo", breed: "Cockapoo · 1 år", distance: "3,4 km unna", image: dogImg("photo-1517423440428-a5a00ad493e8"), streak: 16, match: 88 },
 ];
 
 export default function Home() {
-  return (
-    <main>
-      <div className="trustbar">
-        <span>⚡ Digital levering 1–3 dager</span>
-        <span>🇳🇴 Norsk nettbutikk</span>
-        <span>🛡 Trygg betaling med Vipps/Klarna</span>
-        <span>♡ Personlig kvalitetssjekk</span>
-      </div>
+  const [tab, setTab] = useState("For deg");
+  const [city, setCity] = useState("Stavanger");
+  const [signalFilter, setSignalFilter] = useState("Alle");
+  const [liked, setLiked] = useState({});
+  const [joined, setJoined] = useState({});
+  const [showComposer, setShowComposer] = useState(false);
 
-      <header className="nav">
-        <a className="brand" href="#top">
-          <span className="paw">🐾</span>
-          <span>
-            <strong>Potesjarm</strong>
-            <small>MER ENN BARE EN HUNDEBUTIKK</small>
-          </span>
+  const nav = ["For deg", "Signals", "Sirkler", "Hunder"];
+  const visibleSignals = useMemo(() => {
+    if (signalFilter === "Alle") return signals;
+    return signals.filter((s) => {
+      const map = { Turer: "Tur", Lek: "Lek", Nå: "Nå" };
+      return s.title.includes(map[signalFilter] || signalFilter) || s.meta.includes(map[signalFilter] || signalFilter);
+    });
+  }, [signalFilter]);
+
+  return (
+    <main className="appShell">
+      <aside className="desktopRail">
+        <a className="logo" href="#">
+          <span className="logoMark">♥</span>
+          <span>Potesjarm</span>
         </a>
 
-        <nav>
-          <a className="active" href="#top">Hjem</a>
-          <a href="#stiler">Digitale produkter</a>
-          <a href="#stiler">Kategorier</a>
-          <a href="#inspirasjon">Inspirasjon</a>
-          <a href="#om">Om oss</a>
-          <a href="#kontakt">Kundeservice</a>
+        <div className="cityCard">
+          <span>Din by</span>
+          <button onClick={() => setCity(city === "Stavanger" ? "Sandnes" : "Stavanger")}>
+            <b>{city}</b><small>Bytt område</small>
+          </button>
+        </div>
+
+        <nav className="railNav">
+          {nav.map((item) => (
+            <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
+              <span>{item === "For deg" ? "⌂" : item === "Signals" ? "◉" : item === "Sirkler" ? "◎" : "♙"}</span>
+              {item}
+            </button>
+          ))}
+          <button onClick={() => setTab("Kart")} className={tab === "Kart" ? "active" : ""}><span>⌖</span>Kart</button>
         </nav>
 
-        <div className="icons">
-          <span>⌕</span><span>♡</span><span>♙</span><span>▣</span>
-        </div>
-      </header>
+        <button className="primaryCta" onClick={() => setShowComposer(true)}>＋ Send signal</button>
 
-      <section className="hero" id="top">
-        <div className="heroBg" />
-        <div className="heroShade" />
-        <div className="heroCopy">
-          <div className="eyebrow light">FOR ET AKTIVT, LYKKELIGERE HUNDELIV</div>
-          <h1>Mer enn et bilde.<br />Et minne for livet.</h1>
-          <p>
-            Unike, personlige hundeportretter i fantastiske stiler.<br />
-            Skapt med kjærlighet – fra ditt bilde til et kunstverk du vil elske.
-          </p>
-          <div className="heroBtns">
-            <a className="pill lightBtn" href="#stiler">Utforsk stilene →</a>
-            <a className="pill outlineBtn" href="#inspirasjon">▶ Se video (0:45)</a>
+        <div className="miniProfile">
+          <div className="avatar dogAvatar" />
+          <div><b>Michael & Santos</b><span>18 dagers streak 🔥</span></div>
+        </div>
+      </aside>
+
+      <section className="mainColumn">
+        <header className="mobileHeader">
+          <a className="logo" href="#"><span className="logoMark">♥</span><span>Potesjarm</span></a>
+          <button className="cityPill" onClick={() => setCity(city === "Stavanger" ? "Sandnes" : "Stavanger")}>⌖ {city}⌄</button>
+        </header>
+
+        <div className="topBar">
+          <div>
+            <span className="kicker">LOKALT HUNDELIV</span>
+            <h1>{tab === "For deg" ? `God morgen, ${city} 🐾` : tab}</h1>
           </div>
-          <div className="heroStats">
-            <div>▣<span><b>Digital levering</b><small>1–24 timer</small></span></div>
-            <div>♙<span><b>2 revisjoner</b><small>på premium</small></span></div>
-            <div>◇<span><b>Fornøydgaranti</b><small>100% trygghet</small></span></div>
-            <div>♧<span><b>Elsket av</b><small>laget for din hund</small></span></div>
+          <div className="topActions">
+            <button>⌕</button><button>♢</button>
           </div>
         </div>
-        <div className="scribble">Eventyr ser<br />bedre ut sammen ♡</div>
-      </section>
 
-      <section className="styleSection" id="stiler">
-        <div className="sectionRow">
-          <h2>Velg din stil →</h2>
-          <div className="micro">Samme hund. Uendelige muligheter. &nbsp; ◀ ▶</div>
+        <div className="mobileTabs">
+          {nav.map((item) => <button key={item} onClick={() => setTab(item)} className={tab === item ? "active" : ""}>{item}</button>)}
         </div>
-        <div className="styleGrid">
-          {styles.map((s) => (
-            <article className="styleCard" key={s.name}>
-              <div className="styleShade" />
-              <div className="styleText">
-                <h3>{s.name}</h3>
-                <p>{s.sub}</p>
+
+        {tab === "For deg" && (
+          <>
+            <section className="heroCard">
+              <div className="heroCopy">
+                <span className="liveDot">● LIVE I {city.toUpperCase()}</span>
+                <h2>Hvem vil ut<br/>på tur i dag?</h2>
+                <p>Finn hundevenner, lokale turer og små øyeblikk rundt deg.</p>
+                <div className="heroBtns"><button onClick={() => setShowComposer(true)}>Send signal</button><button onClick={() => setTab("Kart")}>Åpne kart</button></div>
               </div>
-            </article>
-          ))}
-        </div>
+              <div className="heroDog" />
+              <div className="heroBadge"><b>12</b><span>aktive nå</span></div>
+            </section>
+
+            <div className="sectionTitle"><div><span>AKKURAT NÅ</span><h2>Signals nær deg</h2></div><button onClick={() => setTab("Signals")}>Se alle →</button></div>
+            <div className="signalStrip">
+              {signals.slice(0,3).map((s, i) => (
+                <button key={s.title} className={"miniSignal " + s.tone} onClick={() => setJoined({ ...joined, [i]: !joined[i] })}>
+                  <span className="signalIcon">{i === 0 ? "🐕" : i === 1 ? "🎾" : "🌲"}</span>
+                  <b>{s.title}</b><small>{s.meta}</small>
+                  <strong>{joined[i] ? "Du er med ✓" : s.action}</strong>
+                </button>
+              ))}
+            </div>
+
+            <div className="sectionTitle"><div><span>FOR DEG</span><h2>Fra hundelivet rundt deg</h2></div><button>Tilpass</button></div>
+            <div className="feed">
+              {feed.map((post) => (
+                <article className="post" key={post.id}>
+                  <div className="postHead">
+                    <div className="avatar dogAvatar small" />
+                    <div><b>{post.owner}</b><span>{post.meta}</span></div>
+                    <button>•••</button>
+                  </div>
+                  <h3>{post.title}</h3><p>{post.body}</p>
+                  <img src={post.image} alt="" />
+                  <div className="postMeta">
+                    <button onClick={() => setLiked({ ...liked, [post.id]: !liked[post.id] })} className={liked[post.id] ? "liked" : ""}>{liked[post.id] ? "♥" : "♡"} {post.likes + (liked[post.id] ? 1 : 0)}</button>
+                    <button>◯ {post.comments}</button><button className="save">⌑</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === "Signals" && (
+          <>
+            <section className="signalHero">
+              <div><span className="liveDot">● LIVE</span><h2>Hva skjer rundt deg nå?</h2><p>Korte, lokale signaler som gjør det lettere å møtes.</p></div>
+              <button onClick={() => setShowComposer(true)}>＋ Nytt signal</button>
+            </section>
+            <div className="filters">
+              {["Alle","Turer","Lek","Spørsmål","Nå"].map(f => <button key={f} onClick={() => setSignalFilter(f)} className={signalFilter===f?"active":""}>{f}</button>)}
+            </div>
+            <div className="signalList">
+              {visibleSignals.map((s, i) => (
+                <article className="signalCard" key={s.title}>
+                  <div className={"statusOrb " + s.tone}>●</div>
+                  <div className="signalText"><span>{s.by}</span><h3>{s.title}</h3><p>{s.meta}</p><small>{s.members} er interesserte</small></div>
+                  <button onClick={() => setJoined({ ...joined, ["sig"+i]: !joined["sig"+i] })}>{joined["sig"+i] ? "Med ✓" : s.action}</button>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+
+        {tab === "Sirkler" && (
+          <>
+            <section className="simpleIntro"><span>FELLESSKAP</span><h2>Finn flokken din.</h2><p>Lokale og interessebaserte sirkler for folk som faktisk har noe til felles.</p></section>
+            <div className="filters"><button className="active">Alle</button><button>Rase</button><button>Aktivitet</button><button>Valp</button><button>Lokalt</button></div>
+            <div className="circleGrid">
+              {circles.map(c => <article className="circleCard" key={c.title}><img src={c.image} alt=""/><div><h3>{c.title}</h3><p>{c.body}</p><span>{c.members} medlemmer</span><button>＋</button></div></article>)}
+            </div>
+          </>
+        )}
+
+        {tab === "Hunder" && (
+          <>
+            <section className="simpleIntro"><span>UTFORSK</span><h2>Nye snuter i nærheten.</h2><p>Finn turvenner med samme tempo, energi og lekestil.</p></section>
+            <div className="dogGrid">
+              {dogs.map(d => <article className="dogCard" key={d.name}><img src={d.image} alt=""/><div className="dogInfo"><div><h3>{d.name}</h3><p>{d.breed}</p><span>⌖ {d.distance}</span></div><button>♡</button></div><div className="dogStats"><span>🔥 {d.streak} dager</span><span>♥ {d.match}% match</span></div></article>)}
+            </div>
+          </>
+        )}
+
+        {tab === "Kart" && (
+          <section className="mapPanel">
+            <div className="mapCanvas">
+              <div className="road r1"/><div className="road r2"/><div className="lake"/>
+              {[[18,26,"🐾"],[58,30,"🐕"],[43,58,"🎾"],[71,68,"🌲"],[28,72,"🐾"]].map(([x,y,icon],i)=><div key={i} className="mapPin" style={{left:x+"%",top:y+"%"}}>{icon}</div>)}
+              <div className="youPin">●</div>
+            </div>
+            <div className="mapSheet"><span>RUNDT DEG</span><h2>5 ting skjer i nærheten</h2><p>Mosvatnet · Madla · Tjensvoll · sentrum</p><button onClick={()=>setTab("Signals")}>Se aktive signals →</button></div>
+          </section>
+        )}
       </section>
 
-      <section className="howPrice">
-        <div className="how">
-          <h2>Enkelt. Raskt. Magisk.</h2>
-          <p>Last opp et bilde, velg stil, og få et unikt kunstverk av hunden din – klart på kort tid.</p>
-          <div className="steps">
-            <div><div className="circle">📷</div><b>1. Last opp bilde</b><span>Velg dine favorittbilder av hunden din.</span></div>
-            <div><div className="circle">🎨</div><b>2. Velg stil</b><span>Utforsk våre unike stiler og tilpass.</span></div>
-            <div><div className="circle">➤</div><b>3. Motta kunstverk</b><span>Få ditt bilde digitalt på e-post.</span></div>
-          </div>
-        </div>
+      <aside className="rightRail">
+        <section className="streakCard">
+          <div className="streakTop"><span>DIN STREAK</span><b>🔥 18 dager</b></div>
+          <div className="week">{["M","T","O","T","F","L","S"].map((d,i)=><span className={i<6?"done":""} key={i}>{i<6?"🐾":d}</span>)}</div>
+          <p>Én tur i dag holder streaken levende.</p>
+          <button>Start tur</button>
+        </section>
 
-        <div className="pricing" id="pakker">
-          <h2>Våre populære pakker</h2>
-          <div className="priceGrid">
-            {packs.map((p) => (
-              <article className={"priceCard " + (p.badge ? "featured" : "")} key={p.name}>
-                {p.badge && <div className="badge">{p.badge}</div>}
-                <h3>{p.name}</h3>
-                <div className="price">{p.price}</div>
-                <ul>{p.items.map((i) => <li key={i}>✓ {i}</li>)}</ul>
-                <button>Velg {p.name}</button>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
+        <section className="challengeCard">
+          <span>UKENS UTFORDRING</span><h3>Utforsk 5 nye steder</h3><p>3 av 5 fullført</p><div className="progress"><i/></div><small>2 turer igjen til Fjellpote-merket 🏔️</small>
+        </section>
 
-      <section className="results" id="inspirasjon">
-        <div className="resultsCopy">
-          <h2>Virkelige hunder.<br />Utrolige resultater.</h2>
-          <p>Se hvordan vanlige bilder blir til unike kunstverk.</p>
-          <a className="pill lightBtn" href="#stiler">Se flere transformasjoner →</a>
-        </div>
-        <div className="beforeAfter">
-          <div className="label left">Før</div>
-          <div className="label right">Etter</div>
-          <div className="divider" />
-          <div className="knob">↔</div>
-        </div>
-        <div className="miniGallery">
+        <section className="upcoming">
+          <div className="sectionTitle compact"><div><span>KOMMER</span><h2>Nær deg</h2></div></div>
+          <article><b>14</b><div><strong>Kveldstur rundt Mosvatnet</strong><span>Ons · 18:00 · 12 med</span></div></article>
+          <article><b>18</b><div><strong>Strandtur på Solastranden</strong><span>Søn · 11:00 · 28 med</span></div></article>
+        </section>
+      </aside>
 
+      <nav className="bottomNav">
+        {nav.map(item => <button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}><span>{item==="For deg"?"⌂":item==="Signals"?"◉":item==="Sirkler"?"◎":"♙"}</span><small>{item}</small></button>)}
+        <button onClick={()=>setTab("Kart")} className={tab==="Kart"?"active":""}><span>⌖</span><small>Kart</small></button>
+      </nav>
 
-        </div>
-      </section>
-
-      <section className="reviews">
-        <div className="sectionRow">
-          <h2>Hva kundene våre sier</h2>
-          <div className="micro">◀ ▶</div>
-        </div>
-        <div className="reviewGrid">
-          {reviews.map(([name, text], i) => (
-            <article className="review" key={name}>
-              <div className="avatar">{i + 1}</div>
-              <div>
-                <div className="stars">★★★★★</div>
-                <p>“{text}”</p>
-                <b>{name}</b>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="finalCta" id="om">
-        <div className="finalBg" />
-        <div className="finalShade" />
-        <div className="finalCopy">
-          <h2>Skap minner som varer</h2>
-          <p>Gjør ditt bilde til et kunstverk i dag.</p>
-        </div>
-        <a className="pill lightBtn finalBtn" href="#pakker">Kom i gang →</a>
-        <div className="finalScript">Livet er<br />bedre med hund ♡</div>
-      </section>
-
-      <footer id="kontakt">
-        <div>🇳🇴 Norsk nettbutikk</div>
-        <div>🛡 Trygg betaling med Vipps/Klarna</div>
-        <div>◉ Digital levering 1–24t</div>
-        <div>Følg oss &nbsp; ◎ ♪ f ▶</div>
-      </footer>
+      {showComposer && <div className="modalBackdrop" onClick={()=>setShowComposer(false)}><div className="composer" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowComposer(false)}>×</button><span>NYTT SIGNAL</span><h2>Hva skjer?</h2><textarea placeholder="F.eks. Noen som vil gå Mosvatnet kl. 18?"/><div className="composerTags"><button>🐕 Tur</button><button>🎾 Lek</button><button>❓ Spørsmål</button></div><button className="publish" onClick={()=>setShowComposer(false)}>Send signal</button></div></div>}
     </main>
   );
 }
