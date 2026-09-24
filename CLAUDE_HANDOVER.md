@@ -17,7 +17,7 @@ The visual direction the user approved is **NOT generic SaaS / dashboard UI**. I
 
 ## Current branch
 Work only on:
-`gpt/community-mvp`
+`gpt/community-mvp` (Claude's rebuild is on `claude/bold-hopper-6dc87d`, based on it)
 
 Do **NOT** merge to `main` without user approval.
 
@@ -242,6 +242,27 @@ Do NOT touch SiamConnect Supabase.
 Do NOT connect Potesjarm to SiamConnect.
 
 For now the app uses demo arrays + localStorage.
+
+## Architecture (rebuilt by Claude, Sep 2026)
+The prototype is now split into components:
+- `app/page.js` – maps tab → view, renders the shell
+- `app/components/store.js` – `AppProvider`/`useApp()`: all state, actions and localStorage persistence (`potesjarm-v2`)
+- `app/components/Shell.js` – Sidebar, TopBar, RightRail, MobileHeader, BottomNav
+- `app/components/Home.js` – hero, stories, PostCard (photo/walk/group), MeetupCard
+- `app/components/Views.js` – Nå skjer, Grupper (+ group page), Hunder (matching), Kart, Aktivitet, Arrangementer, Utforsk
+- `app/components/Overlays.js` – every modal/drawer/sheet (composers, details, dog profile, story viewer, chat, walk mode…). Open with `app.open("type", data)`
+- `app/components/ui.js` – Avatar, AvatarStack, Chips, Bar, Meter, Layer (modal/drawer/sheet), RouteSketch
+- `app/components/Icon.js` – the one SVG icon set + PawLogo + DogDoodle. Don't use Unicode or emoji as UI icons
+- `app/lib/data.js` – all demo data (swap for Supabase later)
+- `app/globals.css` – design tokens at the top (colors, fonts Baloo 2 / Nunito / Caveat), then sections per area
+
+### Sidebar layout rules (don't break these)
+- `.sideNav` is `position: sticky; height: 100dvh; display: flex; column`
+- Top (`.navTop`) and bottom (`.navBottom`: Lag treff + profile) are `flex: none` → always visible
+- The middle (`.navList`) is `flex: 1; min-height: 0; overflow-y: auto` → on extremely short screens only the menu list scrolls, never the CTA/profile
+- Heights scale with `clamp(…, vh, …)`; decoration is hidden below given heights (utility row < 820px, brand line < 760px, dog doodle only ≥ 960px)
+- Tested at 1366×657/768, 1536×730/864, 1920×969 and 390×844
+- 761–1023px: icon rail. ≤ 760px: mobile header + bottom nav with Lag treff in the middle
 
 ## Technical stack
 - Next.js App Router

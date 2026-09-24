@@ -346,7 +346,7 @@ p { margin: 0; }
 .sectionHead > div:first-child { min-width: 0; }
 .liveTag { margin-right: auto; margin-left: 4px; margin-bottom: 3px; display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 999px; background: var(--mint-bg); color: #0f8a64; font-size: 12.5px; font-weight: 900; }
 .liveTag i { background: var(--mint); }
-.view { display: grid; gap: 20px; }
+.view { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-width: 0; }
 .toolbar .chips { min-width: 0; }
 .empty { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 48px 20px; border-radius: var(--r-xl); background: var(--paper); box-shadow: var(--sh-1); }
@@ -1030,12 +1030,17 @@ p { margin: 0; }
   .mobileHeader { display: flex; position: sticky; top: 0; z-index: 40; align-items: center; justify-content: space-between; gap: 8px; height: 60px; padding: 0 12px 0 14px; background: rgba(251, 248, 241, 0.9); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(21, 25, 76, 0.05); }
   .mobileHeader .brand { gap: 8px; }
   .sectionHead h2 { font-size: 21px; }
-  .mobileHeader .brand span { font-family: var(--display); font-weight: 800; font-size: 23px; color: var(--indigo); }
+  .mobileHeader .brand span { font-family: var(--display); font-weight: 800; font-size: 22px; color: var(--indigo); }
+  @media (max-width: 370px) { .mobileHeader .brand span { display: none; } }
   .mobileActions { display: flex; align-items: center; gap: 6px; }
   .mobileActions .iconBtn { width: 38px; height: 38px; border-radius: 13px; }
   .mobileActions .redDot { top: 7px; right: 8px; }
   .cityChip.light { margin: 0; height: 36px; background: #fff; color: var(--indigo); border: 0; box-shadow: var(--sh-1); font-size: 13px; padding: 0 10px; }
   .cityChip.light .icon:first-child { color: var(--coral); }
+  .cityChip.light .icon:last-child { display: none; }
+  .cityChip.light span, .cityChip.light { max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobileHeader .brand { min-width: 0; }
+  .mobileHeader .pawLogo { width: 30px; height: 30px; }
   .topBar { margin: 14px 0 14px; }
   .topActions { display: none; }
   .topBar h1 { font-size: 30px; }
@@ -1062,7 +1067,8 @@ p { margin: 0; }
   .tab-fordeg .rightRail .discoverCard { display: none; }
   .nowHero { flex-direction: column; align-items: flex-start; }
   .nowHeroSide { justify-items: start; }
-  .toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+  .toolbar > .segmented { align-self: flex-start; }
   .toolbar .chips { margin: 0 -14px; padding: 2px 14px; }
   .toolbar > .pillBtn { align-self: flex-start; }
   .matchSpot { grid-template-columns: 1fr; }
