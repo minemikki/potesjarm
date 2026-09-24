@@ -160,8 +160,8 @@ export function DemoBanner() {
   if (!app.isDemo) return null;
   return (
     <div className="demoBanner">
-      <Icon name="sparkle" size={17} />
-      <span><b>Demo-innhold.</b> Hundene, innleggene og treffene her er oppdiktet og vises bare for å illustrere designet.</span>
+      <Icon name="sparkle" size={15} />
+      <span><b>Demo</b> · innholdet er oppdiktet</span>
       <button onClick={() => app.setMode(MODE.LIVE)}>Vis ekte data</button>
     </div>
   );

@@ -153,6 +153,20 @@ export const dogTraits = {
   comfort: ["Liker store hunder", "Liker små hunder", "Liker valper", "Trenger rolige møter", "Trenger god avstand"],
 };
 
+/**
+ * Hva eieren ønsker fra Potesjarm. Brukes til personalisering (hva vi løfter
+ * fram først), aldri til å vise falsk aktivitet. `id` lagres på profilen.
+ */
+export const ownerGoals = [
+  { id: "turvenner", label: "Finne turvenner", icon: "users" },
+  { id: "steder", label: "Oppdage nye steder", icon: "compass" },
+  { id: "streak", label: "Holde turstreak", icon: "flame" },
+  { id: "trening", label: "Trene hunden", icon: "target" },
+  { id: "events", label: "Finne lokale arrangementer", icon: "calendar" },
+  { id: "grupper", label: "Bli med i grupper", icon: "users" },
+  { id: "tracke", label: "Bare tracke turene", icon: "walk" },
+];
+
 /* -------------------------------------------------------------------------
    Formatering
    ------------------------------------------------------------------------- */

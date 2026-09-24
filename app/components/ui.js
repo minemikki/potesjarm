@@ -1,25 +1,62 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon";
 import { useApp } from "./store";
 import { img } from "../lib/data";
 
 /**
- * Avatar. Har vi ikke bilde, viser vi en poteplassholder – aldri et
- * tilfeldig stockbilde som kan forveksles med en ekte hund.
+ * Avatar. Har vi ikke bilde – eller bildet feiler å laste – viser vi en
+ * merkevareplassholder (forbokstav eller pote), aldri et grått ødelagt
+ * bildeikon og aldri et tilfeldig stockbilde som kan forveksles med en
+ * ekte hund.
  */
 export function Avatar({ src, size = 40, ring, online, square, alt = "", name }) {
+  const [broken, setBroken] = useState(false);
+  const showImg = src && !broken;
   return (
-    <span className={"avatar" + (ring ? " ring ring-" + ring : "") + (square ? " square" : "") + (src ? "" : " blank")} style={{ "--s": size + "px" }}>
-      {src ? (
-        <img src={img(src, Math.max(80, size * 2), Math.max(80, size * 2))} alt={alt} loading="lazy" />
+    <span className={"avatar" + (ring ? " ring ring-" + ring : "") + (square ? " square" : "") + (showImg ? "" : " blank")} style={{ "--s": size + "px" }}>
+      {showImg ? (
+        <img
+          src={img(src, Math.max(80, size * 2), Math.max(80, size * 2))}
+          alt={alt}
+          loading="lazy"
+          onError={() => setBroken(true)}
+        />
       ) : (
         <span className="avatarFallback" aria-hidden="true">
           {name ? name.trim().charAt(0).toUpperCase() : <Icon name="paw" size={Math.round(size * 0.46)} />}
         </span>
       )}
       {online !== undefined && <i className={"presence" + (online ? " on" : "")} />}
+    </span>
+  );
+}
+
+/**
+ * Innholdsbilde (innlegg, hundekort, gruppe-/arrangementscover). Håndterer
+ * lasting og feil: mens bildet laster vises en rolig merkevaregradient, og
+ * hvis det feiler viser vi en poteplassholder i stedet for et ødelagt ikon.
+ * `id` er en Unsplash-id (se img() i data.js); `ratio` styrer aspektforholdet.
+ */
+export function Img({ id, w = 800, h, alt = "", ratio, className = "", rounded }) {
+  const [state, setState] = useState(id ? "loading" : "empty");
+  const cls = "img" + (rounded ? " rounded" : "") + (className ? " " + className : "") + (state !== "ok" ? " img-ph" : "");
+  return (
+    <span className={cls} style={ratio ? { aspectRatio: ratio } : undefined}>
+      {id && state !== "error" && (
+        <img
+          src={img(id, w, h)}
+          alt={alt}
+          loading="lazy"
+          onLoad={() => setState("ok")}
+          onError={() => setState("error")}
+          style={state === "ok" ? undefined : { opacity: 0 }}
+        />
+      )}
+      {state !== "ok" && (
+        <span className="imgFallback" aria-hidden="true"><Icon name="paw" size={28} /></span>
+      )}
     </span>
   );
 }

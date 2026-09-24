@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Icon, { PawLogo } from "./Icon";
 import { useApp } from "./store";
-import { Avatar, AvatarStack, Bar, Chips, CloseBtn, DogAvatar, Empty, Layer, LayerHead, Meter, RouteSketch, SourceTag } from "./ui";
-import { dogTraits, expiryOptions, fmtKm, fmtNum, genitive, img, meetupTypes, PHOTO } from "../lib/data";
+import { Avatar, AvatarStack, Bar, Chips, CloseBtn, DogAvatar, Empty, Img, Layer, LayerHead, Meter, RouteSketch, SourceTag } from "./ui";
+import { dogTraits, expiryOptions, fmtKm, fmtNum, genitive, img, meetupTypes, ownerGoals, PHOTO } from "../lib/data";
 import { kommuneById, omrader, placeLabel, placeShort, radiusOptions, roundCoord, searchPlaces } from "../lib/geo";
 import { placeTypes } from "../lib/seed";
 import { MODE } from "../lib/content";
@@ -44,15 +44,21 @@ function Onboarding() {
   // søker og trykker på et treff.
   const [loc, setLoc] = useState({ kommuneId: null, omrade: null, radiusKm: 10 });
   const [dog, setDog] = useState({ dogName: "", ownerName: "", breed: "", age: "", size: "", energy: "" });
+  const [play, setPlay] = useState([]);
+  const [goals, setGoals] = useState([]);
 
   const kommune = kommuneById[loc.kommuneId];
-  const steps = ["Velkommen", "Sted", "Hund", "Klar"];
+  // Fire innholdssteg (Sted, Hund, Liker, Ønsker) + velkomst og klar-skjerm.
+  const steps = ["Velkommen", "Sted", "Hund", "Liker", "Ønsker", "Klar"];
+  const toggle = (list, setList, v) => setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-  const finish = () =>
+  const finish = (thenWalk) => {
     app.completeOnboarding({
       location: loc,
-      profile: { ...app.profile, ...dog, play: [] },
+      profile: { ...app.profile, ...dog, play, goals },
     });
+    if (thenWalk) app.startWalk();
+  };
 
   return (
     <Layer onClose={() => {}} className="onboarding" tone="brand" label="Velkommen">
@@ -82,7 +88,7 @@ function Onboarding() {
 
       {step === 1 && (
         <>
-          <span className="kicker">STEG 1 AV 3</span>
+          <span className="kicker">STEG 1 AV 4</span>
           <h1>Hvor bor dere?</h1>
           <p>Vi bruker stedet til å vise turer, treff og folk i nærheten. Posisjonen din deles aldri nøyaktig.</p>
           <LocationForm value={loc} onChange={setLoc} />
@@ -94,7 +100,7 @@ function Onboarding() {
 
       {step === 2 && (
         <>
-          <span className="kicker">STEG 2 AV 3</span>
+          <span className="kicker">STEG 2 AV 4</span>
           <h1>Fortell om hunden</h1>
           <p>Dette brukes til å finne turvenner som passer. Du kan endre alt senere.</p>
           <div className="onboardForm">
@@ -123,9 +129,52 @@ function Onboarding() {
 
       {step === 3 && (
         <>
+          <span className="kicker">STEG 3 AV 4</span>
+          <h1>Hva liker {dog.dogName || "hunden"}?</h1>
+          <p>Vi bruker dette til å foreslå turvenner og aktiviteter som passer. Velg gjerne flere.</p>
+          <div className="onboardForm">
+            <div className="field">
+              <span>Favorittaktiviteter</span>
+              <div className="miniChips wrap">{dogTraits.play.map((s) => <button key={s} className={play.includes(s) ? "active" : ""} onClick={() => toggle(play, setPlay, s)}>{s}</button>)}</div>
+            </div>
+          </div>
+          <button className="pillBtn primary big" onClick={() => setStep(4)}>
+            Videre <Icon name="arrowRight" size={18} />
+          </button>
+          <button className="linkish center" onClick={() => setStep(4)}>Hopp over</button>
+        </>
+      )}
+
+      {step === 4 && (
+        <>
+          <span className="kicker">STEG 4 AV 4</span>
+          <h1>Hva ønsker dere fra Potesjarm?</h1>
+          <p>Vi løfter fram det som betyr mest for dere først. Du kan endre dette når som helst.</p>
+          <div className="onboardForm">
+            <div className="field">
+              <div className="goalList">
+                {ownerGoals.map((g) => (
+                  <button key={g.id} className={"goalItem" + (goals.includes(g.id) ? " active" : "")} onClick={() => toggle(goals, setGoals, g.id)}>
+                    <span className="chIcon tint-blue"><Icon name={g.icon} size={18} /></span>
+                    <b>{g.label}</b>
+                    {goals.includes(g.id) && <Icon name="check" size={18} />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <button className="pillBtn primary big" onClick={() => setStep(5)}>
+            Videre <Icon name="arrowRight" size={18} />
+          </button>
+          <button className="linkish center" onClick={() => setStep(5)}>Hopp over</button>
+        </>
+      )}
+
+      {step === 5 && (
+        <>
           <span className="chIcon huge tint-mint"><Icon name="paw" size={36} /></span>
           <span className="kicker">KLAR</span>
-          <h1>{dog.dogName} er med!</h1>
+          <h1>{dog.dogName} er klar 🐾</h1>
           <p>
             {app.stats.dogs > 0
               ? <>Det er allerede {app.stats.dogs} {app.stats.dogs === 1 ? "hund" : "hunder"} i {kommune?.name}. Si hei!</>
@@ -137,7 +186,8 @@ function Onboarding() {
             <span className="tint-coral"><i><Icon name="live" size={20} /></i><b>Lag et treff</b><small>Finn turvenner</small></span>
             <span className="tint-sun"><i><Icon name="gift" size={20} /></i><b>Inviter noen</b><small>Bygg flokken</small></span>
           </div>
-          <button className="pillBtn primary big" onClick={finish}>Inn i appen <Icon name="arrowRight" size={18} /></button>
+          <button className="pillBtn primary big" onClick={() => finish(true)}><Icon name="play" size={16} fill="currentColor" stroke={0} /> Start deres første tur</button>
+          <button className="linkish center" onClick={() => finish(false)}>Utforsk appen først</button>
         </>
       )}
     </Layer>
@@ -164,22 +214,33 @@ function LocationForm({ value, onChange }) {
   };
 
   const usingMyPos = typeof value.lat === "number";
-  const [locating, setLocating] = useState(false);
+  // "idle" | "locating" | "denied" | "error"
+  const [posState, setPosState] = useState("idle");
 
   const useMyPos = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
-    setLocating(true);
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setPosState("error");
+      return;
+    }
+    setPosState("locating");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocating(false);
-        onChange({ ...value, lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude), positionAt: Date.now() });
+        setPosState("idle");
+        onChange({
+          ...value,
+          lat: roundCoord(pos.coords.latitude),
+          lng: roundCoord(pos.coords.longitude),
+          accuracy: pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null,
+          positionAt: Date.now(),
+        });
       },
-      () => setLocating(false),
-      { enableHighAccuracy: false, maximumAge: 60000, timeout: 15000 }
+      (err) => setPosState(err.code === 1 ? "denied" : "error"),
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 }
     );
   };
   const clearMyPos = () => {
-    const { lat, lng, positionAt, ...rest } = value;
+    const { lat, lng, accuracy, positionAt, ...rest } = value;
+    setPosState("idle");
     onChange(rest);
   };
 
@@ -242,18 +303,26 @@ function LocationForm({ value, onChange }) {
             <small className="muted">
               {value.radiusKm == null
                 ? "Viser alt i kommunen"
-                : usingMyPos
-                  ? "Måles fra din egen posisjon"
-                  : `Måles fra sentrum av ${kommune.name}`}
+                : posState === "locating"
+                  ? "Finner posisjon…"
+                  : usingMyPos
+                    ? <>Bruker omtrentlig posisjon{value.accuracy ? ` · ± ${value.accuracy} m` : ""}</>
+                    : `Måles fra sentrum av ${kommune.name}`}
             </small>
             {usingMyPos ? (
               <button className="linkish" onClick={clearMyPos}>Bruk sentrum i stedet</button>
             ) : (
-              <button className="linkish" onClick={useMyPos} disabled={locating}>
-                <Icon name="pin" size={13} /> {locating ? "Henter…" : "Bruk min posisjon"}
+              <button className="linkish" onClick={useMyPos} disabled={posState === "locating"}>
+                <Icon name="pin" size={13} /> {posState === "locating" ? "Finner…" : "Bruk min posisjon"}
               </button>
             )}
           </div>
+          {posState === "denied" && (
+            <p className="fineprint warn"><Icon name="alert" size={13} /> Posisjonstilgang ble ikke gitt. Vi bruker sentrum av {kommune.name}.</p>
+          )}
+          {posState === "error" && (
+            <p className="fineprint warn"><Icon name="alert" size={13} /> Fikk ikke posisjonen din. Vi bruker sentrum av {kommune.name}.</p>
+          )}
         </div>
       )}
     </div>
@@ -481,20 +550,79 @@ function MeetupDetail({ data: id, onClose }) {
           ))}
         </div>
 
+        {/* Treff-chat er åpen for verten og alle som er med. */}
+        {(isGoing || m.mine) && (
+          <>
+            <h4>Treff-chat</h4>
+            <button className="rowBtn" onClick={() => { app.close("meetup"); app.open("meetupChat", m.id); }}>
+              <Icon name="comment" size={18} /> Åpne chatten for treffet <Icon name="chevronRight" size={17} />
+            </button>
+          </>
+        )}
+
+        {/* Etter at treffet har startet: spør om det ble noe av. Ingen poter for
+            svaret lokalt – ekte fullføring krever bekreftelse fra flere via backend. */}
+        {(isGoing || m.mine) && m.startsIn <= 0 && !app.meetupConfirms[m.id] && (
+          <div className="afterMeetup">
+            <b>Ble turen noe av?</b>
+            <div className="afterMeetupBtns">
+              <button className="pillBtn soft" onClick={() => app.confirmMeetup(m.id, true)}>Ja</button>
+              <button className="pillBtn soft" onClick={() => app.confirmMeetup(m.id, false)}>Nei</button>
+            </div>
+          </div>
+        )}
+        {app.meetupConfirms[m.id] === "yes" && <p className="fineprint"><Icon name="check" size={14} /> Registrert som gjennomført.</p>}
+
         <p className="fineprint"><Icon name="shield" size={14} /> Møt på et offentlig sted. Del aldri hjemmeadressen din i et treff.</p>
       </div>
       <div className="detailFoot">
-        {m.host !== "self" && (
-          <button className="pillBtn soft" onClick={() => { app.close("meetup"); app.open("chat", m.host); }}>
-            <Icon name="comment" size={17} /> Skriv til verten
+        {m.mine ? (
+          <button className="pillBtn danger soft" onClick={() => { app.cancelMeetup(m.id); onClose(); }}>
+            <Icon name="x" size={16} /> Avlys treffet
           </button>
-        )}
-        {!m.mine && (
-          <button className={"pillBtn " + (isGoing ? "done" : "primary")} onClick={() => app.toggleGoing(m.id)}>
-            {isGoing ? <><Icon name="check" size={16} stroke={2.6} /> Du er med</> : "Bli med"}
-          </button>
+        ) : (
+          <>
+            <button className="pillBtn soft" onClick={() => { app.close("meetup"); app.open("chat", m.host); }}>
+              <Icon name="comment" size={17} /> Skriv til verten
+            </button>
+            <button className={"pillBtn " + (isGoing ? "done" : "primary")} onClick={() => app.toggleGoing(m.id)}>
+              {isGoing ? <><Icon name="check" size={16} stroke={2.6} /> Du er med</> : "Bli med"}
+            </button>
+          </>
         )}
       </div>
+    </Layer>
+  );
+}
+
+/** Gruppechat for et treff – alle som er med kan skrive. Ingen fake meldinger. */
+function MeetupChat({ data: id, onClose }) {
+  const app = useApp();
+  const m = app.meetups.find((x) => x.id === id);
+  const [text, setText] = useState("");
+  const end = useRef();
+  const convId = "meetup:" + id;
+  const list = app.messages[convId] || [];
+  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [list.length]);
+  if (!m) return null;
+  const people = app.going[m.id] && !m.going.includes("self") ? [...m.going, "self"] : m.going;
+  return (
+    <Layer onClose={onClose} className="chatBox" label="Treff-chat">
+      <div className="chatHead">
+        <button className="ghostIcon" onClick={onClose} aria-label="Tilbake"><Icon name="chevronLeft" size={22} /></button>
+        <span className="chIcon tint-coral"><Icon name="live" size={18} /></span>
+        <span><b>{m.title}</b><small>{people.length} {people.length === 1 ? "deltaker" : "deltakere"}</small></span>
+      </div>
+      <div className="chatBody">
+        {list.length === 0 && <p className="muted center">Start samtalen. Alle som er med på treffet ser den.</p>}
+        {list.map((msg, i) => <div key={i} className={"bubble " + (msg.me ? "mine" : "theirs")}>{msg.t}</div>)}
+        <span ref={end} />
+      </div>
+      <form className="inputRow" onSubmit={(e) => { e.preventDefault(); if (!text.trim()) return; app.sendMessage(convId, text.trim()); setText(""); }}>
+        <DogAvatar me size={34} />
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Skriv en melding…" autoFocus />
+        <button className="sendBtn" aria-label="Send"><Icon name="send" size={18} /></button>
+      </form>
     </Layer>
   );
 }
@@ -571,19 +699,37 @@ function PlaceDetail({ data: id, onClose }) {
   );
 }
 
+// Energinivå-etikett (min profil) → tall (1–5), for å sammenligne med hundens.
+const ENERGY_NUM = { "Rolig": 2, "Middels": 3, "Høy": 4, "Veldig høy": 5 };
+
+/**
+ * Ekte, forklarbare fellestrekk mellom brukeren og en hund – ikke en
+ * oppdiktet «92 % match». Vi viser bare det vi faktisk kan utlede fra data
+ * begge har fylt ut. Har vi ikke nok, sier vi det.
+ */
+function commonalities(me, d) {
+  const out = [];
+  const myPlay = me.play || [];
+  const shared = (d.play || []).filter((p) => myPlay.includes(p));
+  shared.slice(0, 2).forEach((p) => out.push(`Begge liker ${p.toLowerCase()}`));
+  const myEnergy = ENERGY_NUM[me.energy];
+  if (myEnergy && d.energy && Math.abs(myEnergy - d.energy) <= 1) out.push("Likt energinivå");
+  if (me.size && d.size && me.size === d.size) out.push(`Samme størrelse (${d.size.toLowerCase()})`);
+  out.push("I samme område");
+  return out;
+}
+
 function DogProfile({ data: id, onClose }) {
   const app = useApp();
   const d = app.dogById(id);
   if (!d) return null;
-  const why = [
-    ["Energi", d.energy >= 4 ? 92 : 70, "blue"],
-    ["Lekestil", Math.max(40, d.match - 3), "coral"],
-    ["Turtider", 84, "sun"],
-  ];
+  const rel = app.relationTo(d.id);
+  const common = commonalities(app.me, d);
+  const headline = common.length >= 3 ? "God turmatch" : common.length === 2 ? "Noe til felles" : "Ny å bli kjent med";
   return (
     <Layer onClose={onClose} className="dogProfile" label={d.name}>
       <div className="dogHero">
-        <img src={img(d.photo, 900, 700)} alt="" />
+        <Img id={d.photo} w={900} h={700} className="dogHeroImg" />
         <CloseBtn onClick={onClose} light />
         <div className="dogHeroText">
           <h2>{d.name} {d.online && <span className="onlinePill"><i /> Ute nå</span>}</h2>
@@ -591,27 +737,40 @@ function DogProfile({ data: id, onClose }) {
         </div>
       </div>
       <div className="dogProfileBody">
-        <div className="compat">
-          <span className="matchRing big" style={{ "--p": d.match }}><b>{d.match}%</b><small>match</small></span>
-          <div className="compatBars">
-            {why.map(([label, v, tone]) => <div key={label}><small>{label}</small><Bar value={v} tone={tone} /></div>)}
+        {/* Forklarbare fellestrekk i stedet for en oppdiktet matchprosent. */}
+        <div className="matchWhy">
+          <div className="matchWhyHead">
+            <span className="chIcon tint-mint"><Icon name="paw" size={18} /></span>
+            <div><b>{headline}</b><small>{common.length} {common.length === 1 ? "ting" : "ting"} til felles med {app.me.dogName || "hunden din"}</small></div>
           </div>
+          <ul className="matchList">
+            {common.map((c) => <li key={c}><Icon name="check" size={15} /> {c}</li>)}
+          </ul>
         </div>
         <div className="dogFacts">
           <span><small>Energi</small><Meter value={d.energy} /></span>
           <span><small>Størrelse</small><b>{d.size}</b></span>
           <span><small>Streak</small><b><Icon name="flame" size={15} /> {d.streak} d</b></span>
         </div>
-        <div className="tags">
-          {d.play.map((p) => <small key={p}>{p}</small>)}
-          {app.me.dogName && <small>Liker {genitive(app.me.dogName)} tempo</small>}
-        </div>
+        {d.play?.length > 0 && (
+          <>
+            <h4>Liker</h4>
+            <div className="tags">{d.play.map((p) => <small key={p}>{p}</small>)}</div>
+          </>
+        )}
       </div>
-      <div className="detailFoot">
-        <button className={"pillBtn " + (app.followed[d.id] ? "done" : "soft")} onClick={() => app.toggleFollow(d.id)}>
-          <Icon name="heart" size={16} fill={app.followed[d.id] ? "currentColor" : "none"} /> {app.followed[d.id] ? "Følger" : "Følg"}
+      <div className="detailFoot dogFoot">
+        <button className={"iconAction" + (rel.following ? " on" : "")} onClick={() => app.toggleFollow(d.id)}>
+          <Icon name="heart" size={18} fill={rel.following ? "currentColor" : "none"} /> {rel.following ? "Følger" : "Følg"}
         </button>
-        <button className="pillBtn soft" onClick={() => { onClose(); app.open("chat", d.id); }}><Icon name="comment" size={16} /> Melding</button>
+        {rel.friend ? (
+          <button className="iconAction on"><Icon name="check" size={18} /> Hundevenn</button>
+        ) : rel.requested ? (
+          <button className="iconAction" onClick={() => app.cancelFriend(d.id)}><Icon name="clock" size={18} /> Sendt</button>
+        ) : (
+          <button className="iconAction" onClick={() => app.requestFriend(d.id)}><Icon name="userPlus" size={18} /> Hundevenn</button>
+        )}
+        <button className="iconAction" onClick={() => { onClose(); app.open("chat", d.id); }}><Icon name="comment" size={18} /> Melding</button>
         <button className="pillBtn primary" onClick={() => { onClose(); app.open("meetupComposer", { with: d.id }); }}><Icon name="walk" size={17} /> Foreslå tur</button>
       </div>
     </Layer>
@@ -960,27 +1119,47 @@ function Settings({ onClose }) {
 
 function More({ onClose }) {
   const app = useApp();
-  const items = [
-    ["Hunder", "dog", "sun", () => app.setTab("Hunder")],
-    ["Kart", "pin", "mint", () => app.setTab("Kart")],
-    ["Aktivitet", "flame", "coral", () => app.setTab("Aktivitet")],
-    ["Arrangementer", "calendar", "blue", () => app.setTab("Arrangementer")],
-    ["Utforsk", "compass", "mint", () => app.setTab("Utforsk")],
-    ["Meldinger", "mail", "violet", () => app.open("inbox")],
-    ["Min profil", "paw", "blue", () => app.open("profile")],
-    ["Innstillinger", "settings", "muted", () => app.open("settings")],
+  const go = (fn) => { onClose(); fn(); };
+  const sections = [
+    ["Din hund", [
+      ["Min profil", "paw", () => app.open("profile")],
+      ["Aktivitet", "flame", () => app.setTab("Aktivitet")],
+      ["Merker", "trophy", () => app.open("profile")],
+    ]],
+    ["Utforsk", [
+      ["Hunder", "dog", () => app.setTab("Hunder")],
+      ["Kart", "pin", () => app.setTab("Kart")],
+      ["Arrangementer", "calendar", () => app.setTab("Arrangementer")],
+      ["Turområder", "compass", () => app.setTab("Utforsk")],
+    ]],
+    ["Konto", [
+      ["Meldinger", "mail", () => app.open("inbox")],
+      ["Varsler", "bell", () => app.open("notifications")],
+      ["Innstillinger", "settings", () => app.open("settings")],
+      ["Trygghet", "shield", () => app.open("safety")],
+    ]],
   ];
   return (
     <Layer kind="sheet" onClose={onClose} className="moreSheet" label="Mer">
       <span className="sheetHandle" />
-      <div className="moreGrid">
-        {items.map(([label, icon, color, fn]) => (
-          <button key={label} className={"tint-" + color} onClick={() => { onClose(); fn(); }}>
-            <span><Icon name={icon} size={22} /></span><b>{label}</b>
-          </button>
-        ))}
+      <div className="moreProfile" onClick={() => go(() => app.open("profile"))}>
+        <DogAvatar me size={48} ring="mint" />
+        <div><b>{app.me.dogName || "Hunden din"}</b><small>Nivå {app.level.level} · {app.level.name}</small></div>
+        <Icon name="chevronRight" size={18} />
       </div>
-      <button className="pillBtn primary block" onClick={() => { onClose(); app.startWalk(); }}>
+      {sections.map(([title, items]) => (
+        <div key={title} className="moreSection">
+          <h5>{title}</h5>
+          <div className="moreList">
+            {items.map(([label, icon, fn]) => (
+              <button key={label} className="moreRow" onClick={() => go(fn)}>
+                <Icon name={icon} size={19} /> <span>{label}</span> <Icon name="chevronRight" size={16} />
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <button className="pillBtn primary block" onClick={() => go(() => app.startWalk())}>
         <Icon name="play" size={14} fill="currentColor" stroke={0} /> Start tur
       </button>
     </Layer>
@@ -1257,6 +1436,7 @@ const MAP = {
   postComposer: PostComposer,
   eventComposer: EventComposer,
   meetup: MeetupDetail,
+  meetupChat: MeetupChat,
   event: EventDetail,
   place: PlaceDetail,
   dog: DogProfile,

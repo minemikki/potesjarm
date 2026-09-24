@@ -52,19 +52,28 @@ test.describe("Onboarding – sted", () => {
     await expect(page.getByRole("button", { name: "5 km", exact: true })).toHaveClass(/active/);
   });
 
-  test("full flyt: velg sted, fyll hund, fullfør – appen viser riktig sted etterpå", async ({ page }) => {
+  test("full flyt: sted, hund, liker, ønsker, klar – appen viser riktig sted etterpå", async ({ page }) => {
     await gotoFresh(page);
-    await page.locator(".onboarding .pillBtn").last().click();
+    await page.locator(".onboarding .pillBtn").last().click(); // Kom i gang -> Sted
 
     await page.locator(".locationForm input").fill("bodø");
     await page.locator(".locResult", { hasText: "Bodø" }).first().click();
-    await page.locator(".onboarding .pillBtn").last().click(); // Videre til hund
+    await page.locator(".onboarding .pillBtn").last().click(); // Videre -> Hund
 
     await page.locator(".onboardForm input").first().fill("Tyra");
-    await page.locator(".onboarding .pillBtn").last().click(); // Videre til "Klar"
-    await expect(page.locator(".onboarding")).toContainText("Bodø");
+    await page.locator(".onboarding .pillBtn").last().click(); // Videre -> Liker
 
-    await page.locator(".onboarding .pillBtn").last().click(); // Inn i appen
+    await expect(page.locator(".onboarding h1")).toContainText("Hva liker");
+    await page.locator(".miniChips button", { hasText: "Bading" }).click();
+    await page.locator(".onboarding .pillBtn").last().click(); // Videre -> Ønsker
+
+    await expect(page.locator(".onboarding h1")).toContainText("Hva ønsker");
+    await page.locator(".goalItem", { hasText: "Finne turvenner" }).click();
+    await page.locator(".onboarding .pillBtn").last().click(); // Videre -> Klar
+
+    await expect(page.locator(".onboarding")).toContainText("Bodø");
+    // Gå inn i appen uten å starte tur.
+    await page.locator(".onboarding .linkish", { hasText: "Utforsk appen" }).click();
     await expect(page.locator(".onboarding")).toHaveCount(0);
     await expect(page.locator(".sideNav .cityChip")).toContainText("Bodø");
   });

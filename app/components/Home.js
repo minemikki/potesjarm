@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Icon from "./Icon";
 import { useApp } from "./store";
-import { Avatar, AvatarStack, DogAvatar, Empty, RouteSketch, SectionHead, SourceTag } from "./ui";
+import { Avatar, AvatarStack, DogAvatar, Empty, Img, RouteSketch, SectionHead, SourceTag } from "./ui";
 import { fmtKm, fmtNum, img, meetupTypes, PHOTO } from "../lib/data";
 import { placeShort } from "../lib/geo";
 import { lostDogHoursLeft } from "../lib/lostdog";
@@ -286,7 +286,7 @@ export function PostCard({ post }) {
         </div>
       ) : post.photo ? (
         <div className="postMedia" onDoubleClick={like}>
-          <img src={img(post.photo, 700, 520)} alt="" loading="lazy" />
+          <Img id={post.photo} w={700} h={520} className="postMediaImg" />
           {post.sticker && <span className="sticker hand">{post.sticker}</span>}
           {burst && <span className="heartBurst"><Icon name="heart" size={64} fill="currentColor" stroke={0} /></span>}
         </div>

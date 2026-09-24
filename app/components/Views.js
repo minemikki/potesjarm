@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Icon from "./Icon";
 import { useApp } from "./store";
 import { MeetupCard, PostCard } from "./Home";
-import { Avatar, AvatarStack, Bar, Chips, DogAvatar, Empty, Meter, SectionHead, SourceTag } from "./ui";
+import { Avatar, AvatarStack, Bar, Chips, DogAvatar, Empty, Img, Meter, SectionHead, SourceTag } from "./ui";
 import { fmtKm, fmtNum, img, meetupTypes, PHOTO } from "../lib/data";
 import { BANDTVANG, inBandtvang, kommuneById, placeShort } from "../lib/geo";
 import { placeTypes, publicInfo } from "../lib/seed";
@@ -90,7 +90,7 @@ export function GroupsView() {
           <div className="myGroups">
             {mine.map((g) => (
               <button key={g.id} className={"myGroup tint-" + (g.color || "blue")} onClick={() => app.openGroup(g.id)}>
-                {g.photo ? <img src={img(g.photo, 160, 160)} alt="" /> : <span className="groupIconBox"><Icon name="users" size={22} /></span>}
+                {g.photo ? <Img id={g.photo} w={160} h={160} className="myGroupImg" /> : <span className="groupIconBox"><Icon name="users" size={22} /></span>}
                 <span><b>{g.name}</b><small>{g.official ? "Offisiell områdegruppe" : `${fmtNum(g.members)} medlemmer`}</small></span>
                 <Icon name="chevronRight" size={18} />
               </button>
@@ -126,7 +126,7 @@ function GroupCard({ g }) {
   return (
     <article className={"groupCard tint-" + (g.color || "blue")}>
       <button className="groupCover" onClick={() => app.openGroup(g.id)}>
-        {g.photo ? <img src={img(g.photo, 600, 360)} alt="" loading="lazy" /> : <span className="groupCoverBlank"><Icon name="users" size={34} /></span>}
+        {g.photo ? <Img id={g.photo} w={600} h={360} className="groupCoverImg" /> : <span className="groupCoverBlank"><Icon name="users" size={34} /></span>}
         <span className="groupTag">{g.tag}</span>
         {g.official && <span className="officialTag"><Icon name="shield" size={12} /> Potesjarm</span>}
       </button>
@@ -161,7 +161,7 @@ function GroupPage({ id }) {
       <section className={"groupHeader tint-" + (g.color || "blue")}>
         <div className="groupBanner" style={g.photo ? { backgroundImage: `url(${img(g.photo, 1400, 500)})` } : undefined} />
         <div className="groupHeaderBody">
-          {g.photo ? <img className="groupAvatar" src={img(g.photo, 200, 200)} alt="" /> : <span className="groupAvatar blank"><Icon name="users" size={34} /></span>}
+          {g.photo ? <Img id={g.photo} w={200} h={200} className="groupAvatar" rounded /> : <span className="groupAvatar blank"><Icon name="users" size={34} /></span>}
           <div className="groupTitle">
             <span className="kicker">{g.tag?.toUpperCase()} · {app.kommune?.name?.toUpperCase()}</span>
             <h2>{g.name}</h2>
@@ -183,7 +183,7 @@ function GroupPage({ id }) {
         </div>
       </section>
 
-      <Chips items={["Innlegg", "Treff", "Medlemmer"]} value={tab} onChange={setTab} />
+      <Chips items={["Innlegg", "Treff", "Medlemmer", "Om"]} value={tab} onChange={setTab} />
 
       {tab === "Innlegg" && (
         <>
@@ -227,6 +227,31 @@ function GroupPage({ id }) {
           </div>
         )
       )}
+
+      {tab === "Om" && (
+        <div className="groupAbout">
+          <h4>Om gruppa</h4>
+          <p>{g.about}</p>
+          {g.official ? (
+            <div className="aboutCard tint-mint">
+              <span className="chIcon tint-mint"><Icon name="shield" size={18} /></span>
+              <div><b>Offisiell områdegruppe</b><small>Opprettet og driftet av Potesjarm for hundeeiere i {app.kommune?.name}.</small></div>
+            </div>
+          ) : (
+            <div className="aboutCard">
+              <span className="chIcon tint-blue"><Icon name="users" size={18} /></span>
+              <div><b>Laget av hundeeiere</b><small>{fmtNum(g.members)} medlemmer i {app.kommune?.name}.</small></div>
+            </div>
+          )}
+          <h4>Kjøreregler</h4>
+          <ul className="ruleList">
+            <li><Icon name="heart" size={15} /> Vær vennlig og inkluderende mot både folk og hunder.</li>
+            <li><Icon name="shield" size={15} /> Møt på offentlige steder. Del aldri hjemmeadresser.</li>
+            <li><Icon name="paw" size={15} /> Respekter båndtvang og skilting på turområdene.</li>
+            <li><Icon name="flag" size={15} /> Rapporter upassende innhold – vi følger opp.</li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -264,7 +289,7 @@ export function DogsView() {
     <div className="view">
       {best && (
         <section className="matchSpot" onClick={() => app.open("dog", best.id)}>
-          <img src={img(best.photo, 900, 700)} alt="" />
+          <Img id={best.photo} w={900} h={700} className="matchSpotImg" />
           <div className="matchSpotBody">
             <span className="kicker light">BESTE MATCH I NÆRHETEN</span>
             <h2>{best.name} <small>{best.breed}, {best.age}</small></h2>
@@ -288,7 +313,7 @@ export function DogsView() {
         {list.map((d) => (
           <article key={d.id} className="dogCard">
             <button className="dogPhoto" onClick={() => app.open("dog", d.id)}>
-              <img src={img(d.photo, 520, 560)} alt="" loading="lazy" />
+              <Img id={d.photo} w={520} h={560} className="dogPhotoImg" />
               <span className="matchPill"><Icon name="heart" size={13} fill="currentColor" stroke={0} /> {d.match}%</span>
               {d.online && <span className="onlinePill"><i /> Ute nå</span>}
             </button>
@@ -623,7 +648,7 @@ export function EventsView() {
 
       {first && (
         <article className="eventFeature" onClick={() => app.open("event", first.id)}>
-          {first.photo && <img src={img(first.photo, 1200, 600)} alt="" />}
+          {first.photo && <Img id={first.photo} w={1200} h={600} className="eventFeatureImg" />}
           <div className="eventFeatureBody">
             <span className="dateChip big"><b>{first.day}</b><small>{first.month}</small></span>
             <div>

@@ -573,6 +573,17 @@ export function hasUserPosition(loc) {
   return !!(loc && typeof loc.lat === "number" && typeof loc.lng === "number");
 }
 
+/**
+ * Hvilket senter radiusen faktisk måles fra, som et eksplisitt navn:
+ *   user_approximate_location – brukerens egen delte, avrundede posisjon
+ *   municipality_center        – kommunens sentroide (fallback)
+ * (neighborhood_center er reservert til vi har verifiserte bydelskoordinater;
+ *  et valgt område flytter derfor ikke senteret ennå.)
+ */
+export function locationMode(loc) {
+  return hasUserPosition(loc) ? "user_approximate_location" : "municipality_center";
+}
+
 export const defaultLocation = { kommuneId: "stavanger", omrade: null, radiusKm: 10 };
 
 /**

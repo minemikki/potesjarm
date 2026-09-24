@@ -277,6 +277,20 @@ p { margin: 0; }
 .avatarStack .avatar { border: 2px solid #fff; box-sizing: content-box; }
 .avatarStack .avatar + .avatar { margin-left: calc(var(--s) * -0.35); }
 
+/* Innholdsbilde med lastetilstand og merkevareplassholder (se Img i ui.js) */
+.img { position: relative; display: block; overflow: hidden; background: var(--cream-2); }
+.img > img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .3s ease; }
+.img.rounded { border-radius: 16px; }
+.img-ph { background: linear-gradient(135deg, #eef1ff, #e4ecfb); }
+.imgFallback { position: absolute; inset: 0; display: grid; place-items: center; color: #b8c0e8; }
+/* Img-wrapperen skal fylle mediecontainere som tidligere targetet <img> direkte */
+.postMedia .img, .dogPhoto .img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.matchSpot > .img { width: 100%; height: 100%; }
+.eventFeature > .img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.dogHero > .img { width: 100%; height: 100%; }
+.dogHero .img > img { object-position: 50% 35%; }
+.post:hover .postMedia .img > img, .dogCard:hover .dogPhoto .img > img { transform: scale(1.04); }
+
 .pillBtn {
   height: 42px;
   padding: 0 18px;
@@ -524,7 +538,7 @@ p { margin: 0; }
 /* ---------- Grupper ---------- */
 .myGroups { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .myGroup { display: flex; align-items: center; gap: 12px; padding: 8px 12px 8px 8px; border-radius: 18px; background: var(--paper); box-shadow: var(--sh-1); text-align: left; }
-.myGroup img { width: 50px; height: 50px; border-radius: 14px; object-fit: cover; }
+.myGroup img, .myGroup .img { width: 50px; height: 50px; border-radius: 14px; object-fit: cover; flex: none; }
 .myGroup > span { flex: 1; min-width: 0; display: grid; }
 .myGroup b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .myGroup small { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
@@ -533,6 +547,7 @@ p { margin: 0; }
 .groupCard { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--sh-1); overflow: hidden; display: flex; flex-direction: column; }
 .groupCover { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; }
 .groupCover img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.groupCover .img { position: absolute; inset: 0; width: 100%; height: 100%; }
 .groupCard:hover .groupCover img { transform: scale(1.04); }
 .groupTag { position: absolute; left: 10px; top: 10px; padding: 4px 10px; border-radius: 999px; background: var(--tb); color: var(--t); font-size: 12px; font-weight: 900; }
 .groupInfo { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
@@ -545,6 +560,17 @@ p { margin: 0; }
 .groupBanner { height: clamp(120px, 20vh, 190px); background-size: cover; background-position: center; }
 .groupHeaderBody { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 18px; padding: 0 22px 22px; }
 .groupAvatar { width: 96px; height: 96px; margin-top: -40px; border-radius: 26px; object-fit: cover; border: 5px solid #fff; box-shadow: var(--sh-2); }
+.groupAvatar.img { flex: none; }
+.groupAvatar.img > img { border-radius: inherit; }
+/* Om-fanen i gruppe */
+.groupAbout { display: grid; gap: 12px; padding: 4px 2px 20px; }
+.groupAbout h4 { font-family: var(--body); font-size: 12.5px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.aboutCard { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 16px; background: var(--cream); }
+.aboutCard b { display: block; }
+.aboutCard small { color: var(--muted); font-weight: 700; }
+.ruleList { display: grid; gap: 8px; }
+.ruleList li { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--ink); }
+.ruleList li .icon { color: var(--blue); flex: none; }
 .groupTitle { flex: 1; min-width: 240px; display: grid; gap: 4px; padding-top: 12px; }
 .groupTitle h2 { font-size: clamp(26px, 2.4vw, 34px); color: var(--indigo); }
 .groupTitle p { color: var(--ink-2); font-weight: 600; }
@@ -744,6 +770,7 @@ p { margin: 0; }
 .stepper button { width: 34px; height: 34px; border-radius: 10px; background: #fff; font-size: 20px; font-weight: 800; box-shadow: var(--sh-1); }
 .stepper b { font-family: var(--display); font-size: 20px; }
 .fineprint { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.fineprint.warn { color: #b0203a; margin-top: 6px; }
 .inviteWith { display: flex; align-items: center; gap: 10px; padding: 8px 12px 8px 8px; border-radius: 999px; background: var(--mint-bg); color: #0f8a64; font-weight: 800; font-size: 14px; }
 .postDraft { display: flex; gap: 12px; align-items: flex-start; }
 .draftPhoto { position: relative; border-radius: 16px; overflow: hidden; aspect-ratio: 16 / 8; }
@@ -798,6 +825,19 @@ p { margin: 0; }
 .compatBars { flex: 1; display: grid; gap: 8px; }
 .compatBars > div { display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 10px; }
 .compatBars small { font-size: 13px; font-weight: 800; color: var(--ink-2); }
+/* Forklarbare fellestrekk (erstatter oppdiktet matchprosent) */
+.matchWhy { padding: 14px; border-radius: 18px; background: var(--mint-bg); display: grid; gap: 10px; }
+.matchWhyHead { display: flex; align-items: center; gap: 10px; }
+.matchWhyHead b { display: block; font-size: 16px; color: var(--indigo); }
+.matchWhyHead small { color: var(--ink-2); font-weight: 700; }
+.matchList { display: grid; gap: 6px; }
+.matchList li { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--ink); }
+.matchList li .icon { color: var(--mint-2, #1fb389); flex: none; }
+/* Hundeprofil-handlinger: kompakte ikon-knapper + primær CTA */
+.dogFoot { flex-wrap: wrap; }
+.iconAction { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 64px; padding: 8px 4px; border-radius: 14px; background: var(--cream); font-size: 11.5px; font-weight: 800; color: var(--ink-2); }
+.iconAction.on { background: var(--indigo); color: #fff; }
+.dogFoot .pillBtn.primary { flex-basis: 100%; }
 .dogFacts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .dogFacts > span { display: grid; gap: 4px; padding: 12px; border-radius: 16px; background: var(--cream); }
 .dogFacts small { font-size: 12px; font-weight: 800; color: var(--muted); }
@@ -907,6 +947,18 @@ p { margin: 0; }
 .moreGrid button span { width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center; background: var(--tb); color: var(--t); margin-bottom: 2px; }
 .moreGrid b { font-size: 13px; }
 .moreGrid small { font-size: 11.5px; color: var(--muted); font-weight: 700; }
+/* Seksjonert Mer-meny */
+.moreProfile { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 18px; background: var(--cream); margin-bottom: 6px; cursor: pointer; text-align: left; }
+.moreProfile > div { flex: 1; min-width: 0; display: grid; }
+.moreProfile b { font-size: 16px; }
+.moreProfile small { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.moreSection { display: grid; gap: 4px; }
+.moreSection h5 { font-size: 11.5px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 8px 6px 2px; }
+.moreList { display: grid; gap: 2px; }
+.moreRow { display: flex; align-items: center; gap: 12px; padding: 12px 12px; border-radius: 14px; background: var(--cream); font-weight: 800; text-align: left; }
+.moreRow > span { flex: 1; min-width: 0; }
+.moreRow > .icon:last-child { color: var(--muted); }
+.moreSheet .pillBtn.block { margin-top: 8px; }
 
 .profileBox { overflow: hidden; }
 .profileCover { position: relative; height: 150px; flex: none; background-size: cover; background-position: center; }
@@ -959,6 +1011,17 @@ p { margin: 0; }
 .onboardGrid { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
 .onboardGrid span { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; background: var(--cream); font-weight: 800; font-size: 14px; text-align: left; }
 .onboardGrid i { width: 38px; height: 38px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--tb); color: var(--t); }
+.miniChips.wrap { flex-wrap: wrap; }
+.linkish.center { display: flex; margin: 10px auto 0; }
+.goalList { display: grid; gap: 8px; width: 100%; }
+.goalItem { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: var(--cream); font-weight: 800; text-align: left; box-shadow: inset 0 0 0 1.5px transparent; }
+.goalItem b { flex: 1; min-width: 0; }
+.goalItem.active { box-shadow: inset 0 0 0 2px var(--indigo); background: #eef1ff; color: var(--indigo); }
+.goalItem.active .chIcon { background: var(--indigo); color: #fff; }
+/* Etter-treff-bekreftelse */
+.afterMeetup { margin: 10px 0; padding: 14px; border-radius: 16px; background: var(--cream); display: grid; gap: 10px; }
+.afterMeetupBtns { display: flex; gap: 8px; }
+.afterMeetupBtns .pillBtn { flex: 1; }
 .celebrate { overflow: hidden; }
 .celebrate .closeBtn { position: absolute; right: 14px; top: 14px; z-index: 1; }
 .celebrate h2 { font-size: 30px; color: var(--indigo); }
@@ -1061,13 +1124,13 @@ p { margin: 0; }
   .topActions { display: none; }
   .topBar h1 { font-size: 30px; }
   .topSub { font-size: 14px; }
-  .hero { min-height: 0; padding: 170px 20px 20px; align-items: flex-end; }
+  .hero { min-height: 0; padding: 108px 18px 18px; align-items: flex-end; }
   .heroCopy { max-width: 100%; }
-  .hero h2 { font-size: 34px; }
-  .hero p { font-size: 14px; }
+  .hero h2 { font-size: 29px; margin: 8px 0 10px; }
+  .hero p { font-size: 13.5px; line-height: 1.4; }
   .heroBtns .pillBtn.big { height: 46px; font-size: 15px; padding: 0 18px; }
-  .heroBadge { left: 14px; right: auto; top: 14px; }
-  .heroScribble { top: 76px; right: 18px; bottom: auto; font-size: 30px; }
+  .heroBadge { left: 14px; right: auto; top: 12px; padding: 6px 10px; }
+  .heroScribble { top: 54px; right: 16px; bottom: auto; font-size: 26px; }
   .hero::after { background: linear-gradient(0deg, rgba(17, 21, 78, 0.95) 0%, rgba(17, 21, 78, 0.62) 50%, rgba(17, 21, 78, 0.05) 80%); }
   .hero::before { background-position: 40% 20%; }
   .stories { margin: 0 -14px; padding-left: 14px; padding-right: 14px; }
@@ -1088,7 +1151,7 @@ p { margin: 0; }
   .toolbar .chips { margin: 0 -14px; padding: 2px 14px; }
   .toolbar > .pillBtn { align-self: flex-start; }
   .matchSpot { grid-template-columns: 1fr; }
-  .matchSpot > img { height: 220px; }
+  .matchSpot > img, .matchSpot > .img { height: 220px; }
   .dogGrid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .dogName h3 { font-size: 18px; }
   .statHero { grid-template-columns: 1fr; }
@@ -1142,19 +1205,19 @@ p { margin: 0; }
 
 /* Demo-bånd. Skal aldri kunne overses. */
 .demoBanner {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  margin-bottom: 16px; padding: 11px 14px;
-  border-radius: 16px;
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; padding: 8px 10px 8px 12px;
+  border-radius: 12px;
   background: var(--violet-bg);
   color: #4a33b0;
-  font-size: 13.5px; font-weight: 700;
+  font-size: 13px; font-weight: 700;
 }
 .demoBanner .icon { color: var(--violet); flex: none; }
-.demoBanner span { flex: 1; min-width: 180px; }
+.demoBanner span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .demoBanner b { font-weight: 900; }
 .demoBanner button {
-  flex: none; height: 32px; padding: 0 14px; border-radius: 999px;
-  background: var(--violet); color: #fff; font-weight: 800; font-size: 13px;
+  flex: none; height: 30px; padding: 0 12px; border-radius: 999px;
+  background: var(--violet); color: #fff; font-weight: 800; font-size: 12.5px;
 }
 
 /* Tom tilstand */
@@ -1338,7 +1401,7 @@ p { margin: 0; }
   .stepGrid, .placeRow, .recordGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
-  .demoBanner { margin: 12px 0 0; font-size: 13px; }
+  .demoBanner { margin: 10px 0 0; font-size: 12.5px; }
   .stepGrid, .placeRow, .recordGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .stepCard { padding: 14px 12px; }
   .stepCard b { font-size: 14px; }

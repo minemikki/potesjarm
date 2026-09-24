@@ -305,6 +305,62 @@ for poter, ekte topplistekilde, og alt i Fase B–H under.
 
 ---
 
+# 3e. Mobil-runde: ekte, sammenhengende app (runde 3)
+
+Målet var at mobilopplevelsen skal føles som en ferdig app, ikke et preview.
+Prioritert P0→P1→P2, ikke nye tilfeldige features.
+
+**P0**
+- **Robuste bilder.** Ny `Img`-komponent (`ui.js`) med laste-/feiltilstand og
+  merkevareplassholder (pote), og `Avatar` faller nå tilbake ved lastefeil i
+  stedet for et grått ødelagt ikon. Alle innholdsbilder (feed, hundekort,
+  hundehero, arrangement, gruppe) bruker den.
+- **Location mode.** `geo.locationMode()` + `radiusCenter()`: radius måles fra
+  brukerens egen personvern-avrundede posisjon (opt-in) med «Finner posisjon…»,
+  «Bruker omtrentlig posisjon · ± N m», og ærlig «tilgang ikke gitt → bruker
+  sentrum av X» ved avslag. Ingen silent failure.
+- **Onboarding 4 steg.** Sted → Hund → «Hva liker hunden?» (aktiviteter) →
+  «Hva ønsker dere?» (mål, `ownerGoals`), så «{navn} er klar 🐾» med CTA
+  «Start deres første tur». Søk/valgt-sted-separasjonen er bevart (egen
+  regresjonstest).
+- **Kompakt hero + demo-banner** på mobil, så «Kom i gang» vises over folden.
+  Demo-banneret er nå en tynn linje: «Demo · innholdet er oppdiktet».
+
+**P1**
+- **Nå skjer.** Treff-detalj har vert-handling (avlys → ekte fjerning),
+  **treff-chat** for deltakere (`MeetupChat`, ærlig tom tilstand «Start
+  samtalen»), og «Ble turen noe av?»-bekreftelse etter start (ingen poter for
+  svaret lokalt – ekte fullføring krever backend). Bli med / meld av oppdaterer
+  deltakerlista umiddelbart.
+- **Følge vs hundevenn** (`app/lib/friends.js`, rent + testet). Følge er
+  énveis. Hundevenn er en forespørsel som blir «Sendt» (pending) – aldri
+  «godtatt» lokalt (krever at den andre godtar via backend). Blokkering
+  overstyrer alt.
+- **Hundeprofil** uten oppdiktet «92 % match»: viser forklarbare fellestrekk
+  («Begge liker bading», «Likt energinivå», «I samme område»), ekte
+  attributter, og Følg / Hundevenn / Melding / Foreslå tur.
+- **Gruppe-detalj** fikk «Om»-fane (beskrivelse, provenians, kjøreregler) i
+  tillegg til Innlegg/Treff/Medlemmer.
+- **Repository-sømmen** følger husets mønster: rene domenemoduler
+  (`friends.js`, `ledger.js`, `lostdog.js`, `time.js`, `track.js`) eier
+  reglene, store er tynt lim mot localStorage. Async Supabase-implementasjon
+  er dokumentert neste steg (ikke en risikabel full async-omskriving nå).
+
+**P2**
+- **Mer-meny** er nå seksjonert (Din hund / Utforsk / Konto) med et
+  profilkort øverst, i stedet for et tilfeldig ikonrutenett.
+
+Nye enhetstester: `friends.test.mjs`. Nye e2e: `social.spec.js` (treff bli
+med/meld av + deltakerliste, treff-chat, følge vs hundevenn uten falsk
+godkjenning, bilde-fallback) og oppdatert `onboarding.spec.js` for 4-stegs
+flyt. **89 enhetstester + 24 e2e grønne.**
+
+**Fortsatt local-only / venter på backend:** ekte multi-user, at en
+hundevenn-forespørsel kan godtas, chat/realtime på tvers av enheter, push,
+bildeopplasting. **Venter på beslutning:** native-app for bakgrunns-GPS.
+
+---
+
 # 4. Designretning (godkjent)
 
 Identitet:
@@ -358,7 +414,9 @@ Norsk UI hele veien («Arrangementer», ikke «Events»).
 - ekte, utløpsstyrt hastevarsel for mistet hund; ekte blokkering som
   filtrerer feed og kommentarer; radius måles fra brukerens egen
   personvern-avrundede posisjon når den deles (ellers kommunesenter)
-- automatisert testsuite: 80 enhetstester + 20 e2e-tester (se «Testing»)
+- robust mobilopplevelse: bildefallbacks, location mode, 4-stegs onboarding,
+  treff-detalj m/chat, følge vs hundevenn, seksjonert Mer-meny
+- automatisert testsuite: 89 enhetstester + 24 e2e-tester (se «Testing»)
 
 ## Ikke bygget ennå
 - **auth** (ingen innlogging — alt ligger i localStorage, nøkkel `potesjarm-v3`)

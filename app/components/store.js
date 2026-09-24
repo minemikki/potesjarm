@@ -8,6 +8,7 @@ import { COLD_START, getContent, getStats, isEarlyArea, leaderboardUnlocked, MOD
 import { GPS_CONFIG, applyGpsSample, createWalkSession, isValidWalk, pawsForWalk } from "../lib/track";
 import { isNewOsloDay, isSameOsloDay, isSameOsloWeek, nextStreak, osloDateKey, osloHour } from "../lib/time";
 import { migrateState as migrateStateLib, pawsTotal, pushLedgerOnce } from "../lib/ledger";
+import { cancelFriendRequest, relationStatus, sendFriendRequest, toggleFollow as toggleFollowLib } from "../lib/friends";
 import * as demo from "../lib/demo";
 
 const AppCtx = createContext(null);
@@ -25,7 +26,7 @@ const EMPTY = {
   location: defaultLocation,
   onboarded: false,
   // Hundeprofilen fylles ut i onboarding.
-  profile: { dogName: "", ownerName: "", breed: "", age: "", size: "", energy: "", play: [], photo: null },
+  profile: { dogName: "", ownerName: "", breed: "", age: "", size: "", energy: "", play: [], comfort: [], goals: [], photo: null },
   // Brukerens egen, faktiske aktivitet.
   walks: [],
   streak: 0,
@@ -44,6 +45,11 @@ const EMPTY = {
   going: {},
   joinedGroups: {},
   followed: {},
+  // Hundevenn-graf: se app/lib/friends.js. friendReqOut = forespørsler jeg har
+  // sendt (pending). friends = BEKREFTEDE venner – settes aldri av et klikk i
+  // live-modus (krever at den andre godtar via backend), bare av demo-fixtures.
+  friendReqOut: {},
+  friends: {},
   eventGoing: {},
   savedPlaces: {},
   verifiedPlaces: {},
@@ -55,6 +61,8 @@ const EMPTY = {
   myMeetups: [],
   myPosts: [],
   myEvents: [],
+  // Svar på «ble turen noe av?» per treff-id ("yes"/"no").
+  meetupConfirms: {},
   // Reelle, lokale handlinger: brukeren har faktisk trykket "send".
   invitesSent: 0,
   // IKKE det samme som "aktivert". En invitasjon er bare aktivert når
@@ -221,6 +229,12 @@ export function AppProvider({ children }) {
       breed: state.profile.breed || base?.breed || "",
       age: state.profile.age || base?.age || "",
       photo: state.profile.photo || base?.photo || null,
+      // Profilattributter eksponeres slik at hundeprofilen kan regne ut ekte
+      // fellestrekk (se commonalities() i Overlays.js) i stedet for en % match.
+      size: state.profile.size || "",
+      energy: state.profile.energy || "",
+      play: state.profile.play || [],
+      goals: state.profile.goals || [],
       streak: state.streak + (base?.streak || 0),
       paws: pawLedgerTotal + (base?.paws || 0),
       totalKm: +(sum(walks, "km") + (base?.totalKm || 0)).toFixed(1),
@@ -326,7 +340,26 @@ export function AppProvider({ children }) {
       flash(wasOn ? "Du er meldt av treffet" : "Du er med! Verten har fått beskjed", wasOn ? "x" : "check");
     },
     toggleGroup: (id) => toggleIn("joinedGroups", id, "Velkommen i gruppa!", "Du har forlatt gruppa", "users"),
-    toggleFollow: (id) => toggleIn("followed", id, "Du følger nå denne hunden", "Følger ikke lenger", "heart"),
+    // FØLGE (énveis) – ingen bekreftelse fra den andre trengs.
+    toggleFollow: (id) => {
+      let nowOn;
+      setState((s) => {
+        nowOn = !s.followed[id];
+        return { ...s, followed: toggleFollowLib(s.followed, id) };
+      });
+      flash(nowOn ? "Du følger nå denne hunden" : "Følger ikke lenger", "heart");
+    },
+    // HUNDEVENN (toveis) – vi sender en forespørsel. Den blir aldri "venner"
+    // lokalt; det krever at den andre eieren godtar via backend. Vi later
+    // aldri som om den er godtatt.
+    requestFriend: (id) => {
+      setState((s) => sendFriendRequest(s, id));
+      flash("Forespørsel sendt. Dere blir hundevenner når den andre godtar", "userPlus");
+    },
+    cancelFriend: (id) => {
+      setState((s) => cancelFriendRequest(s, id));
+      flash("Forespørsel trukket tilbake", "x");
+    },
     toggleEvent: (id) => toggleIn("eventGoing", id, "Du er påmeldt!", "Påmelding fjernet", "calendar"),
     togglePlace: (id) => toggleIn("savedPlaces", id, "Sted lagret", "Fjernet fra lagrede", "star"),
     // Å bekrefte et sted er en førstehånds-påstand om et ekte, navngitt sted
@@ -368,6 +401,22 @@ export function AppProvider({ children }) {
       }));
       flash("Treffet er ute! Hundeeiere i nærheten får beskjed", "live");
       return id;
+    },
+    // Vert avlyser sitt eget treff – ekte konsekvens: det fjernes fra lista.
+    cancelMeetup: (id) => {
+      setState((s) => {
+        const going = { ...s.going };
+        delete going[id];
+        return { ...s, myMeetups: s.myMeetups.filter((x) => x.id !== id), going };
+      });
+      flash("Treffet er avlyst. Deltakere får beskjed", "x");
+    },
+    // Etter et treff: «Ble turen noe av?». Lagrer svaret. Ingen poter deles ut
+    // her lokalt – en ekte fullføring (og eventuell belønning/hundevenn-forslag)
+    // krever at flere parter bekrefter via backend.
+    confirmMeetup: (id, happened) => {
+      setState((s) => ({ ...s, meetupConfirms: { ...s.meetupConfirms, [id]: happened ? "yes" : "no" } }));
+      flash(happened ? "Så fint! Takk for at dere var ute" : "Notert – kanskje neste gang", happened ? "heart" : "check");
     },
     addPost: (text, place) => {
       setState((s) => ({
@@ -488,18 +537,20 @@ export function AppProvider({ children }) {
         flash("Nettleseren støtter ikke posisjon", "alert");
         return;
       }
-      flash("Henter posisjonen din…", "pin");
+      flash("Finner posisjon…", "pin");
+      const kName = kommuneById[state.location.kommuneId]?.name || "kommunen";
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const lat = roundCoord(pos.coords.latitude);
           const lng = roundCoord(pos.coords.longitude);
-          patch((s) => ({ location: { ...s.location, lat, lng, positionAt: Date.now() } }));
-          flash("Radius måles nå fra posisjonen din", "check");
+          const accuracy = pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null;
+          patch((s) => ({ location: { ...s.location, lat, lng, accuracy, positionAt: Date.now() } }));
+          flash(accuracy ? `Bruker omtrentlig posisjon · ± ${accuracy} m` : "Bruker omtrentlig posisjon", "check");
         },
         (err) => {
-          flash(err.code === 1 ? "Du må gi posisjonstilgang for dette" : "Fikk ikke posisjonen din", "alert");
+          flash(err.code === 1 ? `Posisjonstilgang ble ikke gitt. Vi bruker sentrum av ${kName}.` : `Fikk ikke posisjonen din. Vi bruker sentrum av ${kName}.`, "alert");
         },
-        { enableHighAccuracy: false, maximumAge: 60000, timeout: 15000 }
+        { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 }
       );
     },
     // Slår av bruk av egen posisjon – radius faller tilbake til kommunesenter.
@@ -529,6 +580,8 @@ export function AppProvider({ children }) {
     content: contentWithMine,
     stats,
     kommune: kommuneById[state.location.kommuneId],
+    // Relasjonsstatus (følge/hundevenn/blokkert) for en hund – se friends.js.
+    relationTo: (id) => relationStatus(state, id),
     // Ærlig, utløpsbevisst status – UI skal lese denne, ikke rå lostDogActive.
     lostDogLive: isLostDogLive(state),
     usingMyPosition: typeof state.location.lat === "number",
