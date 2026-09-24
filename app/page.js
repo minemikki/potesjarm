@@ -205,7 +205,7 @@ export default function Home() {
       <section className="mainColumn">
         <header className="mobileHeader">
           <a className="logo" href="#"><span className="logoMark">♥</span><span>Potesjarm</span></a>
-          <button className="cityPill" onClick={() => setCity(city === "Stavanger" ? "Sandnes" : "Stavanger")}>⌖ {city}⌄</button>
+          <div className="mobileHeaderActions"><button onClick={() => setShowInbox(true)}>✉</button><button className="cityPill" onClick={() => setCity(city === "Stavanger" ? "Sandnes" : "Stavanger")}>⌖ {city}⌄</button></div>
         </header>
 
         <div className="topBar">
@@ -235,6 +235,10 @@ export default function Home() {
               <div className="heroBadge"><b>12</b><span>aktive nå</span></div>
             </section>
 
+            <div className="homeShortcuts">
+              <button onClick={()=>setTab("Aktivitet")}><span>🔥</span><div><b>18 dagers streak</b><small>Se fremgang og challenges</small></div><strong>→</strong></button>
+              <button onClick={()=>setTab("Events")}><span>◫</span><div><b>3 events nær deg</b><small>Neste: Mosvatnet fredag</small></div><strong>→</strong></button>
+            </div>
             <div className="sectionTitle"><div><span>AKKURAT NÅ</span><h2>Signals nær deg</h2></div><button onClick={() => setTab("Signals")}>Se alle →</button></div>
             <div className="signalStrip">
               {localSignals.slice(0,3).map((s, i) => (
