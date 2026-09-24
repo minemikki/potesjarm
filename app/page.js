@@ -76,10 +76,14 @@ const events = [
 
 const cities = ["Stavanger","Sandnes","Bergen","Oslo","Trondheim","Kristiansand"];
 const moments = [
-  { name:"Luna", label:"Morgentur", image:dogImg("photo-1552053831-71594a27632d") },
+  { name:"Luna", label:"Mosvatnet", image:dogImg("photo-1552053831-71594a27632d") },
   { name:"Balto", label:"På fjellet", image:dogImg("photo-1589941013453-ec89f33b5e95") },
   { name:"Milo", label:"Valpeliv", image:dogImg("photo-1517423440428-a5a00ad493e8") },
   { name:"Nala", label:"Strand", image:dogImg("photo-1517849845537-4d257902454a") },
+  { name:"Max", label:"Bytur", image:dogImg("photo-1507146426996-ef05306b995a") },
+  { name:"Bella", label:"Hundvåg", image:dogImg("photo-1558788353-f76d92427f16") },
+  { name:"Odin", label:"Ullandhaug", image:dogImg("photo-1561037404-61cd46aa615b") },
+  { name:"Frida", label:"Med flokken", image:dogImg("photo-1544568100-847a948585b9") },
 ];
 
 const places = [
@@ -261,7 +265,7 @@ export default function Home() {
       <aside className="desktopRail">
         <a className="logo" href="#">
           <span className="logoMark">♥</span>
-          <span>Potesjarm</span><em>Flere poter<br/>lettere sammen ♡</em>
+          <span>Potesjarm</span><em>Flere poter<br/>flere venner ♡</em>
         </a>
 
         <div className="cityCard">
@@ -280,7 +284,7 @@ export default function Home() {
           ))}
           <button onClick={() => setTab("Kart")} className={tab === "Kart" ? "active" : ""}><span>⌖</span>Kart</button>
           <button onClick={() => setTab("Aktivitet")} className={tab === "Aktivitet" ? "active" : ""}><span>🔥</span>Aktivitet</button>
-          <button onClick={() => setTab("Events")} className={tab === "Events" ? "active" : ""}><span>◫</span>Events</button>
+          <button onClick={() => setTab("Arrangementer")} className={tab === "Arrangementer" ? "active" : ""}><span>◫</span>Arrangementer</button>
           <button onClick={() => setTab("Utforsk")} className={tab === "Utforsk" ? "active" : ""}><span>✦</span>Utforsk</button>
         </nav>
 
@@ -303,7 +307,7 @@ export default function Home() {
 
         <div className="topBar">
           <div>
-            <span className="kicker">LOKALT HUNDELIV</span>
+            <span className="kicker">LOKALT HUNDEFELLESSKAP</span>
             <h1>{tab === "For deg" ? `God morgen, ${city} ☀️` : tab}</h1>
           </div>
           <div className="topActions">
@@ -330,28 +334,14 @@ export default function Home() {
 
             {lostDogActive && <div className="lostDogBanner"><div><span>🚨 AKTIVT HASTEVARSEL</span><b>Santos er meldt savnet i {city}</b><small>Varsel er synlig for lokale brukere i demoen.</small></div><button onClick={()=>{setLostDogActive(false);flash("Hastevarsel avsluttet")}}>Funnet ✓</button></div>}
             <div className="communityLabel"><b>Hundevenner i nærheten</b><button onClick={()=>setTab("Hunder")}>Se alle hunder →</button></div><div className="momentsRow">
-              <button className="moment addMoment" onClick={()=>setShowPostComposer(true)}><span>＋</span><small>Din story</small></button>
+              <button className="moment addMoment" onClick={()=>setShowPostComposer(true)}><span>＋</span><small>Del noe</small></button>
               {moments.map(m=><button className="moment" key={m.name} onClick={()=>setShowMoment(m)}><span><img src={m.image} alt=""/></span><b>{m.name}</b><small>{m.label}</small></button>)}
             </div>
-            <div className="homeShortcuts">
-              <button onClick={()=>setTab("Aktivitet")}><span>🔥</span><div><b>18 dagers streak</b><small>Se fremgang og challenges</small></div><strong>→</strong></button>
-              <button onClick={()=>setTab("Events")}><span>◫</span><div><b>3 events nær deg</b><small>Neste: Mosvatnet fredag</small></div><strong>→</strong></button>
-              <button onClick={()=>setTab("Utforsk")}><span>✦</span><div><b>Oppdag nærområdet</b><small>Turer, steder og lokale favoritter</small></div><strong>→</strong></button>
-              <button onClick={()=>setShowWeeklyRecap(true)}><span>↗</span><div><b>Uka deres</b><small>Lag delbart ukeskort</small></div><strong>→</strong></button>
+            <div className="homePulse">
+              <button onClick={()=>setTab("Aktivitet")}><span>🔥</span><b>18 dagers turstreak</b><small>Se fremgang</small><strong>→</strong></button>
+              <button onClick={()=>setTab("Arrangementer")}><span>◫</span><b>3 arrangementer nær deg</b><small>Mosvatnet fredag</small><strong>→</strong></button>
             </div>
-            <div className="sectionTitle"><div><span>NÅ SKJER</span><h2>Treff nær deg</h2></div><button onClick={() => setTab("Nå skjer")}>Se alle →</button></div>
-            <div className="signalStrip">
-              {localTreffs.slice(0,3).map((s, i) => (
-                <button key={s.title} className={"miniSignal " + s.tone} onClick={() => setJoined({ ...joined, [i]: !joined[i] })}>
-                  <span className="signalIcon">{i === 0 ? "🐕" : i === 1 ? "🎾" : "🌲"}</span>
-                  <b>{s.title}</b><small>{s.meta}</small>
-                  <strong>{joined[i] ? "Du er med ✓" : s.action}</strong>
-                </button>
-              ))}
-            </div>
-
-            <div className="sectionTitle"><div><span>FOR DEG</span><h2>Aktivitet fra fellesskapet</h2></div><button>Tilpass</button></div>
-            <div className="quickPost"><button onClick={() => setShowPostComposer(true)}>＋ Del et øyeblikk fra hundelivet</button></div>
+            <div className="sectionTitle communityFeedTitle"><div><span>FELLESSKAPET</span><h2>Aktivitet i nærheten</h2></div><button onClick={()=>setShowPostComposer(true)}>＋ Del noe</button></div>
             <div className="feed communityFeed">
               {localPosts.map((post) => (
                 <article className="post" key={post.id}>
@@ -367,6 +357,17 @@ export default function Home() {
                     <button onClick={()=>setShowComments(post)}>◯ {(commentsByPost[post.id]||[]).length || post.comments}</button><button onClick={()=>flash("Delingslenke kopiert i demo")} >↗</button><button onClick={()=>setSavedPosts({...savedPosts,[post.id]:!savedPosts[post.id]})} className={"save "+(savedPosts[post.id]?"saved":"")}>{savedPosts[post.id]?"▣":"⌑"}</button>
                   </div>
                 </article>
+              ))}
+            </div>
+
+            <div className="sectionTitle nearNowTitle"><div><span>NÅ SKJER</span><h2>Treff nær deg</h2></div><button onClick={() => setTab("Nå skjer")}>Se alle →</button></div>
+            <div className="signalStrip">
+              {localTreffs.slice(0,3).map((s, i) => (
+                <button key={s.title} className={"miniSignal " + s.tone} onClick={() => setJoined({ ...joined, [i]: !joined[i] })}>
+                  <span className="signalIcon">{i === 0 ? "🐕" : i === 1 ? "🎾" : "🌲"}</span>
+                  <b>{s.title}</b><small>{s.meta}</small>
+                  <strong>{joined[i] ? "Du er med ✓" : s.action}</strong>
+                </button>
               ))}
             </div>
           </>
@@ -438,7 +439,7 @@ export default function Home() {
           </>
         )}
 
-        {tab === "Events" && (
+        {tab === "Arrangementer" && (
           <>
             <section className="simpleIntro eventIntro"><div><span>SKJER I NÆRHETEN</span><h2>Finn noe å bli med på.</h2><p>Lokale turer, treff og aktiviteter — laget av hundefolk i nærheten.</p></div><button onClick={()=>setShowCreateEvent(true)}>＋ Lag event</button></section>
             <div className="eventList">{localEvents.map(e=><article key={e.id}><div className="eventDate"><b>{e.day}</b><span>{e.month}</span></div><div className="eventCopy"><span>{e.tag}</span><h3>{e.title}</h3><p>{e.meta}</p></div><button onClick={()=>setEventJoined({...eventJoined,[e.id]:!eventJoined[e.id]})}>{eventJoined[e.id]?"Påmeldt ✓":"Bli med"}</button></article>)}</div>
@@ -470,9 +471,9 @@ export default function Home() {
         </section>
 
         <section className="upcoming">
-          <div className="sectionTitle compact"><div><span>KOMMER</span><h2>Nær deg</h2></div></div>
-          <article onClick={()=>setTab("Events")}><b>27</b><div><strong>Kveldstur rundt Mosvatnet</strong><span>Fre · 18:00 · 22 med</span></div></article>
-          <article onClick={()=>setTab("Events")}><b>29</b><div><strong>Valpetreff på Hundvåg</strong><span>Søn · 12:00 · 14 med</span></div></article>
+          <div className="sectionTitle compact"><div><span>KOMMER</span><h2>I nærheten</h2></div></div>
+          <article onClick={()=>setTab("Arrangementer")}><b>27</b><div><strong>Kveldstur rundt Mosvatnet</strong><span>Fre · 18:00 · 22 med</span></div></article>
+          <article onClick={()=>setTab("Arrangementer")}><b>29</b><div><strong>Valpetreff på Hundvåg</strong><span>Søn · 12:00 · 14 med</span></div></article>
         </section>
       </aside>
 
@@ -496,7 +497,7 @@ export default function Home() {
       {showProfile && <div className="drawerBackdrop" onClick={()=>setShowProfile(false)}><aside className="drawer profileDrawer" onClick={e=>e.stopPropagation()}><div className="profileCover"><button onClick={()=>setShowProfile(false)}>×</button></div><div className="profileAvatar dogAvatar"/><div className="profileIdentity">{verified && <span className="verifiedBadge">✓ Verifisert</span>}</div>{editingProfile ? <div className="profileEdit"><input value={profileName} onChange={e=>setProfileName(e.target.value)}/><input value={profileBio} onChange={e=>setProfileBio(e.target.value)}/></div> : <><h2>{profileName}</h2><p className="profileSub">{profileBio}</p></>}<div className="profileStats"><div><b>18</b><span>streak</span></div><div><b>243</b><span>turer</span></div><div><b>812 km</b><span>sammen</span></div></div><div className="profileChips"><span>⚡ Høy energi</span><span>🌲 Fjelltur</span><span>🎾 Røff lek</span><span>🐕 Store hunder</span></div><h3>Merker</h3><div className="badgeRow"><span>🏔️<small>Fjellpote</small></span><span>🌧️<small>Regnkriger</small></span><span>🔥<small>14 dager</small></span><span>🌙<small>Nattugle</small></span></div><button className="profileAction" onClick={()=>setEditingProfile(!editingProfile)}>{editingProfile ? "Lagre profil" : "Rediger hundeprofil"}</button><button className="profileGhost" onClick={()=>setShowPremium(true)}>✦ Potesjarm+ preview</button></aside></div>}
 
 
-      {showMore && <div className="actionSheetBackdrop" onClick={()=>setShowMore(false)}><div className="moreSheet" onClick={e=>e.stopPropagation()}><div className="sheetHandle"/><h3>Mer i Potesjarm</h3><div className="moreGrid"><button onClick={()=>{setTab("Aktivitet");setShowMore(false)}}><span>🔥</span><b>Aktivitet</b><small>Streaks & merker</small></button><button onClick={()=>{setTab("Grupper");setShowMore(false)}}><span>◎</span><b>Grupper</b><small>Finn flokken</small></button><button onClick={()=>{setTab("Events");setShowMore(false)}}><span>◫</span><b>Events</b><small>Møt folk</small></button><button onClick={()=>{setTab("Kart");setShowMore(false)}}><span>⌖</span><b>Kart</b><small>Rundt deg</small></button><button onClick={()=>{setShowInbox(true);setShowMore(false)}}><span>✉</span><b>Meldinger</b><small>Samtaler</small></button><button onClick={()=>{setShowInvite(true);setShowMore(false)}}><span>🎁</span><b>Inviter</b><small>Bygg byen</small></button><button onClick={()=>{setShowSafety(true);setShowMore(false)}}><span>🛡</span><b>Trygghet</b><small>Nødprofil</small></button><button onClick={()=>{setShowSettings(true);setShowMore(false)}}><span>⚙</span><b>Innstillinger</b><small>Personvern</small></button></div></div></div>}
+      {showMore && <div className="actionSheetBackdrop" onClick={()=>setShowMore(false)}><div className="moreSheet" onClick={e=>e.stopPropagation()}><div className="sheetHandle"/><h3>Mer i Potesjarm</h3><div className="moreGrid"><button onClick={()=>{setTab("Aktivitet");setShowMore(false)}}><span>🔥</span><b>Aktivitet</b><small>Streaks & merker</small></button><button onClick={()=>{setTab("Grupper");setShowMore(false)}}><span>◎</span><b>Grupper</b><small>Finn flokken</small></button><button onClick={()=>{setTab("Arrangementer");setShowMore(false)}}><span>◫</span><b>Arrangementer</b><small>Møt folk</small></button><button onClick={()=>{setTab("Kart");setShowMore(false)}}><span>⌖</span><b>Kart</b><small>Rundt deg</small></button><button onClick={()=>{setShowInbox(true);setShowMore(false)}}><span>✉</span><b>Meldinger</b><small>Samtaler</small></button><button onClick={()=>{setShowInvite(true);setShowMore(false)}}><span>🎁</span><b>Inviter</b><small>Bygg byen</small></button><button onClick={()=>{setShowSafety(true);setShowMore(false)}}><span>🛡</span><b>Trygghet</b><small>Nødprofil</small></button><button onClick={()=>{setShowSettings(true);setShowMore(false)}}><span>⚙</span><b>Innstillinger</b><small>Personvern</small></button></div></div></div>}
 
       {showInvite && <div className="modalBackdrop" onClick={()=>setShowInvite(false)}><div className="inviteModal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowInvite(false)}>×</button><span>BYGG FLOKKEN</span><h2>Inviter 3 hundevenner.</h2><p>Når flere i samme område blir med, blir Nå skjer, events og hundematching mye bedre.</p><div className="inviteProgress"><div><i style={{width:Math.min(100,(inviteCount/3)*100)+"%"}}/></div><b>{inviteCount}/3 invitert</b></div><div className="inviteReward"><span>🎁</span><div><b>Lås opp Founder-merket</b><small>+ 500 Poter når 3 venner blir med</small></div></div><button className="inviteButton" onClick={()=>{setInviteCount(Math.min(3,inviteCount+1));flash("Invitasjon simulert ✓")}}>Inviter en venn</button></div></div>}
 
