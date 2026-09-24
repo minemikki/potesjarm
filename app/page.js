@@ -74,6 +74,14 @@ const events = [
   { id: 3, day: "04", month: "OKT", title: "Søndagstur til Dalsnuten", meta: "10:30 · Sandnes · 31 påmeldt", tag: "Fjell" },
 ];
 
+const cities = ["Stavanger","Sandnes","Bergen","Oslo","Trondheim","Kristiansand"];
+const moments = [
+  { name:"Luna", label:"Morgentur", image:dogImg("photo-1552053831-71594a27632d") },
+  { name:"Balto", label:"På fjellet", image:dogImg("photo-1589941013453-ec89f33b5e95") },
+  { name:"Milo", label:"Valpeliv", image:dogImg("photo-1517423440428-a5a00ad493e8") },
+  { name:"Nala", label:"Strand", image:dogImg("photo-1517849845537-4d257902454a") },
+];
+
 export default function Home() {
   const [tab, setTab] = useState("For deg");
   const [city, setCity] = useState("Stavanger");
@@ -110,6 +118,24 @@ export default function Home() {
   const [profileName, setProfileName] = useState("Santos");
   const [profileBio, setProfileBio] = useState("Schæfer · Stavanger · 3 år");
   const [editingProfile, setEditingProfile] = useState(false);
+  const [showComments, setShowComments] = useState(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [commentsByPost, setCommentsByPost] = useState({
+    1:[{name:"Kari & Milo",text:"Åå, så fint der! 😍"},{name:"Henrik & Nala",text:"Vi må bli med neste gang."}],
+    2:[{name:"Lise & Luna",text:"Denne stien er gull tidlig på dagen!"}],
+  });
+  const [savedPosts, setSavedPosts] = useState({});
+  const [showPostMenu, setShowPostMenu] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCityPicker, setShowCityPicker] = useState(false);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [eventTitle, setEventTitle] = useState("");
+  const [localEvents, setLocalEvents] = useState(events);
+  const [showMoment, setShowMoment] = useState(null);
+  const [toast, setToast] = useState("");
+  const [walkSummary, setWalkSummary] = useState(null);
+  const [privacyNearby, setPrivacyNearby] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(true);
 
   useEffect(() => {
     try {
@@ -119,15 +145,17 @@ export default function Home() {
       if (saved.likes) setLiked(saved.likes);
       if (saved.joinedCircles) setJoinedCircles(saved.joinedCircles);
       if (saved.followedDogs) setFollowedDogs(saved.followedDogs);
+      if (saved.savedPosts) setSavedPosts(saved.savedPosts);
+      if (saved.eventJoined) setEventJoined(saved.eventJoined);
       if (!localStorage.getItem("potesjarm-onboarded")) setShowOnboarding(true);
     } catch {}
   }, []);
 
   useEffect(() => {
     try {
-      localStorage.setItem("potesjarm-demo", JSON.stringify({ city, joined, liked, joinedCircles, followedDogs }));
+      localStorage.setItem("potesjarm-demo", JSON.stringify({ city, joined, liked, joinedCircles, followedDogs, savedPosts, eventJoined }));
     } catch {}
-  }, [city, joined, liked, joinedCircles, followedDogs]);
+  }, [city, joined, liked, joinedCircles, followedDogs, savedPosts, eventJoined]);
 
   useEffect(() => {
     if (!walkActive) return;
@@ -139,9 +167,34 @@ export default function Home() {
   }, [walkActive]);
 
   const finishWalk = () => {
+    if (walkSeconds > 3) {
+      setWalkSummary({ distance: Math.max(walkDistance, .42), seconds: Math.max(walkSeconds, 420), paws: Math.max(Math.round(walkDistance*100), 42) });
+    }
     setWalkActive(false);
     setWalkSeconds(0);
     setWalkDistance(0);
+  };
+
+  const flash = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(""), 2200);
+  };
+
+  const addComment = () => {
+    if (!showComments || !commentDraft.trim()) return;
+    const id = showComments.id;
+    setCommentsByPost({...commentsByPost,[id]:[...(commentsByPost[id]||[]),{name:"Michael & Santos",text:commentDraft.trim()}]});
+    setCommentDraft("");
+  };
+
+  const createEvent = () => {
+    if (!eventTitle.trim()) return;
+    const id = Date.now();
+    setLocalEvents([{id,day:"05",month:"OKT",title:eventTitle.trim(),meta:"12:00 · "+city+" · 1 påmeldt",tag:"Community"},...localEvents]);
+    setEventJoined({...eventJoined,[id]:true});
+    setEventTitle("");
+    setShowCreateEvent(false);
+    flash("Event opprettet ✓");
   };
 
   const addSignal = () => {
@@ -177,7 +230,7 @@ export default function Home() {
 
         <div className="cityCard">
           <span>Din by</span>
-          <button onClick={() => setCity(city === "Stavanger" ? "Sandnes" : "Stavanger")}>
+          <button onClick={() => setShowCityPicker(true)}>
             <b>{city}</b><small>Bytt område</small>
           </button>
         </div>
@@ -195,6 +248,7 @@ export default function Home() {
         </nav>
 
         <button className="primaryCta" onClick={() => setShowComposer(true)}>＋ Send signal</button>
+        <button className="settingsLink" onClick={() => setShowSettings(true)}>⚙ Innstillinger</button>
 
         <button className="miniProfile" onClick={() => setShowProfile(true)}>
           <div className="avatar dogAvatar" />
@@ -205,7 +259,7 @@ export default function Home() {
       <section className="mainColumn">
         <header className="mobileHeader">
           <a className="logo" href="#"><span className="logoMark">♥</span><span>Potesjarm</span></a>
-          <div className="mobileHeaderActions"><button onClick={() => setShowInbox(true)}>✉</button><button className="cityPill" onClick={() => setCity(city === "Stavanger" ? "Sandnes" : "Stavanger")}>⌖ {city}⌄</button></div>
+          <div className="mobileHeaderActions"><button onClick={() => setShowInbox(true)}>✉</button><button className="cityPill" onClick={() => setShowCityPicker(true)}>⌖ {city}⌄</button></div>
         </header>
 
         <div className="topBar">
@@ -235,6 +289,10 @@ export default function Home() {
               <div className="heroBadge"><b>12</b><span>aktive nå</span></div>
             </section>
 
+            <div className="momentsRow">
+              <button className="moment addMoment" onClick={()=>setShowPostComposer(true)}><span>＋</span><small>Din story</small></button>
+              {moments.map(m=><button className="moment" key={m.name} onClick={()=>setShowMoment(m)}><span><img src={m.image} alt=""/></span><b>{m.name}</b><small>{m.label}</small></button>)}
+            </div>
             <div className="homeShortcuts">
               <button onClick={()=>setTab("Aktivitet")}><span>🔥</span><div><b>18 dagers streak</b><small>Se fremgang og challenges</small></div><strong>→</strong></button>
               <button onClick={()=>setTab("Events")}><span>◫</span><div><b>3 events nær deg</b><small>Neste: Mosvatnet fredag</small></div><strong>→</strong></button>
@@ -258,13 +316,13 @@ export default function Home() {
                   <div className="postHead">
                     <div className="avatar dogAvatar small" />
                     <div><b>{post.owner}</b><span>{post.meta}</span></div>
-                    <button>•••</button>
+                    <button onClick={()=>setShowPostMenu(post)}>•••</button>
                   </div>
                   <h3>{post.title}</h3><p>{post.body}</p>
                   <img src={post.image} alt="" />
                   <div className="postMeta">
                     <button onClick={() => setLiked({ ...liked, [post.id]: !liked[post.id] })} className={liked[post.id] ? "liked" : ""}>{liked[post.id] ? "♥" : "♡"} {post.likes + (liked[post.id] ? 1 : 0)}</button>
-                    <button>◯ {post.comments}</button><button className="save">⌑</button>
+                    <button onClick={()=>setShowComments(post)}>◯ {(commentsByPost[post.id]||[]).length || post.comments}</button><button onClick={()=>flash("Delingslenke kopiert i demo")} >↗</button><button onClick={()=>setSavedPosts({...savedPosts,[post.id]:!savedPosts[post.id]})} className={"save "+(savedPosts[post.id]?"saved":"")}>{savedPosts[post.id]?"▣":"⌑"}</button>
                   </div>
                 </article>
               ))}
@@ -330,8 +388,8 @@ export default function Home() {
 
         {tab === "Events" && (
           <>
-            <section className="simpleIntro"><span>SKJER I NÆRHETEN</span><h2>Møt flokken i virkeligheten.</h2><p>Lokale turer, valpetreff og hundevennlige aktiviteter.</p></section>
-            <div className="eventList">{events.map(e=><article key={e.id}><div className="eventDate"><b>{e.day}</b><span>{e.month}</span></div><div className="eventCopy"><span>{e.tag}</span><h3>{e.title}</h3><p>{e.meta}</p></div><button onClick={()=>setEventJoined({...eventJoined,[e.id]:!eventJoined[e.id]})}>{eventJoined[e.id]?"Påmeldt ✓":"Bli med"}</button></article>)}</div>
+            <section className="simpleIntro eventIntro"><div><span>SKJER I NÆRHETEN</span><h2>Møt flokken i virkeligheten.</h2><p>Lokale turer, valpetreff og hundevennlige aktiviteter.</p></div><button onClick={()=>setShowCreateEvent(true)}>＋ Lag event</button></section>
+            <div className="eventList">{localEvents.map(e=><article key={e.id}><div className="eventDate"><b>{e.day}</b><span>{e.month}</span></div><div className="eventCopy"><span>{e.tag}</span><h3>{e.title}</h3><p>{e.meta}</p></div><button onClick={()=>setEventJoined({...eventJoined,[e.id]:!eventJoined[e.id]})}>{eventJoined[e.id]?"Påmeldt ✓":"Bli med"}</button></article>)}</div>
           </>
         )}
 
@@ -370,6 +428,7 @@ export default function Home() {
         {nav.map(item => <button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}><span>{item==="For deg"?"⌂":item==="Signals"?"◉":item==="Sirkler"?"◎":"♙"}</span><small>{item}</small></button>)}
         <button onClick={()=>setTab("Kart")} className={tab==="Kart"?"active":""}><span>⌖</span><small>Kart</small></button>
       </nav>
+      <button className="mobileFab" onClick={()=>setShowComposer(true)}>＋</button>
 
       {showComposer && <div className="modalBackdrop" onClick={()=>setShowComposer(false)}><div className="composer" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowComposer(false)}>×</button><span>NYTT SIGNAL</span><h2>Hva skjer?</h2><textarea value={draftSignal} onChange={e=>setDraftSignal(e.target.value)} placeholder="F.eks. Noen som vil gå Mosvatnet kl. 18?"/><div className="composerTags"><button>🐕 Tur</button><button>🎾 Lek</button><button>❓ Spørsmål</button></div><button className="publish" onClick={addSignal}>Send signal</button></div></div>}
 
@@ -381,6 +440,21 @@ export default function Home() {
 
       {showProfile && <div className="drawerBackdrop" onClick={()=>setShowProfile(false)}><aside className="drawer profileDrawer" onClick={e=>e.stopPropagation()}><div className="profileCover"><button onClick={()=>setShowProfile(false)}>×</button></div><div className="profileAvatar dogAvatar"/>{editingProfile ? <div className="profileEdit"><input value={profileName} onChange={e=>setProfileName(e.target.value)}/><input value={profileBio} onChange={e=>setProfileBio(e.target.value)}/></div> : <><h2>{profileName}</h2><p className="profileSub">{profileBio}</p></>}<div className="profileStats"><div><b>18</b><span>streak</span></div><div><b>243</b><span>turer</span></div><div><b>812 km</b><span>sammen</span></div></div><div className="profileChips"><span>⚡ Høy energi</span><span>🌲 Fjelltur</span><span>🎾 Røff lek</span><span>🐕 Store hunder</span></div><h3>Merker</h3><div className="badgeRow"><span>🏔️<small>Fjellpote</small></span><span>🌧️<small>Regnkriger</small></span><span>🔥<small>14 dager</small></span><span>🌙<small>Nattugle</small></span></div><button className="profileAction" onClick={()=>setEditingProfile(!editingProfile)}>{editingProfile ? "Lagre profil" : "Rediger hundeprofil"}</button></aside></div>}
 
+
+      {showComments && <div className="drawerBackdrop" onClick={()=>setShowComments(null)}><aside className="drawer commentsDrawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>SAMTALE</span><h2>Kommentarer</h2></div><button onClick={()=>setShowComments(null)}>×</button></div><div className="commentsList">{(commentsByPost[showComments.id]||[]).map((c,i)=><div className="commentItem" key={i}><div className="avatar dogAvatar small"/><div><b>{c.name}</b><p>{c.text}</p><span>Lik · Svar</span></div></div>)}</div><form className="commentComposer" onSubmit={e=>{e.preventDefault();addComment()}}><input value={commentDraft} onChange={e=>setCommentDraft(e.target.value)} placeholder="Skriv en kommentar..."/><button>Send</button></form></aside></div>}
+
+      {showPostMenu && <div className="actionSheetBackdrop" onClick={()=>setShowPostMenu(null)}><div className="actionSheet" onClick={e=>e.stopPropagation()}><div className="sheetHandle"/><b>{showPostMenu.owner}</b><button onClick={()=>{setSavedPosts({...savedPosts,[showPostMenu.id]:true});setShowPostMenu(null);flash("Innlegg lagret")}}>⌑ Lagre innlegg</button><button onClick={()=>{setShowPostMenu(null);flash("Du ser færre lignende innlegg")}}>◌ Ikke interessert</button><button onClick={()=>{setShowPostMenu(null);flash("Innlegg rapportert til moderering")}}>⚑ Rapporter innlegg</button><button className="danger" onClick={()=>{setShowPostMenu(null);flash("Bruker blokkert i demo")}}>⊘ Blokker bruker</button><button onClick={()=>setShowPostMenu(null)}>Avbryt</button></div></div>}
+
+      {showSettings && <div className="drawerBackdrop" onClick={()=>setShowSettings(false)}><aside className="drawer settingsDrawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>PREFERANSER</span><h2>Innstillinger</h2></div><button onClick={()=>setShowSettings(false)}>×</button></div><section><h3>Personvern</h3><label className="toggleRow"><div><b>Vis meg i nærmiljøet</b><span>Andre kan finne Santos i Hunder.</span></div><input type="checkbox" checked={privacyNearby} onChange={e=>setPrivacyNearby(e.target.checked)}/></label><label className="toggleRow"><div><b>Push-varsler</b><span>Signals, meldinger og streaks.</span></div><input type="checkbox" checked={pushEnabled} onChange={e=>setPushEnabled(e.target.checked)}/></label></section><section><h3>By og område</h3><button className="settingButton" onClick={()=>{setShowSettings(false);setShowCityPicker(true)}}>⌖ {city}<span>Endre →</span></button></section><section><h3>Sikkerhet</h3><button className="settingButton">Blokkerte profiler<span>0 →</span></button><button className="settingButton">Rapporter og trygghet<span>Åpne →</span></button></section></aside></div>}
+
+      {showCityPicker && <div className="modalBackdrop" onClick={()=>setShowCityPicker(false)}><div className="cityPicker" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowCityPicker(false)}>×</button><span>VELG OMRÅDE</span><h2>Hvor skjer hundelivet?</h2><p>Feed, Signals og events tilpasses byen din.</p><div>{cities.map(c=><button key={c} className={city===c?"active":""} onClick={()=>{setCity(c);setShowCityPicker(false);flash("Byttet til "+c)}}><span>⌖</span><b>{c}</b>{city===c&&<i>✓</i>}</button>)}</div></div></div>}
+
+      {showCreateEvent && <div className="modalBackdrop" onClick={()=>setShowCreateEvent(false)}><div className="composer eventComposer" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowCreateEvent(false)}>×</button><span>NYTT EVENT</span><h2>Samle hundefolk.</h2><input value={eventTitle} onChange={e=>setEventTitle(e.target.value)} placeholder="F.eks. Søndagstur på Byhaugen"/><div className="eventFormGrid"><button>📍 {city}</button><button>🗓 5. okt</button><button>🕛 12:00</button><button>🐕 Alle hunder</button></div><textarea placeholder="Beskriv turen eller treffet..."/><button className="publish" onClick={createEvent}>Publiser event</button></div></div>}
+
+      {showMoment && <div className="momentBackdrop" onClick={()=>setShowMoment(null)}><div className="momentViewer" onClick={e=>e.stopPropagation()}><div className="momentProgress"><i/></div><div className="momentHead"><div><img src={showMoment.image} alt=""/><b>{showMoment.name}</b></div><button onClick={()=>setShowMoment(null)}>×</button></div><img className="momentImage" src={showMoment.image} alt=""/><div className="momentCaption"><span>{showMoment.label}</span><b>Et lite øyeblikk fra hundelivet 🐾</b></div></div></div>}
+
+      {walkSummary && <div className="modalBackdrop celebrationBackdrop" onClick={()=>setWalkSummary(null)}><div className="walkSummaryCard" onClick={e=>e.stopPropagation()}><span className="celebrateIcon">🔥</span><span>TUR FULLFØRT</span><h2>Streaken lever!</h2><p>Santos og du la enda en tur til historien deres.</p><div className="summaryStats"><div><b>{walkSummary.distance.toFixed(2)} km</b><span>Distanse</span></div><div><b>{Math.floor(walkSummary.seconds/60)} min</b><span>Tid</span></div><div><b>+{walkSummary.paws}</b><span>Poter</span></div></div><div className="streakCelebration">🔥 <b>19 dager</b><span>Ny streak</span></div><button onClick={()=>{setWalkSummary(null);setTab("Aktivitet")}}>Se fremgangen →</button></div></div>}
+
       {showInbox && <div className="drawerBackdrop" onClick={()=>setShowInbox(false)}><aside className="drawer inboxDrawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>MELDINGER</span><h2>Innboks</h2></div><button onClick={()=>setShowInbox(false)}>×</button></div>{conversations.map(c=><button className="conversationRow" key={c.id} onClick={()=>setActiveConversation(c)}><img src={c.image} alt=""/><div><b>{c.name}</b><span>{c.preview}</span></div>{c.unread>0&&<i>{c.unread}</i>}</button>)}</aside></div>}
 
       {activeConversation && <div className="modalBackdrop" onClick={()=>setActiveConversation(null)}><div className="chatModal" onClick={e=>e.stopPropagation()}><div className="chatHead"><button onClick={()=>setActiveConversation(null)}>←</button><img src={activeConversation.image} alt=""/><div><b>{activeConversation.name}</b><span>Aktiv nylig</span></div></div><div className="chatBody">{(messages[activeConversation.id]||[]).map((m,i)=><div key={i} className={"bubble "+(i%2?"mine":"theirs")}>{m}</div>)}</div><form className="chatComposer" onSubmit={e=>{e.preventDefault();if(!messageDraft.trim())return;setMessages({...messages,[activeConversation.id]:[...(messages[activeConversation.id]||[]),messageDraft.trim()]});setMessageDraft("")}}><input value={messageDraft} onChange={e=>setMessageDraft(e.target.value)} placeholder="Skriv en melding..."/><button>Send</button></form></div></div>}
@@ -388,6 +462,8 @@ export default function Home() {
       {showDogMatch && <div className="modalBackdrop" onClick={()=>setShowDogMatch(null)}><div className="dogMatchModal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowDogMatch(null)}>×</button><img className="matchHero" src={showDogMatch.image} alt=""/><div className="matchScore"><b>{showDogMatch.match}%</b><span>match med Santos</span></div><h2>{showDogMatch.name}</h2><p>{showDogMatch.breed} · {showDogMatch.distance}</p><div className="matchReasons"><span>✓ Samme energinivå</span><span>✓ Liker aktive turer</span><span>✓ Passende lekestil</span><span>✓ Bor i nærheten</span></div><div className="matchActions"><button onClick={()=>{setShowDogMatch(null);setShowInbox(true)}}>Send melding</button><button onClick={()=>{setShowDogMatch(null);setShowComposer(true)}}>Foreslå tur</button></div></div></div>}
 
       {walkActive && <div className="walkOverlay"><div className="walkTop"><span>LIVE TUR</span><button onClick={finishWalk}>×</button></div><div className="walkPulse">🐾</div><h2>{walkDistance.toFixed(2)} km</h2><p>{String(Math.floor(walkSeconds/60)).padStart(2,"0")}:{String(walkSeconds%60).padStart(2,"0")} · Santos er på tur</p><div className="walkStats"><div><b>{Math.round(walkDistance*1312)}</b><span>skritt</span></div><div><b>{Math.round(walkDistance*72)}</b><span>kcal</span></div><div><b>+{Math.round(walkDistance*100)}</b><span>poter</span></div></div><button className="endWalk" onClick={finishWalk}>Avslutt tur</button></div>}
+
+      {toast && <div className="toast">{toast}</div>}
 
       {showOnboarding && <div className="modalBackdrop onboardingBackdrop"><div className="onboarding"><span className="onboardPaw">♥</span><span>VELKOMMEN TIL POTESJARM</span><h1>Hundeliv er bedre sammen.</h1><p>Finn turvenner, send lokale signals, bygg streaks og skap hundens historie – alt i byen din.</p><div className="onboardFeatures"><span>🐕 Lokale hundevenner</span><span>◉ Signals akkurat nå</span><span>🔥 Streaks & challenges</span><span>◎ Sirkler & fellesskap</span></div><button onClick={()=>{localStorage.setItem("potesjarm-onboarded","1");setShowOnboarding(false)}}>Kom i gang →</button></div></div>}
     </main>
