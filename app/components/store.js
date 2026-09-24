@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { badges, challenges, levelFor, PAWS } from "../lib/data";
 import { defaultLocation, kommuneById } from "../lib/geo";
 import { COLD_START, getContent, getStats, isEarlyArea, leaderboardUnlocked, MODE } from "../lib/content";
+import { GPS_CONFIG, applyGpsSample, createWalkSession, isValidWalk, pawsForWalk } from "../lib/track";
 import * as demo from "../lib/demo";
 
 const AppCtx = createContext(null);
@@ -95,11 +96,62 @@ export function AppProvider({ children }) {
     }
   }, [state.mode]);
 
+  /* --------------------------------------------------------------------
+     Ekte GPS-turtracking (app/lib/track.js).
+
+     Distanse kommer ALDRI fra en tidtaker. Den eneste tingen klokken styrer
+     er `seconds` – rent visningsformål. Faktisk distanse legges bare til
+     når navigator.geolocation.watchPosition gir oss et punkt som
+     applyGpsSample() godkjenner (brukbar nøyaktighet, realistisk fart,
+     faktisk bevegelse). Står brukeren stille, mister vi signal, eller
+     nekter nettleseren posisjon, øker distansen med 0.
+     -------------------------------------------------------------------- */
+  const watchIdRef = useRef(null);
+
+  const clearWatch = useCallback(() => {
+    if (watchIdRef.current != null && typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+    watchIdRef.current = null;
+  }, []);
+
+  const beginWatch = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setWalk((w) => (w ? { ...w, session: { ...w.session, status: "unsupported" } } : w));
+      return;
+    }
+    clearWatch();
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const point = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        };
+        setWalk((w) => (w ? { ...w, session: applyGpsSample(w.session, point) } : w));
+      },
+      (err) => {
+        setWalk((w) => {
+          if (!w) return w;
+          const permissionDenied = err.code === 1; // GeolocationPositionError.PERMISSION_DENIED
+          const status = permissionDenied ? "permission_denied" : w.session.pointsAccepted > 0 ? "signal_lost" : "waiting_gps";
+          return { ...w, session: { ...w.session, status, lastRejection: permissionDenied ? "permission_denied" : "position_unavailable" } };
+        });
+      },
+      GPS_CONFIG.WATCH_OPTIONS
+    );
+  }, [clearWatch]);
+
+  // Klokken. Går uansett GPS-status – tid er ikke aktivitet.
   useEffect(() => {
     if (!walk) return;
-    const t = setInterval(() => setWalk((w) => (w ? { ...w, seconds: w.seconds + 1, km: w.km + 0.0023 } : w)), 1000);
+    const t = setInterval(() => setWalk((w) => (w ? { ...w, seconds: w.seconds + 1 } : w)), 1000);
     return () => clearInterval(t);
   }, [!!walk]);
+
+  // Rydd opp GPS-abonnementet hvis provideren skulle unmounte midt i en tur.
+  useEffect(() => () => clearWatch(), [clearWatch]);
 
   /* --------------------------------------------------------------------
      Innhold og tellere – alt regnet ut, ingenting hardkodet.
@@ -269,22 +321,44 @@ export function AppProvider({ children }) {
       flash("Arrangementet er publisert", "calendar");
     },
 
-    startWalk: () => { setOverlays([]); setWalk({ seconds: 0, km: 0, at: Date.now() }); },
-    cancelWalk: () => setWalk(null),
+    startWalk: () => {
+      setOverlays([]);
+      setWalk({ session: createWalkSession("waiting_gps"), seconds: 0, startedAt: Date.now() });
+      beginWatch();
+    },
+    // Avbryter uten å lagre noe som helst – ingen delvis "fake" tur opprettes.
+    cancelWalk: () => { clearWatch(); setWalk(null); },
+    // Etter et nektet/tapt signal: prøv å be om posisjon på nytt.
+    retryGps: () => { setWalk((w) => (w ? { ...w, session: { ...w.session, status: "waiting_gps" } } : w)); beginWatch(); },
     finishWalk: () => {
       if (!walk) return;
-      const km = +Math.max(walk.km, 0.01).toFixed(2);
-      const seconds = Math.max(walk.seconds, 1);
-      const earned = Math.round(km * PAWS.perKm) + PAWS.walkCompleted;
+      clearWatch();
+      const { session, seconds } = walk;
+      const valid = isValidWalk(session);
+
+      setWalk(null);
+
+      if (!valid) {
+        // Ingen ekte distanse (eller for kort) => ingen tur registreres.
+        // Ingen streak, ingen poter, ingen badge- eller challenge-fremgang.
+        flash(
+          session.pointsAccepted === 0
+            ? "Fikk ikke et brukbart GPS-signal. Gå ut i åpent terreng og prøv igjen."
+            : `Turen var for kort til å telle (minst ${GPS_CONFIG.MIN_VALID_WALK_M} m kreves).`,
+          "alert"
+        );
+        return;
+      }
+
+      const km = +(session.totalMeters / 1000).toFixed(2);
+      const earned = pawsForWalk(session.totalMeters);
       const last = state.walks[0];
-      const continues = last && !sameDay(last.at, Date.now());
       const firstToday = !last || !sameDay(last.at, Date.now());
       const newStreak = firstToday ? state.streak + 1 : state.streak;
 
-      setWalk(null);
       setState((s) => ({
         ...s,
-        walks: [{ at: Date.now(), km, seconds }, ...s.walks],
+        walks: [{ at: Date.now(), km, seconds, meters: session.totalMeters, pointsAccepted: session.pointsAccepted }, ...s.walks],
         streak: newStreak,
         paws: s.paws + earned + (firstToday ? PAWS.streakDay : 0),
       }));
@@ -322,6 +396,7 @@ export function AppProvider({ children }) {
     leaderboardUnlocked: leaderboardUnlocked(stats),
     coldStart: COLD_START,
     demoLeaderboard: demo.leaderboard,
+    gpsConfig: GPS_CONFIG,
     // meg
     me, level, challengeProgress, badgeProgress, dogById,
     ...actions,

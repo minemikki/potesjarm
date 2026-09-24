@@ -8,6 +8,7 @@ import { dogTraits, expiryOptions, fmtKm, fmtNum, genitive, img, meetupTypes, PH
 import { kommuneById, omrader, placeLabel, placeShort, radiusOptions, searchPlaces } from "../lib/geo";
 import { placeTypes } from "../lib/seed";
 import { MODE } from "../lib/content";
+import { paceMinPerKm, pawsForWalk } from "../lib/track";
 
 export default function Overlays() {
   const app = useApp();
@@ -38,7 +39,10 @@ export default function Overlays() {
 function Onboarding() {
   const app = useApp();
   const [step, setStep] = useState(0);
-  const [loc, setLoc] = useState(app.location);
+  // Starter uten sted valgt – en ny bruker skal aldri få et sted "gratis".
+  // Ingen kommune er forhåndsvalgt eller vist som aktiv før brukeren faktisk
+  // søker og trykker på et treff.
+  const [loc, setLoc] = useState({ kommuneId: null, omrade: null, radiusKm: 10 });
   const [dog, setDog] = useState({ dogName: "", ownerName: "", breed: "", age: "", size: "", energy: "" });
 
   const kommune = kommuneById[loc.kommuneId];
@@ -143,27 +147,33 @@ function Onboarding() {
 /* ========================= Stedsvelger ========================= */
 function LocationForm({ value, onChange }) {
   const [q, setQ] = useState("");
+  const searching = q.trim().length > 0;
   const results = useMemo(() => searchPlaces(q, 8), [q]);
   const kommune = kommuneById[value.kommuneId];
   const areas = omrader[value.kommuneId] || [];
+
+  // Velger brukeren et treff, skal det ALDRI stå igjen sammen med et
+  // tidligere valgt sted – det nye stedet erstatter det gamle fullstendig,
+  // og søkefeltet tømmes med det samme slik at "valgt" og "søker" ikke
+  // kan vises på én gang.
+  const pick = (r) => {
+    onChange({ kommuneId: r.kommune.id, omrade: r.omrade || null, radiusKm: value.radiusKm ?? 10 });
+    setQ("");
+  };
 
   return (
     <div className="locationForm">
       <div className="searchInput small">
         <Icon name="search" size={18} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Søk etter kommune eller bydel…" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Søk etter kommune eller bydel…" autoFocus={!kommune} />
         {q && <button className="ghostIcon" onClick={() => setQ("")} aria-label="Tøm"><Icon name="x" size={16} /></button>}
       </div>
 
-      {q && (
+      {searching && (
         <div className="locResults">
           {results.length === 0 && <p className="muted">Fant ikke «{q}». Prøv kommunenavnet.</p>}
           {results.map((r, i) => (
-            <button
-              key={i}
-              className="locResult"
-              onClick={() => { onChange({ ...value, kommuneId: r.kommune.id, omrade: r.omrade || null }); setQ(""); }}
-            >
+            <button key={i} className="locResult" onClick={() => pick(r)}>
               <Icon name="pin" size={16} />
               <span><b>{r.omrade || r.kommune.name}</b><small>{r.omrade ? r.kommune.name : "Kommune"}</small></span>
             </button>
@@ -171,15 +181,23 @@ function LocationForm({ value, onChange }) {
         </div>
       )}
 
-      {kommune && (
+      {/* Vises kun når vi IKKE aktivt søker – aldri samtidig med treffliste,
+          så det aldri kan se ut som to steder er valgt på én gang. */}
+      {!searching && kommune && (
         <div className="locPicked">
           <span className="chIcon tint-mint"><Icon name="pin" size={16} /></span>
           <div><b>{placeLabel(value)}</b><small>{kommune.name} kommune</small></div>
           {value.omrade && <button className="ghostIcon" onClick={() => onChange({ ...value, omrade: null })} aria-label="Fjern bydel"><Icon name="x" size={16} /></button>}
         </div>
       )}
+      {!searching && !kommune && (
+        <div className="locPicked locEmpty">
+          <span className="chIcon tint-muted"><Icon name="pin" size={16} /></span>
+          <div><b>Ikke valgt ennå</b><small>Søk etter kommunen din over</small></div>
+        </div>
+      )}
 
-      {areas.length > 0 && (
+      {kommune && areas.length > 0 && (
         <div className="field">
           <span>Område (valgfritt)</span>
           <div className="miniChips scroll">
@@ -190,14 +208,16 @@ function LocationForm({ value, onChange }) {
         </div>
       )}
 
-      <div className="field">
-        <span>Vis innhold innenfor</span>
-        <div className="miniChips">
-          {radiusOptions.map((r) => (
-            <button key={r.label} className={value.radiusKm === r.km ? "active" : ""} onClick={() => onChange({ ...value, radiusKm: r.km })}>{r.label}</button>
-          ))}
+      {kommune && (
+        <div className="field">
+          <span>Vis innhold innenfor</span>
+          <div className="miniChips">
+            {radiusOptions.map((r) => (
+              <button key={r.label} className={value.radiusKm === r.km ? "active" : ""} onClick={() => onChange({ ...value, radiusKm: r.km })}>{r.label}</button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1058,13 +1078,56 @@ function Premium({ onClose }) {
   );
 }
 
-/* ========================= Tur ========================= */
+/* ========================= Tur =========================
+   Ekte GPS-status, ingen simulert bevegelse. Distansen kommer utelukkende
+   fra app.walk.session.totalMeters, som bare øker når store.js har mottatt
+   og godkjent et faktisk GPS-punkt (se app/lib/track.js). */
 function WalkMode() {
   const app = useApp();
   const w = app.walk;
+  const s = w.session;
   const mm = String(Math.floor(w.seconds / 60)).padStart(2, "0");
   const ss = String(w.seconds % 60).padStart(2, "0");
-  const pace = w.km > 0.05 ? (w.seconds / 60 / w.km).toFixed(0) : "–";
+  const km = s.totalMeters / 1000;
+  const pace = paceMinPerKm(s.totalMeters, w.seconds, app.gpsConfig);
+  const paws = pawsForWalk(s.totalMeters);
+
+  // Blokkerende feiltilstander: ingen tur-UI mens vi ikke kan spore i det hele tatt.
+  if (s.status === "permission_denied" || s.status === "unsupported") {
+    return (
+      <div className="walkMode walkBlocked" role="dialog" aria-label="GPS utilgjengelig">
+        <div className="walkTop">
+          <span className="heroLive"><i /> TUR</span>
+          <button className="closeBtn light" onClick={app.cancelWalk} aria-label="Avbryt"><Icon name="x" size={18} /></button>
+        </div>
+        <span className="chIcon huge tint-coral"><Icon name="alert" size={36} /></span>
+        <h2>
+          {s.status === "permission_denied" ? "Vi har ikke tilgang til posisjonen din" : "Nettleseren støtter ikke GPS-sporing"}
+        </h2>
+        <p>
+          {s.status === "permission_denied"
+            ? "Gi Potesjarm tilgang til posisjon i nettleserinnstillingene for å spore turen. Uten posisjon kan vi ikke måle ekte distanse."
+            : "Prøv en annen nettleser eller enhet for å bruke turtracking."}
+        </p>
+        <div className="fieldRow two">
+          {s.status === "permission_denied" && (
+            <button className="pillBtn soft" onClick={app.retryGps}><Icon name="locate" size={16} /> Prøv igjen</button>
+          )}
+          <button className="pillBtn white" onClick={app.cancelWalk}><Icon name="x" size={16} /> Avbryt tur</button>
+        </div>
+      </div>
+    );
+  }
+
+  const statusLine =
+    s.status === "waiting_gps"
+      ? s.lastRejection === "poor_accuracy"
+        ? "Lav GPS-nøyaktighet – venter på bedre signal…"
+        : "Venter på GPS…"
+      : s.status === "signal_lost"
+        ? "GPS-signal mistet – fortsetter når det er tilbake"
+        : `${app.me.dogName || "Hunden din"} er på tur`;
+
   return (
     <div className="walkMode" role="dialog" aria-label="Tur pågår">
       <div className="walkTop">
@@ -1072,12 +1135,17 @@ function WalkMode() {
         <button className="closeBtn light" onClick={app.cancelWalk} aria-label="Avbryt"><Icon name="x" size={18} /></button>
       </div>
       <div className="walkPulse"><DogAvatar me size={120} ring="mint" /></div>
-      <b className="walkKm">{w.km.toFixed(2).replace(".", ",")}<small> km</small></b>
-      <p>{mm}:{ss} · {app.me.dogName || "Hunden din"} er på tur</p>
+      <b className="walkKm">{km.toFixed(2).replace(".", ",")}<small> km</small></b>
+      <p className={"walkStatusLine" + (s.status === "waiting_gps" || s.status === "signal_lost" ? " waiting" : "")}>
+        {mm}:{ss} · {statusLine}
+      </p>
+      {s.lastAccuracy != null && s.status !== "waiting_gps" && (
+        <p className="walkAccuracy">GPS ±{Math.round(s.lastAccuracy)} m</p>
+      )}
       <div className="walkStats">
-        <span><b>{Math.round(w.km * 1312)}</b><small>skritt</small></span>
-        <span><b>{pace}</b><small>min/km</small></span>
-        <span><b>+{Math.round(w.km * 100)}</b><small>poter</small></span>
+        <span><b>{pace == null ? "–" : pace.toFixed(1)}</b><small>min/km</small></span>
+        <span><b>+{paws}</b><small>poter</small></span>
+        <span><b>{s.pointsAccepted}</b><small>GPS-punkter</small></span>
       </div>
       <button className="pillBtn white big" onClick={app.finishWalk}><Icon name="check" size={18} stroke={2.6} /> Avslutt tur</button>
     </div>
@@ -1088,6 +1156,7 @@ function WalkSummary({ data: s, onClose }) {
   const app = useApp();
   return (
     <Layer onClose={onClose} className="celebrate" tone="brand" label="Tur fullført">
+      <CloseBtn onClick={onClose} light />
       <span className="confetti" aria-hidden="true">{Array.from({ length: 14 }).map((_, i) => <i key={i} />)}</span>
       <span className="chIcon huge tint-coral"><Icon name={s.first ? "paw" : "flame"} size={36} /></span>
       <span className="kicker">TUR FULLFØRT</span>
@@ -1097,7 +1166,7 @@ function WalkSummary({ data: s, onClose }) {
       </p>
       <div className="summaryStats">
         <span><b>{s.km.toFixed(2).replace(".", ",")} km</b><small>distanse</small></span>
-        <span><b>{Math.max(1, Math.floor(s.seconds / 60))} min</b><small>tid</small></span>
+        <span><b>{s.seconds < 60 ? `${s.seconds} sek` : `${Math.floor(s.seconds / 60)} min`}</b><small>tid</small></span>
         <span><b>+{s.paws}</b><small>poter</small></span>
       </div>
       <div className="fieldRow two">

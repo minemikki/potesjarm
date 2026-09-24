@@ -47,6 +47,7 @@ app/
     content.js            KILDEN: bestemmer hva som finnes (live vs demo)
     demo.js               ALT oppdiktet innhold, isolert her
     data.js               ekte produktdefinisjoner (treff-typer, utfordringer, merker, nivå)
+    track.js              EKTE GPS-turtracking: rene, testbare funksjoner (se § 3b)
   components/
     store.js              AppProvider/useApp(): state, handlinger, utledede tall
     Shell.js              Sidebar, TopBar, RightRail, MobileHeader, BottomNav, DemoBanner
@@ -132,6 +133,54 @@ Nå skjer, spontane treff, hvem er ute nå, live kart.
 
 ---
 
+# 3b. Ekte GPS-turtracking (`app/lib/track.js`)
+
+Turtracking var tidligere simulert: `setInterval` la til 0,0023 km hvert
+sekund, uavhengig av om brukeren beveget seg. Det er fjernet. Distanse kan nå
+**aldri** øke uten et ekte, godkjent GPS-punkt fra
+`navigator.geolocation.watchPosition()`. Tid er det eneste et klokkeintervall
+styrer (`seconds` i `store.js`).
+
+**Filtreringsregler** (alle i `GPS_CONFIG`, ingen skjulte terskler):
+
+| Konstant | Verdi | Hvorfor |
+|---|---|---|
+| `MAX_ACCURACY_M` | 30 m | punkter dårligere enn dette forkastes helt |
+| `MIN_MOVEMENT_M` | 8 m | mindre enn dette mellom to godkjente punkter = GPS-støy, ikke gange |
+| `MAX_SPEED_MPS` | 7 m/s (~25 km/t) | raskere enn dette er umulig for en hundetur → GPS-hopp, forkastes |
+| `MIN_VALID_WALK_M` | 50 m | en tur må dekke minst dette for å telle |
+| `MIN_METERS_FOR_PACE` | 20 m | under dette vises tempo som «–», ikke et oppdiktet tall |
+
+**Session-modell** (`createWalkSession` / `applyGpsSample`, rene reduce-funksjoner):
+et nytt punkt sammenlignes alltid mot forrige *godkjente* punkt (ankeret).
+Godkjennes det, flyttes ankeret og distansen øker. Forkastes det, blir
+ankeret stående — så gjentatt GPS-støy mens brukeren står stille aldri
+akkumuleres, uansett hvor mange punkter som kommer inn.
+
+**Status-maskin** (`session.status`, vist i `WalkMode`):
+`waiting_gps` → `tracking` → (`signal_lost` ved feil, går tilbake til
+`tracking` når signalet er der igjen) · `permission_denied` /
+`unsupported` blokkerer med en egen feilskjerm (`.walkBlocked`) med
+"Prøv igjen"/"Avbryt". Ingen av disse tilstandene dikter opp bevegelse.
+
+**Gyldighet:** `finishWalk()` i `store.js` sjekker `isValidWalk()` (>= 50 m
+ekte distanse). Er turen ugyldig: **ingen** rad legges i `walks[]`, ingen
+streak, ingen poter, ingen badge- eller utfordringsfremgang — bare en
+forklarende toast. Er den gyldig, kommer poter utelukkende fra
+`pawsForWalk(meters)` (PAWS.perKm × faktisk distanse + en fast fullførings-
+bonus), aldri fra tid alene.
+
+Skritt er fjernet fra UI-et (ingen pålitelig skritteller på web). Native app
+senere: Apple Health/Core Motion, Android Health Connect.
+
+Databasesiden (`supabase/schema.sql`): `walks` har `distance_m`, `duration_s`,
+`valid`, `avg_pace_s_per_km`, `gps_quality`; `walk_points` lagrer rå GPS-punkter
+med `accepted`/`rejection_reason` slik at filtreringen er etterprøvbar i
+produksjon (arkitekturen støtter det — en rimelig personvern-/lagringspolicy
+kan slette rådata etter N dager og beholde bare den aggregerte `walks`-raden).
+
+---
+
 # 4. Designretning (godkjent)
 
 Identitet:
@@ -168,13 +217,17 @@ Norsk UI hele veien («Arrangementer», ikke «Events»).
 
 ## Bygget
 - hele skallet, alle åtte visninger, alle overlegg
-- ekte onboarding: kommune → område → radius → hundeprofil
+- ekte onboarding: kommune → område → radius → hundeprofil (ingen sted
+  forhåndsvalgt — brukeren må faktisk velge)
 - ekte geografi for hele Norge med søk
 - ærlige tomme tilstander overalt
-- gamification med ekte fremgang (poter, nivå, merker, utfordringer)
-- turmodus som faktisk oppdaterer streak, km og poter
+- gamification med ekte fremgang (poter, nivå, merker, utfordringer) —
+  utledet fra faktiske turer, aldri fra en tidtaker
+- **ekte GPS-turtracking** (`app/lib/track.js`): ingen simulert bevegelse,
+  nøyaktighets-/fart-/støyfiltrering, gyldighetsgrense på 50 m
 - trygghet: nødprofil, mistet hund, rapporter/blokker
 - demo-modus med permanent merking, av som standard
+- automatisert testsuite: 36 enhetstester + 16 e2e-tester (se «Testing»)
 
 ## Ikke bygget ennå
 - **auth** (ingen innlogging — alt ligger i localStorage, nøkkel `potesjarm-v3`)
@@ -184,6 +237,8 @@ Norsk UI hele veien («Arrangementer», ikke «Events»).
 - varslingsmotor
 - gruppeoppretting fra UI
 - stedsforslag fra brukere
+- rå GPS-punkter sendes ikke til en backend ennå (kun lokal filtrering per nå
+  — `walk_points`-tabellen i schema.sql er klar for når API-et finnes)
 
 ## Backend
 `supabase/schema.sql` er skrevet om helt: full datamodell med geografi
@@ -244,6 +299,43 @@ Sier brukeren «bygg», så bygg.
 - **legg inn falske data for å fylle en tom skjerm**
 
 ## Testing
-Skjermbilder og e2e kjøres med Playwright (finnes i `/opt/node22`).
-Under utvikling: `npm run build && npx next start -p 3100`.
-Sjekk alltid 1366×768 og 390×844, og at ingen visning scroller sidelengs.
+
+```
+npm run test:unit   # node --test app/lib/*.test.mjs – rene funksjoner, ingen nettleser
+npm run test:e2e    # npx playwright test – ekte nettleser, ekte GPS-simulering
+npm test             # begge
+```
+
+**Enhetstester** (`app/lib/track.test.mjs`, `app/lib/geo.test.mjs`): ingen
+avhengigheter, kjører på ren Node. Dekker GPS-filtrering (nøyaktighet, fart,
+støygulv, gyldighetsgrense) og geografisøk (Tromsø/Strømsø, diakritiske tegn).
+
+**E2E** (`e2e/*.spec.js`, Playwright, `@playwright/test` som devDependency):
+- `gps-tracking.spec.js` — kjører ekte `navigator.geolocation.watchPosition()`
+  i Chromium via `context.setGeolocation()` (ikke en mock av vår logikk — samme
+  kode som i produksjon). Dekker: stillestående ⇒ 0 km, dårlig nøyaktighet ⇒
+  0 km, GPS-hopp forkastes, normal gange ⇒ ekte belønning, ingen
+  posisjonstilgang ⇒ ingen fake bevegelse, ingen dobbel belønning ved nytt
+  forsøk.
+- `onboarding.spec.js` — regresjonstest for buggen der et søkt sted kunne vises
+  sammtidig som et annet "valgt" sted.
+- `cold-start.spec.js` — en tom kommune viser ærlige nuller og låst toppliste.
+
+⚠️ **Miljøspesifikt i denne sandboxen** (se kommentarer i filene):
+- `playwright.config.js` peker eksplisitt på en forhåndsinstallert Chromium
+  (`/opt/pw-browsers/chromium-1194/...`) fordi den installerte
+  `@playwright/test`-versjonen ellers ville prøvd å laste ned en nyere
+  revisjon. På en vanlig maskin med `npx playwright install` kjørt er dette
+  irrelevant (fallback til `undefined` = standard resolution).
+- Chromiums mockede `watchPosition` her leverer punkter i rykk, ikke ett per
+  `setGeolocation()`-kall — testene venter derfor på faktisk UI-endring
+  (poll på GPS-punkt-telleren) i stedet for faste tidsfrister.
+- Denne Chromium-oppsettet løser aldri en ubesvart geolocation-forespørsel til
+  et eksplisitt "nektet" automatisk (ingen ekte bruker som svarer på
+  prompten) — den blir stående i `waiting_gps`. Selve `permission_denied`-
+  grenen i koden er testet via kodegjennomgang og deler feilhåndteringssti
+  med `signal_lost`, men er ikke fremtvunget i en kjørende e2e-test her.
+
+Skjermbilder/manuell visuell QA: kjør appen med
+`npm run build && npx next start -p 3100` og sjekk alltid 1366×768 og 390×844,
+og at ingen visning scroller sidelengs.

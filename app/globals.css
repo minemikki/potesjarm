@@ -952,6 +952,7 @@ p { margin: 0; }
 .onboardGrid span { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; background: var(--cream); font-weight: 800; font-size: 14px; text-align: left; }
 .onboardGrid i { width: 38px; height: 38px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--tb); color: var(--t); }
 .celebrate { overflow: hidden; }
+.celebrate .closeBtn { position: absolute; right: 14px; top: 14px; z-index: 1; }
 .celebrate h2 { font-size: 30px; color: var(--indigo); }
 .celebrate .fieldRow { width: 100%; margin-top: 6px; }
 .summaryStats { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
@@ -992,6 +993,12 @@ p { margin: 0; }
 .walkStats span { display: grid; padding: 16px 6px; border-radius: 18px; background: rgba(255, 255, 255, 0.09); }
 .walkStats b { font-family: var(--display); font-size: 24px; }
 .walkStats small { font-size: 12.5px; color: #cfd3ff; font-weight: 800; }
+.walkStatusLine.waiting { color: #ffd98a; }
+.walkAccuracy { font-size: 12px; color: #9fb0e6; font-weight: 700; margin-top: -6px; }
+.walkBlocked { gap: 14px; max-width: 420px; margin: 0 auto; }
+.walkBlocked h2 { font-size: 24px; }
+.walkBlocked > p { color: #cfd3ff; font-weight: 600; line-height: 1.5; }
+.walkBlocked .fieldRow { width: 100%; }
 
 .toast { position: fixed; z-index: 200; left: 50%; bottom: 28px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; max-width: calc(100vw - 32px); padding: 12px 18px; border-radius: 999px; background: var(--indigo); color: #fff; font-weight: 800; font-size: 14px; box-shadow: 0 14px 34px rgba(17, 21, 78, 0.35); animation: toastIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.3); }
 .toast .icon { color: #86f5cc; }
@@ -1282,6 +1289,9 @@ p { margin: 0; }
 .locPicked > div { flex: 1; min-width: 0; }
 .locPicked b { display: block; font-size: 15px; color: var(--indigo); }
 .locPicked small { font-size: 12.5px; color: #0f8a64; font-weight: 700; }
+.locPicked.locEmpty { background: var(--tb); }
+.locPicked.locEmpty b { color: var(--ink-2); }
+.locPicked.locEmpty small { color: var(--muted); }
 .miniChips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .miniChips.scroll::-webkit-scrollbar { display: none; }
 

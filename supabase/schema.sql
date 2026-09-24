@@ -290,21 +290,48 @@ create table if not exists event_participants (
 -- Alt her er brukerens egne, faktiske data.
 -- =============================================================================
 
+-- Én rad per tur-FORSØK, ikke bare fullførte turer – `valid` skiller dem.
+-- Klienten (app/lib/track.js) kjører samme filtrering lokalt før den i det
+-- hele tatt kaller finishWalk(); dette er den samme regelen speilet i
+-- databasen, slik at ingen klient kan omgå den ved å skrive rett til API-et.
 create table if not exists walks (
   id            uuid primary key default gen_random_uuid(),
   profile_id    uuid not null references profiles(id) on delete cascade,
   dog_id        uuid references dogs(id) on delete set null,
   started_at    timestamptz not null,
   ended_at      timestamptz not null,
-  distance_km   numeric(6,2) not null check (distance_km >= 0),
-  duration_sec  integer not null check (duration_sec >= 0),
+  distance_m    integer not null check (distance_m >= 0),
+  duration_s    integer not null check (duration_s >= 0),
+  -- Gyldig = distance_m >= MIN_VALID_WALK_M (se app/lib/track.js GPS_CONFIG).
+  -- Kun gyldige turer teller til streak, poter, merker og utfordringer.
+  valid         boolean not null default false,
+  avg_pace_s_per_km integer,             -- null hvis for kort til å bety noe
+  gps_quality   text check (gps_quality in ('good','fair','poor')),
   elevation_m   integer,
   place_id      uuid references places(id) on delete set null,
-  route         jsonb,
   paws_earned   integer not null default 0,
   created_at    timestamptz not null default now()
 );
 create index if not exists walks_profile_started_idx on walks(profile_id, started_at desc);
+
+-- Rå GPS-punkter bak en tur, med hvorfor hvert punkt ble godkjent eller
+-- forkastet – gjør GPS-filtreringen etterprøvbar i produksjon. Valgfritt å
+-- beholde permanent (personvern/lagringsvolum); arkitekturen støtter det,
+-- men en rimelig policy er å slette rådata etter N dager og bare beholde
+-- den aggregerte `walks`-raden.
+create table if not exists walk_points (
+  id          bigint generated always as identity primary key,
+  walk_id     uuid not null references walks(id) on delete cascade,
+  lat         double precision not null,
+  lng         double precision not null,
+  accuracy_m  real,
+  recorded_at timestamptz not null,
+  accepted    boolean not null,
+  -- poor_accuracy | non_increasing_time | unrealistic_speed |
+  -- below_movement_threshold | null (når accepted = true)
+  rejection_reason text
+);
+create index if not exists walk_points_walk_idx on walk_points(walk_id, recorded_at);
 
 -- Poter tjenes bare av handlinger som faktisk er utført. Hver rad peker på
 -- kilden sin, så en total alltid kan revideres.
@@ -490,6 +517,7 @@ alter table meetup_participants   enable row level security;
 alter table events                enable row level security;
 alter table event_participants    enable row level security;
 alter table walks                 enable row level security;
+alter table walk_points           enable row level security;
 alter table paw_ledger            enable row level security;
 alter table streaks               enable row level security;
 alter table badge_awards          enable row level security;
@@ -566,6 +594,9 @@ create policy "ep write" on event_participants for all    using (auth.uid() = pr
 
 -- Egne data
 create policy "walks own"     on walks              for all using (auth.uid() = profile_id) with check (auth.uid() = profile_id);
+create policy "walk_points own" on walk_points for all
+  using (exists (select 1 from walks w where w.id = walk_id and w.profile_id = auth.uid()))
+  with check (exists (select 1 from walks w where w.id = walk_id and w.profile_id = auth.uid()));
 create policy "paws own"      on paw_ledger         for select using (auth.uid() = profile_id);
 create policy "streaks own"   on streaks            for all using (auth.uid() = profile_id) with check (auth.uid() = profile_id);
 create policy "awards own"    on badge_awards       for select using (auth.uid() = profile_id);
