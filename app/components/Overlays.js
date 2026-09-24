@@ -960,15 +960,23 @@ function Invite({ onClose }) {
           </span>
         ))}
       </div>
+      {app.invitesSent > 0 && (
+        <p className="muted small">
+          {app.invitesSent} invitasjon{app.invitesSent === 1 ? "" : "er"} sendt · {app.invitesActivated} av 3 bekreftet
+        </p>
+      )}
       <div className="rewardBox">
         <span className="chIcon big tint-sun"><Icon name="star" size={22} /></span>
         <div>
           <b>Grunnlegger-merket</b>
-          <small>Låses opp når tre venner har blitt med og gått sin første tur. Ikke bare klikket på lenka.</small>
+          <small>
+            Låses opp når tre venner faktisk har registrert seg, lagt til hund og gått sin første tur – ikke bare
+            klikket på lenka. Vi kan foreløpig ikke bekrefte dette uten en server, så tellingen står på 0 her.
+          </small>
         </div>
       </div>
-      <button className="pillBtn primary block big" disabled={app.invitesActivated >= 3} onClick={app.invite}>
-        <Icon name="send" size={18} /> {app.invitesActivated >= 3 ? "Alle tre er med!" : "Del invitasjon"}
+      <button className="pillBtn primary block" onClick={app.invite}>
+        <Icon name="send" size={18} /> Del invitasjon
       </button>
     </Layer>
   );

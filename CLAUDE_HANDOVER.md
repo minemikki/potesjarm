@@ -181,6 +181,72 @@ kan slette rådata etter N dager og beholde bare den aggregerte `walks`-raden).
 
 ---
 
+# 3c. Fase 1 — Dataintegritet (kode-review-fiksene)
+
+Etter en grundig gjennomgang av den faktiske koden (ikke bare skjermbilder)
+ble fem konkrete spillbarhets-/ærlighetsbugger identifisert og fikset. Alle
+er dekket av enhetstester (`node --test app/lib/*.test.mjs`), pluss
+regresjonstester som direkte koder inn hvert rapporterte scenario.
+
+**1. Streak krevde IKKE sammenhengende dager** (`app/lib/time.js`,
+`nextStreak`). Gikk du mandag og så ingenting før fredag, hoppet streaken
+fra 1 til 2 i stedet for å falle tilbake til 1 — enhver ny kalenderdag med
+en tur ble telt som «neste dag». Fikset med `osloDaysBetween` + en eksplisitt
+regresjonstest for akkurat dette scenariet.
+
+**2. Referral/Grunnlegger kunne aktiveres med ett klikk** (`store.js`,
+`invite()`). UI-teksten sa aktivering krever at vennen registrerer seg,
+legger til hund og fullfører første tur — men koden økte
+`invitesActivated` direkte ved klikk. Fikset: `invite()` øker nå kun
+`invitesSent` (en reell, lokal handling — brukeren trykket faktisk «send»).
+`invitesActivated` kan aldri settes av klienten uten en backend som
+bekrefter det; den forblir 0 til den finnes. `Invite`-overlayet i
+`Overlays.js` viser nå ærlig «N sendt · 0 av 3 bekreftet» i stedet for å
+late som aktivering skjer lokalt.
+
+**3. Pote-farming via av/på-veksling** (`toggleGoing`, `verifyPlace`,
+`addMeetup`, `finishWalk`). Alle belønninger går nå gjennom en hovedbok
+(`app/lib/ledger.js`: `pushLedgerOnce`) i stedet for et flatt, direkte
+inkrementerbart `paws`-tall. Hver transaksjon har en deterministisk id
+(`reason:refId`) — samme bruker + samme handling + samme objekt kan aldri
+gi mer enn én rad, uansett hvor mange ganger handlingen trigges (meld deg
+av og på samme treff, dobbeltklikk, re-render). `me.paws` er nå alltid
+*utledet* som summen av hovedboken, aldri et felt en handling skriver til
+direkte. Gammel lagret state migreres ærlig (`migrateState`): et
+tidligere flatt `paws`-tall blir én forklart `legacy_migration`-rad
+(ikke tapt), og en tidligere (ugyldig) `invitesActivated` nullstilles.
+
+**4. «Gå 20 minutter»-utfordringen var juksbar med veggklokketid**
+(`app/lib/track.js`). Å stå stille i 19 minutter og gå 50 m det siste
+halve minuttet ga full uttelling, fordi utfordringen målte forløpt tid, ikke
+bevegelse. Løsning: `applyGpsSample` regner nå et separat `movingSeconds`
+— GPS-bekreftet aktiv tid — attribuert fra et eget rått
+`lastRawTimestamp` (oppdatert på ALLE innkommende punkter, godkjente og
+forkastede), og hardt begrenset per segment (`MAX_SEGMENT_MOVING_S`, 30 s)
+slik at et enkelt bevegelsessegment aldri kan «arve» en lang forutgående
+stillstand. `todayMinutes` i `store.js` summerer nå `movingSeconds`, ikke
+`seconds`. (Selvfunnet regresjon underveis: første forsøk brukte
+distanse-ankerets gamle tidsstempel og reintroduserte akkurat samme
+sårbarhet — fanget av en dedikert enhetstest før den nådde produksjon.)
+
+**5. Antijuks-terskelen var ett enkelt fartstak** (`MAX_SPEED_MPS`, 7 m/s)
+som ville sluppet gjennom sykling eller sakte bilkjøring som en hundetur.
+Lagt til en mykere, ikke-blokkerende `SUSPICIOUS_SPEED_MPS`-sjekk
+(4,2 m/s) som flagger (men ikke avviser) en tur der en stor, vedvarende
+andel av distansen skjedde i implausibel fart for gange — uten å
+falsk-flagge en ekte løpetur med hund (kort spurt) eller kort distanse.
+Lagret på turen som `session.suspicious` / `flagged_suspicious` i
+`supabase/schema.sql` sammen med ny kolonne `moving_duration_s`, for
+manuell/fremtidig automatisk gjennomgang — blokkerer ingenting selv nå.
+
+**Fortsatt ikke gjort** (krever egne beslutninger, se punkt 6):
+radius-senteret bruker fortsatt kommunens sentroide uansett valgt
+bydel/faktisk posisjon («use my location»-fangst er ikke bygget), og
+`lostDogSince` har ingen automatisk utløpsmekanisme ennå (feltet finnes i
+state, men ingenting leser det).
+
+---
+
 # 4. Designretning (godkjent)
 
 Identitet:
@@ -227,7 +293,11 @@ Norsk UI hele veien («Arrangementer», ikke «Events»).
   nøyaktighets-/fart-/støyfiltrering, gyldighetsgrense på 50 m
 - trygghet: nødprofil, mistet hund, rapporter/blokker
 - demo-modus med permanent merking, av som standard
-- automatisert testsuite: 36 enhetstester + 16 e2e-tester (se «Testing»)
+- **poter som idempotent hovedbok** (`app/lib/ledger.js`) — ingen handling
+  kan gi dobbel/falsk belønning, streak krever ekte sammenhengende
+  kalenderdager (Europe/Oslo), utfordringer måler GPS-bekreftet
+  bevegelsestid, ikke veggklokketid
+- automatisert testsuite: 66 enhetstester + 16 e2e-tester (se «Testing»)
 
 ## Ikke bygget ennå
 - **auth** (ingen innlogging — alt ligger i localStorage, nøkkel `potesjarm-v3`)
@@ -306,9 +376,15 @@ npm run test:e2e    # npx playwright test – ekte nettleser, ekte GPS-simulerin
 npm test             # begge
 ```
 
-**Enhetstester** (`app/lib/track.test.mjs`, `app/lib/geo.test.mjs`): ingen
-avhengigheter, kjører på ren Node. Dekker GPS-filtrering (nøyaktighet, fart,
-støygulv, gyldighetsgrense) og geografisøk (Tromsø/Strømsø, diakritiske tegn).
+**Enhetstester** (`app/lib/*.test.mjs`): ingen avhengigheter, kjører på ren
+Node (ESM). Dekker GPS-filtrering (nøyaktighet, fart, støygulv,
+gyldighetsgrense, GPS-bekreftet bevegelsestid, mistenkelig fart —
+`track.test.mjs`), geografisøk (Tromsø/Strømsø, diakritiske tegn —
+`geo.test.mjs`), Europe/Oslo-tidssonelogikk og ekte sammenhengende
+streak-dager (`time.test.mjs`), og den idempotente potehovedboken +
+migrering av gammel state (`ledger.test.mjs`). Merk: `app/components/store.js`
+selv kan ikke importeres av ren Node (JSX) — derfor ligger alle rene,
+testbare regler i `app/lib/`, og `store.js` er bare limet rundt dem.
 
 **E2E** (`e2e/*.spec.js`, Playwright, `@playwright/test` som devDependency):
 - `gps-tracking.spec.js` — kjører ekte `navigator.geolocation.watchPosition()`

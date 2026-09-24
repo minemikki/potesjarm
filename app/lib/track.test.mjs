@@ -185,3 +185,99 @@ describe("paceMinPerKm", () => {
     assert.ok(Math.abs(pace - 10) < 0.01);
   });
 });
+
+describe("movingSeconds – IKKE veggklokketid", () => {
+  test("stillestående i 19 min, så 50 m gange på 30 sek => movingSeconds ≈ 30, ikke 19 min", () => {
+    let session = createWalkSession("waiting_gps");
+    session = applyGpsSample(session, BASE); // anker, t=0
+    // 19 minutter med GPS-støy på samme flekk (skal ikke telle som bevegelse).
+    session = applyGpsSample(session, { ...BASE, timestamp: BASE.timestamp + 19 * 60000 });
+    // Så 50 m reell gange på 30 sekunder til.
+    const walked = metersNorth(50, { ...BASE, timestamp: BASE.timestamp + 19 * 60000 + 30000 });
+    session = applyGpsSample(session, walked);
+
+    assert.ok(session.totalMeters >= 49 && session.totalMeters <= 51);
+    // Dette er selve regresjonstesten: 19 minutter stillstand skal ALDRI telle
+    // som "aktiv" tid, kun de 30 reelle sekundene skal.
+    assert.ok(session.movingSeconds < 35, `movingSeconds ble ${session.movingSeconds}, forventet ~30`);
+    assert.ok(session.movingSeconds > 25, `movingSeconds ble ${session.movingSeconds}, forventet ~30`);
+  });
+
+  test("stort hopp i tid UTEN mellomliggende avlesninger: taket alene beskytter movingSeconds", () => {
+    // Ingen støyprøver i mellomtiden i det hele tatt – bare to punkter,
+    // 19,5 minutter fra hverandre. MAX_SEGMENT_MOVING_S skal fortsatt
+    // forhindre at hele gapet telles som "aktiv" tid.
+    let session = createWalkSession("waiting_gps");
+    session = applyGpsSample(session, BASE);
+    const walked = metersNorth(50, { ...BASE, timestamp: BASE.timestamp + 19.5 * 60000 });
+    session = applyGpsSample(session, walked);
+
+    assert.ok(session.totalMeters >= 49);
+    assert.ok(session.movingSeconds <= GPS_CONFIG.MAX_SEGMENT_MOVING_S, `movingSeconds ble ${session.movingSeconds}`);
+  });
+
+  test("sammenhengende gange akkumulerer movingSeconds riktig", () => {
+    let session = createWalkSession("waiting_gps");
+    let t = BASE.timestamp;
+    let last = BASE;
+    session = applyGpsSample(session, last);
+    for (let i = 0; i < 5; i++) {
+      t += 15000;
+      last = metersNorth(20, { ...last, timestamp: t });
+      session = applyGpsSample(session, last);
+    }
+    assert.ok(Math.abs(session.movingSeconds - 75) < 1, `fikk ${session.movingSeconds}`);
+  });
+});
+
+describe("suspicious – vedvarende høy fart flagges, men blokkerer ikke", () => {
+  test("normal gangfart flagges aldri", () => {
+    let session = createWalkSession("waiting_gps");
+    let t = BASE.timestamp;
+    let last = BASE;
+    session = applyGpsSample(session, last);
+    for (let i = 0; i < 20; i++) {
+      t += 15000;
+      last = metersNorth(20, { ...last, timestamp: t }); // ~1.3 m/s
+      session = applyGpsSample(session, last);
+    }
+    assert.equal(session.suspicious, false);
+    assert.ok(session.totalMeters > GPS_CONFIG.SUSPICIOUS_MIN_METERS);
+  });
+
+  test("vedvarende sykkelfart over en lang distanse flagges som mistenkelig", () => {
+    let session = createWalkSession("waiting_gps");
+    let t = BASE.timestamp;
+    let last = BASE;
+    session = applyGpsSample(session, last);
+    // 5 m/s i mange segmenter, godt over SUSPICIOUS_SPEED_MPS (4.2) men under
+    // den harde MAX_SPEED_MPS (7) – skal altså godkjennes som distanse, men
+    // flagges som mistenkelig siden det vedvarer over SUSPICIOUS_MIN_METERS.
+    for (let i = 0; i < 20; i++) {
+      t += 6000; // 6 sek
+      last = metersNorth(30, { ...last, timestamp: t }); // 30m/6s = 5 m/s
+      session = applyGpsSample(session, last);
+    }
+    assert.equal(session.suspicious, true);
+  });
+
+  test("en kort rask spurt i en ellers rolig tur flagges ikke", () => {
+    let session = createWalkSession("waiting_gps");
+    let t = BASE.timestamp;
+    let last = BASE;
+    session = applyGpsSample(session, last);
+    // Mesteparten i normal gangfart.
+    for (let i = 0; i < 15; i++) {
+      t += 15000;
+      last = metersNorth(20, { ...last, timestamp: t });
+      session = applyGpsSample(session, last);
+    }
+    // Én kort rask sekvens (hunden løper etter en ball).
+    for (let i = 0; i < 2; i++) {
+      t += 4000;
+      last = metersNorth(20, { ...last, timestamp: t }); // 20/4 = 5 m/s
+      session = applyGpsSample(session, last);
+    }
+    assert.equal(session.suspicious, false);
+  });
+});

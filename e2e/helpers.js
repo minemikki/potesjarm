@@ -11,7 +11,7 @@ export function seedState(overrides = {}) {
     profile: { dogName: "Bamse", ownerName: "Kari", breed: "Blandingshund", age: "2 år", size: "", energy: "", play: [], photo: null },
     walks: [],
     streak: 0,
-    paws: 0,
+    pawLedger: [],
     placesVisited: [],
     liked: {},
     saved: {},
@@ -24,6 +24,7 @@ export function seedState(overrides = {}) {
     myMeetups: [],
     myPosts: [],
     myEvents: [],
+    invitesSent: 0,
     invitesActivated: 0,
     lostDogActive: false,
     verified: false,
@@ -60,4 +61,9 @@ export async function gotoFresh(page) {
 
 export function readState(page) {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key) || "null"), STORAGE_KEY);
+}
+
+/** Summerer hovedboken – speiler `me.paws` sin utledning i store.js. */
+export function pawsTotal(state) {
+  return (state.pawLedger || []).reduce((a, e) => a + e.amount, 0);
 }

@@ -35,6 +35,22 @@ export const GPS_CONFIG = {
   MIN_VALID_WALK_M: 50,
   // Må ha minst så mange meter reell distanse før vi viser en tempo-tid.
   MIN_METERS_FOR_PACE: 20,
+  // Vedvarende fart over dette (m/s, ca. 15 km/t) er raskere enn en hund
+  // som går eller en eier som jogger – typisk sykkel eller sakte bilkjøring.
+  // MAX_SPEED_MPS (7 m/s) forkaster enkeltpunkter som er fysisk umulige;
+  // dette er en mykere, andre-linje sjekk som ikke avviser distansen, men
+  // flagger turen som usikker hvis STOREPARTEN av den skjedde så fort.
+  SUSPICIOUS_SPEED_MPS: 4.2,
+  // Turen flagges som mistenkelig bare hvis den i tillegg er lang nok til at
+  // mønsteret betyr noe (en kort spurt skal ikke flagge en ellers ekte tur).
+  SUSPICIOUS_MIN_METERS: 300,
+  SUSPICIOUS_FAST_RATIO: 0.6,
+  // Et enkelt godkjent bevegelsessegment kan aldri bidra med mer enn dette
+  // til movingSeconds. Uten dette taket ville en lang stillstand etterfulgt
+  // av litt bevegelse (se movingSeconds-kommentaren under) kunne "arve" hele
+  // stillstandstiden som aktiv tid, fordi tidsstempelet på forrige *godkjente*
+  // punkt kan være gammelt. 30 sek er god margin for normal GPS-pollingsrate.
+  MAX_SEGMENT_MOVING_S: 30,
   // Brukes med navigator.geolocation.watchPosition.
   WATCH_OPTIONS: { enableHighAccuracy: true, maximumAge: 2000, timeout: 20000 },
 };
@@ -75,7 +91,7 @@ export function evaluatePoint(prevAccepted, point, config = GPS_CONFIG) {
   if (d < config.MIN_MOVEMENT_M) {
     return { accepted: false, reason: "below_movement_threshold", distanceM: 0 };
   }
-  return { accepted: true, reason: "movement", distanceM: d };
+  return { accepted: true, reason: "movement", distanceM: d, dtSeconds, speedMps: speed };
 }
 
 /**
@@ -91,11 +107,27 @@ export function createWalkSession(status = "idle") {
   return {
     status,
     lastAcceptedPoint: null,
+    // Tidsstempelet på det aller SISTE punktet vi mottok, godkjent eller ikke
+    // – brukt kun til å måle hvor lenge SIDEN FORRIGE AVLESNING et nytt
+    // godkjent bevegelsessegment tok. Dette er forskjellig fra
+    // lastAcceptedPoint (som er anker for DISTANSE, og bevisst IKKE flyttes
+    // ved forkastede punkter, for å hindre GPS-drift i å akkumulere distanse).
+    lastRawTimestamp: null,
     totalMeters: 0,
     pointsSeen: 0,
     pointsAccepted: 0,
     lastAccuracy: null,
     lastRejection: null,
+    // Tid som faktisk gikk med til godkjent bevegelse – IKKE veggklokketid.
+    // Dette er det en challenge som "gå i 20 minutter" skal måles mot, ellers
+    // kan noen stå stille i 19 minutter og gå 50 m på slutten og likevel få
+    // full uttelling for 20 minutters "aktivitet". Se MAX_SEGMENT_MOVING_S.
+    movingSeconds: 0,
+    // Meter tilbakelagt i vedvarende høy fart (se SUSPICIOUS_SPEED_MPS).
+    // Brukes bare til å flagge turen til manuell/senere gjennomgang – den
+    // blokkerer ikke belønning, siden en ekte løpetur med hund kan trigge den.
+    fastMeters: 0,
+    suspicious: false,
   };
 }
 
@@ -103,10 +135,18 @@ export function createWalkSession(status = "idle") {
 export function applyGpsSample(session, rawPoint, config = GPS_CONFIG) {
   if (!session || session.status === "idle") return session;
 
+  // Hvor lenge er det siden VI SIST hørte fra GPS-en i det hele tatt – ikke
+  // siden forrige godkjente bevegelse. Dette er nøkkelen til at movingSeconds
+  // ikke kan "arve" en lang stillstand: uansett hva som skjedde før, kan et
+  // enkelt segment aldri telle mer enn tiden siden forrige avlesning (og aldri
+  // mer enn MAX_SEGMENT_MOVING_S).
+  const sinceLastSample = session.lastRawTimestamp != null ? (rawPoint.timestamp - session.lastRawTimestamp) / 1000 : 0;
+
   const next = {
     ...session,
     pointsSeen: session.pointsSeen + 1,
     lastAccuracy: rawPoint.accuracy ?? null,
+    lastRawTimestamp: rawPoint.timestamp,
   };
   const result = evaluatePoint(session.lastAcceptedPoint, rawPoint, config);
 
@@ -121,6 +161,17 @@ export function applyGpsSample(session, rawPoint, config = GPS_CONFIG) {
     next.pointsAccepted = session.pointsAccepted + 1;
     next.lastRejection = null;
     next.status = "tracking";
+    // "movement" (ikke "first_point") betyr vi har et reelt segment.
+    if (result.reason === "movement") {
+      const segmentSeconds = Math.max(0, Math.min(sinceLastSample, config.MAX_SEGMENT_MOVING_S));
+      next.movingSeconds = session.movingSeconds + segmentSeconds;
+      if (result.speedMps > config.SUSPICIOUS_SPEED_MPS) {
+        next.fastMeters = session.fastMeters + result.distanceM;
+      }
+    }
+    next.suspicious =
+      next.totalMeters >= config.SUSPICIOUS_MIN_METERS &&
+      next.fastMeters / next.totalMeters > config.SUSPICIOUS_FAST_RATIO;
   } else {
     next.lastRejection = result.reason;
     // Har vi allerede et godkjent punkt, fortsetter vi å spore – dette

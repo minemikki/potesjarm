@@ -13,7 +13,7 @@
 // i stedet for å anta en fast leveringstid.
 
 import { test, expect } from "@playwright/test";
-import { gotoSeeded, readState } from "./helpers.js";
+import { gotoSeeded, readState, pawsTotal } from "./helpers.js";
 
 const BASE = { latitude: 58.97, longitude: 5.733 }; // Stavanger sentrum-ish
 const GOOD_ACCURACY = 8;
@@ -87,7 +87,7 @@ test.describe("GPS-turtracking", () => {
     const state = await readState(page);
     expect(state.walks.length).toBe(0);
     expect(state.streak).toBe(0);
-    expect(state.paws).toBe(0);
+    expect(pawsTotal(state)).toBe(0);
   });
 
   test("dårlig GPS-nøyaktighet => ingen distanse, tydelig statustekst", async ({ page, context }) => {
@@ -153,10 +153,10 @@ test.describe("GPS-turtracking", () => {
     expect(state.walks.length).toBe(1);
     expect(state.walks[0].meters).toBeGreaterThanOrEqual(50);
     expect(state.streak).toBe(1);
-    expect(state.paws).toBeGreaterThan(0);
+    expect(pawsTotal(state)).toBeGreaterThan(0);
     // Poter skal samsvare eksakt med faktisk distanse
     // (PAWS.perKm=100/km + PAWS.walkCompleted=20 + PAWS.streakDay=10, se app/lib/data.js).
-    expect(state.paws).toBe(Math.round((state.walks[0].meters / 1000) * 100) + 20 + 10);
+    expect(pawsTotal(state)).toBe(Math.round((state.walks[0].meters / 1000) * 100) + 20 + 10);
   });
 
   test("uten posisjonstilgang: appen venter ærlig, later ALDRI som om noen bevegelse skjer", async ({ page }) => {
@@ -179,7 +179,7 @@ test.describe("GPS-turtracking", () => {
     await page.locator(".walkMode >> text=Avslutt tur").click();
     const state = await readState(page);
     expect(state.walks.length).toBe(0);
-    expect(state.paws).toBe(0);
+    expect(pawsTotal(state)).toBe(0);
   });
 
   test("en for kort, ugyldig tur gir aldri dobbel eller falsk belønning ved neste forsøk", async ({ page, context }) => {
@@ -196,7 +196,7 @@ test.describe("GPS-turtracking", () => {
 
     let state = await readState(page);
     expect(state.walks.length).toBe(1);
-    const pawsAfterFirst = state.paws;
+    const pawsAfterFirst = pawsTotal(state);
 
     // Forsøk 2: start på nytt, avslutt umiddelbart uten bevegelse.
     await startWalk(page);
@@ -205,6 +205,6 @@ test.describe("GPS-turtracking", () => {
 
     state = await readState(page);
     expect(state.walks.length).toBe(1); // uendret – ingen ny rad
-    expect(state.paws).toBe(pawsAfterFirst); // ingen ekstra poter
+    expect(pawsTotal(state)).toBe(pawsAfterFirst); // ingen ekstra poter
   });
 });

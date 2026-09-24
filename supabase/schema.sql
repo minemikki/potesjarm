@@ -302,11 +302,22 @@ create table if not exists walks (
   ended_at      timestamptz not null,
   distance_m    integer not null check (distance_m >= 0),
   duration_s    integer not null check (duration_s >= 0),
+  -- Faktisk GPS-bekreftet bevegelsestid (app/lib/track.js: movingSeconds),
+  -- ALDRI veggklokketid. Dette er det utfordringer som "gå i 20 minutter"
+  -- skal måles mot, ellers kan noen stå stille i 19 min og gå 50 m på
+  -- slutten og likevel få full uttelling.
+  moving_duration_s integer not null default 0 check (moving_duration_s >= 0 and moving_duration_s <= duration_s),
   -- Gyldig = distance_m >= MIN_VALID_WALK_M (se app/lib/track.js GPS_CONFIG).
   -- Kun gyldige turer teller til streak, poter, merker og utfordringer.
   valid         boolean not null default false,
   avg_pace_s_per_km integer,             -- null hvis for kort til å bety noe
   gps_quality   text check (gps_quality in ('good','fair','poor')),
+  -- Vedvarende fart over SUSPICIOUS_SPEED_MPS på en stor nok andel av
+  -- distansen (se app/lib/track.js). Blokkerer IKKE belønning – en ekte
+  -- løpetur med hund kan trigge den – men markerer turen for senere
+  -- gjennomgang/antijuks-mønstre (sykkel, bil) i stedet for å late som ett
+  -- enkelt fartstak (MAX_SPEED_MPS) fanger alt.
+  flagged_suspicious boolean not null default false,
   elevation_m   integer,
   place_id      uuid references places(id) on delete set null,
   paws_earned   integer not null default 0,

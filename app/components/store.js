@@ -5,6 +5,8 @@ import { badges, challenges, levelFor, PAWS } from "../lib/data";
 import { defaultLocation, kommuneById } from "../lib/geo";
 import { COLD_START, getContent, getStats, isEarlyArea, leaderboardUnlocked, MODE } from "../lib/content";
 import { GPS_CONFIG, applyGpsSample, createWalkSession, isValidWalk, pawsForWalk } from "../lib/track";
+import { isNewOsloDay, isSameOsloDay, isSameOsloWeek, nextStreak, osloDateKey, osloHour } from "../lib/time";
+import { migrateState as migrateStateLib, pawsTotal, pushLedgerOnce } from "../lib/ledger";
 import * as demo from "../lib/demo";
 
 const AppCtx = createContext(null);
@@ -26,7 +28,14 @@ const EMPTY = {
   // Brukerens egen, faktiske aktivitet.
   walks: [],
   streak: 0,
-  paws: 0,
+  // Poter har ÉN sannhet: en hovedbok av begrunnede transaksjoner (speiler
+  // paw_ledger i supabase/schema.sql). Det finnes ingen `paws`-tall en
+  // handling bare kan legge til – summen er alltid utledet fra `pawLedger`
+  // i `me` under. Hver rad har en deterministisk id (reason+refId), som gjør
+  // enhver belønning idempotent: samme bruker + samme handling + samme
+  // objekt kan aldri gi mer enn én rad, uansett hvor mange ganger den
+  // handlingen trigges (f.eks. meld deg av og på samme treff).
+  pawLedger: [],
   placesVisited: [],
   // Relasjoner og handlinger
   liked: {},
@@ -40,21 +49,31 @@ const EMPTY = {
   myMeetups: [],
   myPosts: [],
   myEvents: [],
+  // Reelle, lokale handlinger: brukeren har faktisk trykket "send".
+  invitesSent: 0,
+  // IKKE det samme som "aktivert". En invitasjon er bare aktivert når
+  // vennen har registrert seg, lagt til hund OG fullført en gyldig tur –
+  // noe klienten ikke kan vite eller late som uten en backend som bekrefter
+  // det. Uten backend kan denne aldri bli mer enn 0, med vilje. Se invite().
   invitesActivated: 0,
   lostDogActive: false,
+  lostDogSince: null,
   verified: false,
   privacy: true,
   push: true,
 };
 
-const startOfWeek = (d = new Date()) => {
-  const x = new Date(d);
-  const day = (x.getDay() + 6) % 7; // mandag = 0
-  x.setDate(x.getDate() - day);
-  x.setHours(0, 0, 0, 0);
-  return x;
-};
-const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+/**
+ * Leser lagret state fra en tidligere versjon av appen og retter den opp i
+ * stedet for å late som den alltid var riktig:
+ *  - et gammelt flatt `paws`-tall blir én forklart ledger-rad, ikke tapt
+ *  - `invitesActivated` som ble satt av den gamle (feilaktige) invite()-koden
+ *    – som aktiverte Founder-status ved rent klikk – nullstilles. Den
+ *    proveniensen var aldri gyldig, og vi later ikke som den var det.
+ */
+function migrateState(raw) {
+  return migrateStateLib(raw, EMPTY);
+}
 
 export function AppProvider({ children }) {
   const [state, setState] = useState(EMPTY);
@@ -73,7 +92,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (raw) setState({ ...EMPTY, ...raw, profile: { ...EMPTY.profile, ...(raw.profile || {}) } });
+      if (raw) setState(migrateState(raw));
       if (!raw?.onboarded) setOverlays([{ type: "onboarding" }]);
     } catch {
       setOverlays([{ type: "onboarding" }]);
@@ -175,10 +194,12 @@ export function AppProvider({ children }) {
   const me = useMemo(() => {
     const base = state.mode === MODE.DEMO ? demo.demoProfile : null;
     const walks = state.walks;
-    const week = startOfWeek();
-    const weekWalks = walks.filter((w) => new Date(w.at) >= week);
-    const today = walks.filter((w) => sameDay(w.at, Date.now()));
+    const now = Date.now();
+    const weekWalks = walks.filter((w) => isSameOsloWeek(w.at, now));
+    const today = walks.filter((w) => isSameOsloDay(w.at, now));
     const sum = (list, k) => list.reduce((a, w) => a + (w[k] || 0), 0);
+    // Poters eneste sannhet er hovedboken – se pushLedgerOnce/EMPTY.pawLedger.
+    const pawLedgerTotal = pawsTotal(state.pawLedger);
 
     return {
       dogName: state.profile.dogName || base?.dogName || "",
@@ -187,18 +208,22 @@ export function AppProvider({ children }) {
       age: state.profile.age || base?.age || "",
       photo: state.profile.photo || base?.photo || null,
       streak: state.streak + (base?.streak || 0),
-      paws: state.paws + (base?.paws || 0),
+      paws: pawLedgerTotal + (base?.paws || 0),
       totalKm: +(sum(walks, "km") + (base?.totalKm || 0)).toFixed(1),
       totalWalks: walks.length + (base?.totalWalks || 0),
       weekKm: +(sum(weekWalks, "km") + (base?.weekKm || 0)).toFixed(1),
       weekWalks: weekWalks.length + (base?.weekWalks || 0),
-      todayMinutes: Math.round(sum(today, "seconds") / 60),
+      // AKTIV gangetid i dag, ikke veggklokketid – se movingSeconds i
+      // app/lib/track.js. Uten dette kunne "gå i 20 minutter" vinnes ved å
+      // stå stille i 19 minutter og gå 50 m på slutten av turen.
+      todayMinutes: Math.round(sum(today, "movingSeconds") / 60),
       placesVisited: state.placesVisited.length,
       meetupsJoined: Object.values(state.going).filter(Boolean).length,
+      // Kan aldri bli 1 uten en backend som faktisk bekrefter at en invitert
+      // venn har fullført onboarding + første tur. Se invite()-kommentaren.
       founder: state.invitesActivated >= 3 ? 1 : 0,
-      morningWalks: walks.filter((w) => new Date(w.at).getHours() < 9).length,
-      nightWalks: walks.filter((w) => new Date(w.at).getHours() >= 21).length,
-      rainWalks: 0,
+      morningWalks: walks.filter((w) => osloHour(w.at) < 9).length,
+      nightWalks: walks.filter((w) => osloHour(w.at) >= 21).length,
       newPlaces: state.placesVisited.length,
       isNew: walks.length === 0 && state.mode === MODE.LIVE,
     };
@@ -258,8 +283,6 @@ export function AppProvider({ children }) {
       return { ...s, [key]: { ...s[key], [id]: on } };
     });
 
-  const awardPaws = (n) => setState((s) => ({ ...s, paws: s.paws + n }));
-
   const actions = {
     flash, open, close, closeAll, setTab,
     patch,
@@ -275,18 +298,32 @@ export function AppProvider({ children }) {
     toggleLike: (id) => toggleIn("liked", id),
     toggleSave: (id) => toggleIn("saved", id, "Lagret", "Fjernet fra lagret", "bookmark"),
     toggleGoing: (id) => {
-      const on = !state.going[id];
-      toggleIn("going", id, "Du er med! Verten har fått beskjed", "Du er meldt av treffet", on ? "check" : "x");
-      if (on) awardPaws(PAWS.meetupJoined);
+      let wasOn;
+      setState((s) => {
+        wasOn = !!s.going[id];
+        const on = !wasOn;
+        let s2 = { ...s, going: { ...s.going, [id]: on } };
+        // pushLedgerOnce gjør at å melde seg av og på samme treff flere
+        // ganger aldri gir mer enn én belønning – nøkkelen er treffets id.
+        if (on) s2 = pushLedgerOnce(s2, "meetup_joined", id, PAWS.meetupJoined);
+        return s2;
+      });
+      flash(wasOn ? "Du er meldt av treffet" : "Du er med! Verten har fått beskjed", wasOn ? "x" : "check");
     },
     toggleGroup: (id) => toggleIn("joinedGroups", id, "Velkommen i gruppa!", "Du har forlatt gruppa", "users"),
     toggleFollow: (id) => toggleIn("followed", id, "Du følger nå denne hunden", "Følger ikke lenger", "heart"),
     toggleEvent: (id) => toggleIn("eventGoing", id, "Du er påmeldt!", "Påmelding fjernet", "calendar"),
     togglePlace: (id) => toggleIn("savedPlaces", id, "Sted lagret", "Fjernet fra lagrede", "star"),
     verifyPlace: (id) => {
-      if (state.verifiedPlaces[id]) return;
-      setState((s) => ({ ...s, verifiedPlaces: { ...s.verifiedPlaces, [id]: true }, paws: s.paws + PAWS.verifyPlace }));
-      flash(`Takk! +${PAWS.verifyPlace} poter for å bekrefte stedet`, "verified");
+      let already;
+      setState((s) => {
+        already = !!s.verifiedPlaces[id];
+        if (already) return s;
+        let s2 = { ...s, verifiedPlaces: { ...s.verifiedPlaces, [id]: true } };
+        s2 = pushLedgerOnce(s2, "verify_place", id, PAWS.verifyPlace);
+        return s2;
+      });
+      if (!already) flash(`Takk! +${PAWS.verifyPlace} poter for å bekrefte stedet`, "verified");
     },
 
     addComment: (postId, text) =>
@@ -295,12 +332,14 @@ export function AppProvider({ children }) {
 
     addMeetup: (m) => {
       const id = "u" + Date.now();
-      setState((s) => ({
-        ...s,
-        myMeetups: [{ ...m, id, kommuneId: s.location.kommuneId, host: "self", going: ["self"], max: m.max, mine: true }, ...s.myMeetups],
-        going: { ...s.going, [id]: true },
-        paws: s.paws + PAWS.meetupHosted,
-      }));
+      setState((s) => {
+        let s2 = {
+          ...s,
+          myMeetups: [{ ...m, id, kommuneId: s.location.kommuneId, host: "self", going: ["self"], max: m.max, mine: true }, ...s.myMeetups],
+          going: { ...s.going, [id]: true },
+        };
+        return pushLedgerOnce(s2, "meetup_hosted", id, PAWS.meetupHosted);
+      });
       flash("Treffet er ute! Hundeeiere i nærheten får beskjed", "live");
       return id;
     },
@@ -352,16 +391,36 @@ export function AppProvider({ children }) {
 
       const km = +(session.totalMeters / 1000).toFixed(2);
       const earned = pawsForWalk(session.totalMeters);
+      const now = Date.now();
+      const walkId = "w" + now;
       const last = state.walks[0];
-      const firstToday = !last || !sameDay(last.at, Date.now());
-      const newStreak = firstToday ? state.streak + 1 : state.streak;
+      // Ekte, sammenhengende kalenderdager i Oslo-tid – mandag så fredag skal
+      // ALDRI øke streaken fra 1 til 2, den skal falle tilbake til 1.
+      const newStreak = nextStreak(last?.at ?? null, now, state.streak);
+      const firstToday = isNewOsloDay(last?.at ?? null, now);
+      const streakDayId = osloDateKey(now); // naturlig idempotent: maks én bonus per Oslo-kalenderdag
 
-      setState((s) => ({
-        ...s,
-        walks: [{ at: Date.now(), km, seconds, meters: session.totalMeters, pointsAccepted: session.pointsAccepted }, ...s.walks],
-        streak: newStreak,
-        paws: s.paws + earned + (firstToday ? PAWS.streakDay : 0),
-      }));
+      setState((s) => {
+        let s2 = {
+          ...s,
+          walks: [
+            {
+              at: now,
+              km,
+              seconds,
+              movingSeconds: session.movingSeconds,
+              meters: session.totalMeters,
+              pointsAccepted: session.pointsAccepted,
+              suspicious: session.suspicious,
+            },
+            ...s.walks,
+          ],
+          streak: newStreak,
+        };
+        s2 = pushLedgerOnce(s2, "walk", walkId, earned);
+        if (firstToday) s2 = pushLedgerOnce(s2, "streak_day", streakDayId, PAWS.streakDay);
+        return s2;
+      });
       setOverlays([{ type: "walkSummary", data: { km, seconds, paws: earned, streak: newStreak, first: state.walks.length === 0 } }]);
     },
 
@@ -375,9 +434,14 @@ export function AppProvider({ children }) {
     setLostDogActive: (v) => patch({ lostDogActive: v }),
     setPrivacy: (v) => patch({ privacy: v }),
     setPush: (v) => patch({ push: v }),
+    // Dette teller BARE at brukeren har sendt en invitasjon – ikke at den er
+    // aktivert. `invitesActivated` (og Founder-status/poter) kan aldri settes
+    // herfra: det krever en backend som bekrefter at vennen har registrert
+    // seg, lagt til hund OG fullført en gyldig tur. Uten det ville et rent
+    // knappetrykk kunne låse opp Founder-status.
     invite: () => {
-      setState((s) => ({ ...s, invitesActivated: Math.min(3, s.invitesActivated + 1) }));
-      flash("Invitasjon sendt. Poter kommer når vennen fullfører første tur", "send");
+      setState((s) => ({ ...s, invitesSent: s.invitesSent + 1 }));
+      flash("Invitasjon sendt. Poter kommer når vennen fullfører sin første tur", "send");
     },
     resetAll: () => { try { localStorage.removeItem(STORAGE_KEY); } catch {} location.reload(); },
   };

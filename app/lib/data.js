@@ -110,7 +110,10 @@ export const badges = [
   { id: "explorer", name: "Utforsker", metric: "placesVisited", target: 10, icon: "compass", color: "mint" },
   { id: "morning", name: "Morgenpote", metric: "morningWalks", target: 5, icon: "sun", color: "sun" },
   { id: "night", name: "Nattugle", metric: "nightWalks", target: 5, icon: "moon", color: "violet" },
-  { id: "rain", name: "Regnværskriger", metric: "rainWalks", target: 5, icon: "rain", color: "violet" },
+  // "Regnværskriger" fjernet: den krever ekte værdata koblet til tur-tidspunkt
+  // og -sted. Uten det var metric'en hardkodet til 0 – et merke som aldri
+  // kan oppnås er ikke direkte falskt, men det er villedende UI som later som
+  // en funksjon finnes. Legges tilbake når værintegrasjon er på plass.
   { id: "social", name: "Sosial snute", metric: "meetupsJoined", target: 3, icon: "users", color: "blue" },
   { id: "founder", name: "Grunnlegger", metric: "founder", target: 1, icon: "star", color: "sun" },
 ];
