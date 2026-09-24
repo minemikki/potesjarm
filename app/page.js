@@ -1,7 +1,7 @@
 "use client";
 
 import { AppProvider, useApp } from "./components/store";
-import { BottomNav, MobileHeader, RightRail, Sidebar, TopBar } from "./components/Shell";
+import { BottomNav, DemoBanner, MobileHeader, RightRail, Sidebar, TopBar } from "./components/Shell";
 import Home from "./components/Home";
 import { ActivityView, DogsView, EventsView, ExploreView, GroupsView, MapView, NowView } from "./components/Views";
 import Overlays from "./components/Overlays";
@@ -26,6 +26,7 @@ function App() {
       <div className="stage">
         <MobileHeader />
         <main className="main">
+          <DemoBanner />
           <TopBar />
           <View />
         </main>

@@ -2,24 +2,45 @@
 
 import { useEffect, useRef } from "react";
 import Icon from "./Icon";
-import { dogById, img } from "../lib/data";
+import { useApp } from "./store";
+import { img } from "../lib/data";
 
-export function Avatar({ src, id, size = 40, ring, online, square, alt = "" }) {
-  const photo = src || dogById(id)?.photo;
+/**
+ * Avatar. Har vi ikke bilde, viser vi en poteplassholder – aldri et
+ * tilfeldig stockbilde som kan forveksles med en ekte hund.
+ */
+export function Avatar({ src, size = 40, ring, online, square, alt = "", name }) {
   return (
-    <span className={"avatar" + (ring ? " ring ring-" + ring : "") + (square ? " square" : "")} style={{ "--s": size + "px" }}>
-      {photo && <img src={img(photo, Math.max(80, size * 2), Math.max(80, size * 2))} alt={alt} loading="lazy" />}
+    <span className={"avatar" + (ring ? " ring ring-" + ring : "") + (square ? " square" : "") + (src ? "" : " blank")} style={{ "--s": size + "px" }}>
+      {src ? (
+        <img src={img(src, Math.max(80, size * 2), Math.max(80, size * 2))} alt={alt} loading="lazy" />
+      ) : (
+        <span className="avatarFallback" aria-hidden="true">
+          {name ? name.trim().charAt(0).toUpperCase() : <Icon name="paw" size={Math.round(size * 0.46)} />}
+        </span>
+      )}
       {online !== undefined && <i className={"presence" + (online ? " on" : "")} />}
     </span>
   );
 }
 
+/** Avatar for en hund i innholdet, eller for brukeren selv (`me`). */
+export function DogAvatar({ id, me: isMe, size = 40, ring, online, square }) {
+  const app = useApp();
+  const d = isMe ? app.me : app.dogById(id);
+  return <Avatar src={isMe ? app.me.photo : d?.photo} name={isMe ? app.me.dogName : d?.name} size={size} ring={ring} online={online} square={square} />;
+}
+
 export function AvatarStack({ ids = [], size = 24, max = 3 }) {
+  const app = useApp();
+  const shown = ids.slice(0, max);
+  if (!shown.length) return null;
   return (
     <span className="avatarStack" style={{ "--s": size + "px" }}>
-      {ids.slice(0, max).map((id) => (
-        <Avatar key={id} id={id} size={size} />
-      ))}
+      {shown.map((id) => {
+        const d = id === "self" ? { photo: app.me.photo, name: app.me.dogName } : app.dogById(id);
+        return <Avatar key={id} src={d?.photo} name={d?.name} size={size} />;
+      })}
     </span>
   );
 }
@@ -72,12 +93,40 @@ export function Meter({ value, max = 5, label }) {
 export function Bar({ value, max = 100, tone = "blue" }) {
   return (
     <div className={"bar tone-" + tone}>
-      <i style={{ width: Math.min(100, (value / max) * 100) + "%" }} />
+      <i style={{ width: Math.min(100, max ? (value / max) * 100 : 0) + "%" }} />
     </div>
   );
 }
 
-// Felles ramme for modaler, skuffer og bunnark. Lukk med Esc eller klikk på bakgrunnen.
+/**
+ * Tom tilstand. Dette er en av de viktigste komponentene i appen:
+ * når noe ikke finnes, sier vi det rett ut og gir brukeren neste steg.
+ * Vi fyller aldri et tomt område med oppdiktet innhold.
+ */
+export function Empty({ icon = "paw", title, text, cta, onCta, secondary, onSecondary, tone = "blue", compact }) {
+  return (
+    <div className={"empty tint-" + tone + (compact ? " compact" : "")}>
+      <span className="emptyIcon"><Icon name={icon} size={26} /></span>
+      <h3>{title}</h3>
+      {text && <p>{text}</p>}
+      {(cta || secondary) && (
+        <div className="emptyBtns">
+          {cta && <button className="pillBtn primary" onClick={onCta}>{cta}</button>}
+          {secondary && <button className="pillBtn soft" onClick={onSecondary}>{secondary}</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Merkelapp for innhold som kommer fra oss, ikke fra en bruker. */
+export function SourceTag({ children = "Potesjarm-guide", icon = "shield" }) {
+  return (
+    <span className="sourceTag"><Icon name={icon} size={13} /> {children}</span>
+  );
+}
+
+// Felles ramme for modaler, skuffer og bunnark. Lukk med Esc eller klikk utenfor.
 export function Layer({ kind = "modal", onClose, className = "", children, label, tone }) {
   const closeRef = useRef(onClose);
   const rootRef = useRef(null);
@@ -121,7 +170,7 @@ export function LayerHead({ kicker, title, onClose }) {
         {kicker && <span className="kicker">{kicker}</span>}
         <h2>{title}</h2>
       </div>
-      <CloseBtn onClick={onClose} />
+      {onClose && <CloseBtn onClick={onClose} />}
     </div>
   );
 }

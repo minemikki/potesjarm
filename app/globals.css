@@ -681,7 +681,8 @@ p { margin: 0; }
 .place, .routeCard { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--sh-1); overflow: hidden; }
 .placeImg { position: relative; aspect-ratio: 16 / 10; }
 .placeImg img { width: 100%; height: 100%; object-fit: cover; }
-.saveBtn { position: absolute; right: 10px; top: 10px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--ink-2); box-shadow: var(--sh-1); }
+.placeImg .saveBtn { position: absolute; right: 10px; top: 10px; }
+.saveBtn { position: relative; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: var(--ink-2); box-shadow: var(--sh-1); }
 .saveBtn.on { color: var(--sun); }
 .placeBody, .routeBody { padding: 14px 16px 16px; display: grid; gap: 5px; }
 .placeType { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 900; color: var(--t); }
@@ -1117,4 +1118,250 @@ p { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* =========================================================================
+   Cold start: tomme tilstander, seed-merking, onboarding og stedsvalg.
+   Disse flatene er like viktige som de fulle – de er det en ny by ser.
+   ========================================================================= */
+
+/* Demo-bånd. Skal aldri kunne overses. */
+.demoBanner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 16px; padding: 11px 14px;
+  border-radius: 16px;
+  background: var(--violet-bg);
+  color: #4a33b0;
+  font-size: 13.5px; font-weight: 700;
+}
+.demoBanner .icon { color: var(--violet); flex: none; }
+.demoBanner span { flex: 1; min-width: 180px; }
+.demoBanner b { font-weight: 900; }
+.demoBanner button {
+  flex: none; height: 32px; padding: 0 14px; border-radius: 999px;
+  background: var(--violet); color: #fff; font-weight: 800; font-size: 13px;
+}
+
+/* Tom tilstand */
+.empty {
+  display: grid; justify-items: center; gap: 8px; text-align: center;
+  padding: clamp(28px, 5vh, 46px) 22px;
+  border-radius: var(--r-xl);
+  background: var(--paper);
+  box-shadow: var(--sh-1);
+}
+.emptyIcon {
+  width: 60px; height: 60px; border-radius: 20px;
+  display: grid; place-items: center;
+  background: var(--tb, var(--blue-bg)); color: var(--t, var(--blue));
+  margin-bottom: 4px;
+}
+.empty h3 { font-size: clamp(18px, 1.6vw, 22px); color: var(--indigo); max-width: 22ch; }
+.empty p { color: var(--ink-2); font-weight: 600; max-width: 42ch; font-size: 14.5px; }
+.emptyBtns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+.railEmpty { display: grid; gap: 10px; justify-items: start; }
+.railEmpty p { font-size: 13.5px; color: var(--muted); font-weight: 700; }
+
+/* Kilde-merking for redaksjonelt innhold */
+.sourceTag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--blue-bg); color: var(--blue-2);
+  font-size: 12px; font-weight: 900; white-space: nowrap;
+}
+.guideNote { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.guideNote p { font-size: 13.5px; color: var(--muted); font-weight: 700; }
+
+/* Kom i gang – solo-verdi fra dag 1 */
+.progressPill {
+  margin-left: auto; margin-bottom: 3px;
+  padding: 5px 12px; border-radius: 999px;
+  background: var(--mint-bg); color: #0f8a64;
+  font-size: 12.5px; font-weight: 900;
+}
+.stepGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.stepCard {
+  display: grid; gap: 4px; align-content: start;
+  padding: 18px 16px; border-radius: var(--r-lg);
+  background: var(--paper); box-shadow: var(--sh-1);
+  text-align: left; transition: transform .15s, box-shadow .15s;
+}
+.stepCard:hover { transform: translateY(-2px); box-shadow: var(--sh-2); }
+.stepIcon {
+  width: 44px; height: 44px; border-radius: 15px; margin-bottom: 6px;
+  display: grid; place-items: center;
+  background: var(--tb); color: var(--t);
+}
+.stepCard b { font-size: 15.5px; color: var(--indigo); }
+.stepCard small { font-size: 13px; color: var(--muted); font-weight: 600; line-height: 1.35; }
+.stepCard.done { background: var(--mint-bg); box-shadow: none; }
+.stepCard.done .stepIcon { background: var(--mint); color: #fff; }
+.stepCard.done b { text-decoration: line-through; text-decoration-color: rgba(21,25,76,.3); }
+
+/* Turområder i rad på forsiden */
+.placeRow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.placeMini {
+  display: grid; gap: 3px; padding: 16px; border-radius: var(--r-lg);
+  background: var(--paper); box-shadow: var(--sh-1); text-align: left;
+  transition: transform .15s;
+}
+.placeMini:hover { transform: translateY(-2px); }
+.placeMiniIcon {
+  width: 40px; height: 40px; border-radius: 13px; margin-bottom: 6px;
+  display: grid; place-items: center; background: var(--tb); color: var(--t);
+}
+.placeMini b { font-size: 15px; color: var(--indigo); }
+.placeMini small { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+
+/* Steder i Utforsk */
+.place { background: var(--paper); border-radius: var(--r-lg); box-shadow: var(--sh-1); }
+.placeTop { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+.place .chIcon.big { background: var(--tb); color: var(--t); }
+.placeFoot { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.verifiedNote { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; color: var(--mint); }
+.placeSheet { display: grid; gap: 10px; }
+.placeSheetHead { display: flex; align-items: flex-start; gap: 12px; }
+.placeSheetHead > div { flex: 1; min-width: 0; }
+.placeSheetHead h3 { font-size: 20px; color: var(--indigo); }
+.placeSheet > p { font-size: 14px; color: var(--ink-2); font-weight: 600; }
+
+/* Regler / offentlig info */
+.infoList { display: grid; gap: 12px; }
+.bandtvangCard, .infoCard {
+  display: flex; gap: 14px; padding: 18px;
+  border-radius: var(--r-lg); background: var(--paper); box-shadow: var(--sh-1);
+}
+.infoCard { display: grid; gap: 6px; }
+.bandtvangCard.active { background: var(--sun-bg); }
+.bandtvangCard h3, .infoCard h3 { font-size: 18px; color: var(--indigo); }
+.bandtvangCard p, .infoCard p { font-size: 14px; color: var(--ink-2); font-weight: 600; }
+.bandtvangCard small { display: block; margin-top: 6px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.infoCard .sourceTag { justify-self: start; }
+
+/* Låst toppliste */
+.lockedBoard {
+  display: grid; gap: 14px;
+  padding: clamp(20px, 3vh, 28px);
+  border-radius: var(--r-xl); background: var(--paper); box-shadow: var(--sh-1);
+}
+.lockedHead { display: flex; gap: 14px; align-items: flex-start; }
+.lockedHead h3 { font-size: 20px; color: var(--indigo); }
+.lockedHead p { font-size: 14px; color: var(--ink-2); font-weight: 600; margin-top: 3px; }
+.lockedBoard > .pillBtn { justify-self: start; }
+.lockedBoard h4 {
+  font-family: var(--body); font-size: 12.5px; font-weight: 900;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  margin-top: 6px;
+}
+.recordGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.recordGrid span { display: grid; gap: 2px; padding: 16px; border-radius: 18px; background: var(--cream); }
+.recordGrid b { font-family: var(--display); font-size: 22px; color: var(--indigo); }
+.recordGrid small { font-size: 12.5px; color: var(--muted); font-weight: 800; }
+
+/* Onboarding */
+.onboardSteps { display: flex; gap: 6px; justify-content: center; margin-bottom: 4px; }
+.onboardSteps i { width: 26px; height: 4px; border-radius: 999px; background: var(--line); transition: background .2s; }
+.onboardSteps i.on { background: var(--blue); }
+.onboarding .onboardGrid span { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; text-align: left; }
+.onboarding .onboardGrid i { grid-row: 1 / 3; }
+.onboarding .onboardGrid b { font-size: 14px; }
+.onboarding .onboardGrid small { font-size: 12px; color: var(--muted); font-weight: 700; }
+.onboardForm { width: 100%; display: grid; gap: 12px; text-align: left; }
+
+/* Stedsvelger */
+.locationForm { width: 100%; display: grid; gap: 14px; text-align: left; }
+.searchInput.small { height: 46px; }
+.locResults { display: grid; gap: 2px; max-height: 240px; overflow-y: auto; }
+.locResult { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; text-align: left; }
+.locResult:hover { background: var(--cream); }
+.locResult .icon { color: var(--muted); }
+.locResult span { display: grid; }
+.locResult b { font-size: 14.5px; }
+.locResult small { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.locPicked { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px; background: var(--mint-bg); }
+.locPicked > div { flex: 1; min-width: 0; }
+.locPicked b { display: block; font-size: 15px; color: var(--indigo); }
+.locPicked small { font-size: 12.5px; color: #0f8a64; font-weight: 700; }
+.miniChips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.miniChips.scroll::-webkit-scrollbar { display: none; }
+
+/* Diverse nye småting */
+.avatar.blank { background: var(--blue-bg); display: grid; place-items: center; }
+.avatarFallback {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  border-radius: inherit; color: var(--blue);
+  font-family: var(--display); font-weight: 800; font-size: calc(var(--s) * .42);
+}
+.groupIconBox, .groupCoverBlank, .railEventIcon, .eventImgBlank, .groupAvatar.blank {
+  display: grid; place-items: center; background: var(--blue-bg); color: var(--blue);
+}
+.groupIconBox { width: 50px; height: 50px; border-radius: 14px; flex: none; }
+.groupCoverBlank { width: 100%; height: 100%; }
+.railEventIcon { width: 56px; height: 56px; border-radius: 14px; }
+.eventImgBlank { width: 100%; height: 100%; }
+.groupAvatar.blank { width: 96px; height: 96px; }
+.officialTag {
+  position: absolute; right: 10px; top: 10px;
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(255,255,255,.94); color: var(--blue-2);
+  font-size: 11.5px; font-weight: 900;
+}
+.levelCard.flat { box-shadow: none; background: var(--cream); }
+.muted.center { text-align: center; margin: auto; }
+.weekBars i.on { background: linear-gradient(180deg, #86f5cc, #2fc79a); }
+.challenge.done { background: var(--mint-bg); }
+.challenge.done .chIcon { background: var(--mint); color: #fff; }
+.rowBtn.danger, .rowBtn.danger .icon:first-child { color: #c62843; }
+.rowBtn.danger { background: #fff0f1; }
+.detailBody h2 small { font-family: var(--body); font-size: 16px; color: var(--muted); font-weight: 700; }
+
+@media (max-width: 1100px) {
+  .stepGrid, .placeRow, .recordGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .demoBanner { margin: 12px 0 0; font-size: 13px; }
+  .stepGrid, .placeRow, .recordGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stepCard { padding: 14px 12px; }
+  .stepCard b { font-size: 14px; }
+  .stepCard small { font-size: 12px; }
+  .empty { padding: 30px 18px; }
+  .lockedHead { flex-direction: column; }
+}
+.miniChips.scroll button { white-space: nowrap; flex: none; }
+.miniChips button { white-space: nowrap; }
+
+/* Kompakt tom tilstand – brukes når flere står under hverandre. */
+.empty.compact { padding: 22px; grid-template-columns: auto 1fr auto; justify-items: start; text-align: left; align-items: center; gap: 4px 16px; }
+.empty.compact .emptyIcon { grid-row: 1 / 3; width: 50px; height: 50px; border-radius: 16px; margin: 0; }
+.empty.compact h3 { font-size: 17px; max-width: none; }
+.empty.compact p { font-size: 13.5px; max-width: none; }
+.empty.compact .emptyBtns { grid-row: 1 / 3; grid-column: 3; margin: 0; }
+
+/* Én samlet blokk når byen er helt tom. */
+.coldBlock {
+  display: grid; gap: 18px;
+  padding: clamp(22px, 3.4vh, 32px);
+  border-radius: var(--r-xl);
+  background: var(--paper);
+  box-shadow: var(--sh-1);
+}
+.coldCopy h2 { font-size: clamp(22px, 2vw, 28px); color: var(--indigo); margin: 4px 0 6px; }
+.coldCopy p { font-size: 14.5px; color: var(--ink-2); font-weight: 600; max-width: 62ch; line-height: 1.5; }
+.coldActions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.coldAction {
+  display: grid; gap: 3px; align-content: start;
+  padding: 16px; border-radius: var(--r-lg);
+  background: var(--cream); text-align: left;
+  transition: transform .15s, background .15s;
+}
+.coldAction:hover { transform: translateY(-2px); background: var(--tb); }
+.coldAction > span { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; background: var(--tb); color: var(--t); margin-bottom: 6px; }
+.coldAction b { font-size: 15px; color: var(--indigo); }
+.coldAction small { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+
+@media (max-width: 760px) {
+  .empty.compact { grid-template-columns: auto 1fr; }
+  .empty.compact .emptyBtns { grid-column: 1 / -1; grid-row: auto; margin-top: 10px; }
+  .coldActions { grid-template-columns: 1fr; }
 }
