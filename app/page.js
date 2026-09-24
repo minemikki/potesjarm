@@ -48,6 +48,32 @@ const dogs = [
   { name: "Milo", breed: "Cockapoo · 1 år", distance: "3,4 km unna", image: dogImg("photo-1517423440428-a5a00ad493e8"), streak: 16, match: 88 },
 ];
 
+const leaderboard = [
+  { rank: 1, name: "Luna", owner: "Lise", km: 42.8, streak: 28, image: dogImg("photo-1552053831-71594a27632d") },
+  { rank: 2, name: "Balto", owner: "Anders", km: 39.4, streak: 41, image: dogImg("photo-1589941013453-ec89f33b5e95") },
+  { rank: 3, name: "Santos", owner: "Michael", km: 36.9, streak: 18, image: dogImg("photo-1589941013453-ec89f33b5e95") },
+  { rank: 4, name: "Milo", owner: "Kari", km: 31.7, streak: 16, image: dogImg("photo-1517423440428-a5a00ad493e8") },
+  { rank: 5, name: "Nala", owner: "Henrik", km: 29.2, streak: 11, image: dogImg("photo-1517849845537-4d257902454a") },
+];
+
+const challenges = [
+  { id: "places", title: "Utforsk 5 nye steder", progress: 3, target: 5, reward: "🏔️ Fjellpote", end: "3 dager igjen" },
+  { id: "distance", title: "Gå 25 km denne uka", progress: 18.6, target: 25, reward: "🔥 Ukeshelt", end: "3 dager igjen" },
+  { id: "streak", title: "7 turdager på rad", progress: 6, target: 7, reward: "🐾 Stabil pote", end: "I morgen" },
+];
+
+const conversations = [
+  { id: 1, name: "Lise & Luna", preview: "Vi kan møtes ved Mosvatnet kl. 18 😊", unread: 2, image: dogImg("photo-1552053831-71594a27632d") },
+  { id: 2, name: "Anders & Balto", preview: "Balto elsker den ruta!", unread: 0, image: dogImg("photo-1589941013453-ec89f33b5e95") },
+  { id: 3, name: "Kari & Milo", preview: "Passer torsdag for dere?", unread: 1, image: dogImg("photo-1517423440428-a5a00ad493e8") },
+];
+
+const events = [
+  { id: 1, day: "27", month: "SEP", title: "Felles kveldstur rundt Mosvatnet", meta: "18:00 · Stavanger · 22 påmeldt", tag: "Tur" },
+  { id: 2, day: "29", month: "SEP", title: "Valpetreff på Hundvåg", meta: "12:00 · Hundvåg · 14 påmeldt", tag: "Valp" },
+  { id: 3, day: "04", month: "OKT", title: "Søndagstur til Dalsnuten", meta: "10:30 · Sandnes · 31 påmeldt", tag: "Fjell" },
+];
+
 export default function Home() {
   const [tab, setTab] = useState("For deg");
   const [city, setCity] = useState("Stavanger");
@@ -70,6 +96,20 @@ export default function Home() {
   const [draftSignal, setDraftSignal] = useState("");
   const [draftPost, setDraftPost] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showInbox, setShowInbox] = useState(false);
+  const [activeConversation, setActiveConversation] = useState(null);
+  const [messageDraft, setMessageDraft] = useState("");
+  const [messages, setMessages] = useState({
+    1: ["Hei! Så signalet ditt 👋", "Vi kan møtes ved Mosvatnet kl. 18 😊"],
+    2: ["Takk for turen sist!", "Balto elsker den ruta!"],
+    3: ["Hei! Milo er ledig for lek denne uka.", "Passer torsdag for dere?"],
+  });
+  const [showDogMatch, setShowDogMatch] = useState(null);
+  const [activityView, setActivityView] = useState("Oversikt");
+  const [eventJoined, setEventJoined] = useState({});
+  const [profileName, setProfileName] = useState("Santos");
+  const [profileBio, setProfileBio] = useState("Schæfer · Stavanger · 3 år");
+  const [editingProfile, setEditingProfile] = useState(false);
 
   useEffect(() => {
     try {
@@ -150,6 +190,8 @@ export default function Home() {
             </button>
           ))}
           <button onClick={() => setTab("Kart")} className={tab === "Kart" ? "active" : ""}><span>⌖</span>Kart</button>
+          <button onClick={() => setTab("Aktivitet")} className={tab === "Aktivitet" ? "active" : ""}><span>🔥</span>Aktivitet</button>
+          <button onClick={() => setTab("Events")} className={tab === "Events" ? "active" : ""}><span>◫</span>Events</button>
         </nav>
 
         <button className="primaryCta" onClick={() => setShowComposer(true)}>＋ Send signal</button>
@@ -172,7 +214,7 @@ export default function Home() {
             <h1>{tab === "For deg" ? `God morgen, ${city} 🐾` : tab}</h1>
           </div>
           <div className="topActions">
-            <button onClick={() => setShowSearch(true)}>⌕</button><button onClick={() => setShowNotifications(true)}>♢</button>
+            <button onClick={() => setShowSearch(true)}>⌕</button><button onClick={() => setShowInbox(true)}>✉</button><button onClick={() => setShowNotifications(true)}>♢</button>
           </div>
         </div>
 
@@ -261,8 +303,31 @@ export default function Home() {
           <>
             <section className="simpleIntro"><span>UTFORSK</span><h2>Nye snuter i nærheten.</h2><p>Finn turvenner med samme tempo, energi og lekestil.</p></section>
             <div className="dogGrid">
-              {dogs.map((d,i) => <article className="dogCard" key={d.name}><img src={d.image} alt=""/><div className="dogInfo"><div><h3>{d.name}</h3><p>{d.breed}</p><span>⌖ {d.distance}</span></div><button className={followedDogs[i] ? "followed" : ""} onClick={() => setFollowedDogs({...followedDogs,[i]:!followedDogs[i]})}>{followedDogs[i] ? "♥" : "♡"}</button></div><div className="dogStats"><span>🔥 {d.streak} dager</span><span>♥ {d.match}% match</span></div></article>)}
+              {dogs.map((d,i) => <article className="dogCard" key={d.name}><button className="dogOpen" onClick={() => setShowDogMatch(d)}><img src={d.image} alt=""/></button><div className="dogInfo"><div><h3>{d.name}</h3><p>{d.breed}</p><span>⌖ {d.distance}</span></div><button className={followedDogs[i] ? "followed" : ""} onClick={() => setFollowedDogs({...followedDogs,[i]:!followedDogs[i]})}>{followedDogs[i] ? "♥" : "♡"}</button></div><div className="dogStats"><span>🔥 {d.streak} dager</span><span>♥ {d.match}% match</span></div></article>)}
             </div>
+          </>
+        )}
+
+        {tab === "Aktivitet" && (
+          <>
+            <section className="simpleIntro activityIntro"><span>GAMIFICATION</span><h2>Gjør hver tur til fremgang.</h2><p>Bygg streak, samle merker og se hvordan dere ligger an lokalt.</p></section>
+            <div className="activityTabs">{["Oversikt","Leaderboard","Merker"].map(v=><button key={v} onClick={()=>setActivityView(v)} className={activityView===v?"active":""}>{v}</button>)}</div>
+            {activityView === "Oversikt" && <div className="activityGrid">
+              <article className="metricHero"><span>UKA DI</span><b>36,9 km</b><small>+14% fra forrige uke</small><div className="bars">{[45,70,52,82,64,92,38].map((h,i)=><i key={i} style={{height:h+"%"}}/>)}</div></article>
+              <article className="metricCard"><span>🔥</span><b>18 dager</b><small>Nåværende streak</small></article>
+              <article className="metricCard"><span>🐾</span><b>2 840</b><small>Poter denne uka</small></article>
+              <article className="metricCard"><span>🏆</span><b>#3</b><small>I Stavanger</small></article>
+            </div>}
+            {activityView === "Oversikt" && <div className="challengeList">{challenges.map(c=><article key={c.id}><div><span>{c.end}</span><h3>{c.title}</h3><p>{c.reward}</p></div><div className="challengeProgress"><b>{c.progress} / {c.target}</b><div><i style={{width:Math.min(100,(c.progress/c.target)*100)+"%"}}/></div></div></article>)}</div>}
+            {activityView === "Leaderboard" && <div className="leaderboard">{leaderboard.map(row=><article key={row.rank} className={row.name==="Santos"?"me":""}><b className="rank">{row.rank}</b><img src={row.image} alt=""/><div><strong>{row.name}</strong><span>{row.owner}</span></div><div className="lbScore"><b>{row.km} km</b><span>🔥 {row.streak}</span></div></article>)}</div>}
+            {activityView === "Merker" && <div className="badgeGallery">{[["🏔️","Fjellpote","Fullført"],["🌧️","Regnkriger","Fullført"],["🔥","14 dager","Fullført"],["🌙","Nattugle","8/10"],["❄️","Vinterpote","Låst"],["🌊","Badehund","2/5"],["🗺️","Utforsker","12/20"],["💯","100 km","82/100"]].map(([icon,name,status])=><article key={name}><span>{icon}</span><h3>{name}</h3><p>{status}</p></article>)}</div>}
+          </>
+        )}
+
+        {tab === "Events" && (
+          <>
+            <section className="simpleIntro"><span>SKJER I NÆRHETEN</span><h2>Møt flokken i virkeligheten.</h2><p>Lokale turer, valpetreff og hundevennlige aktiviteter.</p></section>
+            <div className="eventList">{events.map(e=><article key={e.id}><div className="eventDate"><b>{e.day}</b><span>{e.month}</span></div><div className="eventCopy"><span>{e.tag}</span><h3>{e.title}</h3><p>{e.meta}</p></div><button onClick={()=>setEventJoined({...eventJoined,[e.id]:!eventJoined[e.id]})}>{eventJoined[e.id]?"Påmeldt ✓":"Bli med"}</button></article>)}</div>
           </>
         )}
 
@@ -283,7 +348,7 @@ export default function Home() {
           <div className="streakTop"><span>DIN STREAK</span><b>🔥 18 dager</b></div>
           <div className="week">{["M","T","O","T","F","L","S"].map((d,i)=><span className={i<6?"done":""} key={i}>{i<6?"🐾":d}</span>)}</div>
           <p>Én tur i dag holder streaken levende.</p>
-          <button onClick={() => setWalkActive(true)}>Start tur</button>
+          <button onClick={() => setWalkActive(true)}>Start tur</button><button className="secondaryRailBtn" onClick={() => setTab("Aktivitet")}>Se fremgang</button>
         </section>
 
         <section className="challengeCard">
@@ -292,8 +357,8 @@ export default function Home() {
 
         <section className="upcoming">
           <div className="sectionTitle compact"><div><span>KOMMER</span><h2>Nær deg</h2></div></div>
-          <article><b>14</b><div><strong>Kveldstur rundt Mosvatnet</strong><span>Ons · 18:00 · 12 med</span></div></article>
-          <article><b>18</b><div><strong>Strandtur på Solastranden</strong><span>Søn · 11:00 · 28 med</span></div></article>
+          <article onClick={()=>setTab("Events")}><b>27</b><div><strong>Kveldstur rundt Mosvatnet</strong><span>Fre · 18:00 · 22 med</span></div></article>
+          <article onClick={()=>setTab("Events")}><b>29</b><div><strong>Valpetreff på Hundvåg</strong><span>Søn · 12:00 · 14 med</span></div></article>
         </section>
       </aside>
 
@@ -310,7 +375,13 @@ export default function Home() {
 
       {showNotifications && <div className="drawerBackdrop" onClick={()=>setShowNotifications(false)}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>AKTIVITET</span><h2>Varsler</h2></div><button onClick={()=>setShowNotifications(false)}>×</button></div><div className="notification"><b>🐾 Luna vil bli turvenn</b><p>94% match med Santos · 8 min siden</p></div><div className="notification"><b>🔥 18 dagers streak!</b><p>Én tur i dag holder streaken levende.</p></div><div className="notification"><b>🌲 Ny challenge i Stavanger</b><p>Utforsk 5 nye steder før søndag.</p></div><div className="notification"><b>🎾 Signal nær deg</b><p>Milo søker lekekamerat på Tjensvoll.</p></div></aside></div>}
 
-      {showProfile && <div className="drawerBackdrop" onClick={()=>setShowProfile(false)}><aside className="drawer profileDrawer" onClick={e=>e.stopPropagation()}><div className="profileCover"><button onClick={()=>setShowProfile(false)}>×</button></div><div className="profileAvatar dogAvatar"/><h2>Santos</h2><p className="profileSub">Schæfer · Stavanger · 3 år</p><div className="profileStats"><div><b>18</b><span>streak</span></div><div><b>243</b><span>turer</span></div><div><b>812 km</b><span>sammen</span></div></div><div className="profileChips"><span>⚡ Høy energi</span><span>🌲 Fjelltur</span><span>🎾 Røff lek</span><span>🐕 Store hunder</span></div><h3>Merker</h3><div className="badgeRow"><span>🏔️<small>Fjellpote</small></span><span>🌧️<small>Regnkriger</small></span><span>🔥<small>14 dager</small></span><span>🌙<small>Nattugle</small></span></div><button className="profileAction">Rediger hundeprofil</button></aside></div>}
+      {showProfile && <div className="drawerBackdrop" onClick={()=>setShowProfile(false)}><aside className="drawer profileDrawer" onClick={e=>e.stopPropagation()}><div className="profileCover"><button onClick={()=>setShowProfile(false)}>×</button></div><div className="profileAvatar dogAvatar"/>{editingProfile ? <div className="profileEdit"><input value={profileName} onChange={e=>setProfileName(e.target.value)}/><input value={profileBio} onChange={e=>setProfileBio(e.target.value)}/></div> : <><h2>{profileName}</h2><p className="profileSub">{profileBio}</p></>}<div className="profileStats"><div><b>18</b><span>streak</span></div><div><b>243</b><span>turer</span></div><div><b>812 km</b><span>sammen</span></div></div><div className="profileChips"><span>⚡ Høy energi</span><span>🌲 Fjelltur</span><span>🎾 Røff lek</span><span>🐕 Store hunder</span></div><h3>Merker</h3><div className="badgeRow"><span>🏔️<small>Fjellpote</small></span><span>🌧️<small>Regnkriger</small></span><span>🔥<small>14 dager</small></span><span>🌙<small>Nattugle</small></span></div><button className="profileAction" onClick={()=>setEditingProfile(!editingProfile)}>{editingProfile ? "Lagre profil" : "Rediger hundeprofil"}</button></aside></div>}
+
+      {showInbox && <div className="drawerBackdrop" onClick={()=>setShowInbox(false)}><aside className="drawer inboxDrawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>MELDINGER</span><h2>Innboks</h2></div><button onClick={()=>setShowInbox(false)}>×</button></div>{conversations.map(c=><button className="conversationRow" key={c.id} onClick={()=>setActiveConversation(c)}><img src={c.image} alt=""/><div><b>{c.name}</b><span>{c.preview}</span></div>{c.unread>0&&<i>{c.unread}</i>}</button>)}</aside></div>}
+
+      {activeConversation && <div className="modalBackdrop" onClick={()=>setActiveConversation(null)}><div className="chatModal" onClick={e=>e.stopPropagation()}><div className="chatHead"><button onClick={()=>setActiveConversation(null)}>←</button><img src={activeConversation.image} alt=""/><div><b>{activeConversation.name}</b><span>Aktiv nylig</span></div></div><div className="chatBody">{(messages[activeConversation.id]||[]).map((m,i)=><div key={i} className={"bubble "+(i%2?"mine":"theirs")}>{m}</div>)}</div><form className="chatComposer" onSubmit={e=>{e.preventDefault();if(!messageDraft.trim())return;setMessages({...messages,[activeConversation.id]:[...(messages[activeConversation.id]||[]),messageDraft.trim()]});setMessageDraft("")}}><input value={messageDraft} onChange={e=>setMessageDraft(e.target.value)} placeholder="Skriv en melding..."/><button>Send</button></form></div></div>}
+
+      {showDogMatch && <div className="modalBackdrop" onClick={()=>setShowDogMatch(null)}><div className="dogMatchModal" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowDogMatch(null)}>×</button><img className="matchHero" src={showDogMatch.image} alt=""/><div className="matchScore"><b>{showDogMatch.match}%</b><span>match med Santos</span></div><h2>{showDogMatch.name}</h2><p>{showDogMatch.breed} · {showDogMatch.distance}</p><div className="matchReasons"><span>✓ Samme energinivå</span><span>✓ Liker aktive turer</span><span>✓ Passende lekestil</span><span>✓ Bor i nærheten</span></div><div className="matchActions"><button onClick={()=>{setShowDogMatch(null);setShowInbox(true)}}>Send melding</button><button onClick={()=>{setShowDogMatch(null);setShowComposer(true)}}>Foreslå tur</button></div></div></div>}
 
       {walkActive && <div className="walkOverlay"><div className="walkTop"><span>LIVE TUR</span><button onClick={finishWalk}>×</button></div><div className="walkPulse">🐾</div><h2>{walkDistance.toFixed(2)} km</h2><p>{String(Math.floor(walkSeconds/60)).padStart(2,"0")}:{String(walkSeconds%60).padStart(2,"0")} · Santos er på tur</p><div className="walkStats"><div><b>{Math.round(walkDistance*1312)}</b><span>skritt</span></div><div><b>{Math.round(walkDistance*72)}</b><span>kcal</span></div><div><b>+{Math.round(walkDistance*100)}</b><span>poter</span></div></div><button className="endWalk" onClick={finishWalk}>Avslutt tur</button></div>}
 
