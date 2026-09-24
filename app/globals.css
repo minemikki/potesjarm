@@ -143,13 +143,13 @@ p { margin: 0; }
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
-  margin: clamp(10px, 2.2vh, 24px) -4px;
-  padding: 0 4px;
+  margin: clamp(6px, 1.4vh, 16px) -4px;
+  padding: 10px 4px;
   display: flex;
   flex-direction: column;
   gap: clamp(2px, 0.45vh, 6px);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
 }
 .navList::-webkit-scrollbar { display: none; }
 .navList hr { flex: none; border: 0; height: 1px; background: rgba(255, 255, 255, 0.1); margin: clamp(3px, 0.9vh, 10px) 14px; }
