@@ -239,11 +239,69 @@ Lagret på turen som `session.suspicious` / `flagged_suspicious` i
 `supabase/schema.sql` sammen med ny kolonne `moving_duration_s`, for
 manuell/fremtidig automatisk gjennomgang — blokkerer ingenting selv nå.
 
-**Fortsatt ikke gjort** (krever egne beslutninger, se punkt 6):
-radius-senteret bruker fortsatt kommunens sentroide uansett valgt
-bydel/faktisk posisjon («use my location»-fangst er ikke bygget), og
-`lostDogSince` har ingen automatisk utløpsmekanisme ennå (feltet finnes i
-state, men ingenting leser det).
+---
+
+# 3d. Fase A — Produktaudit og integritetsfikser (runde 2)
+
+En full lesegjennomgang av UI-et (Home/Views/Overlays/store) ble kjørt mot
+masterplanen for å finne døde knapper, placeholders, demo-lekkasjer og
+farmbar logikk. De reelle funnene ble fikset (ikke bare rapportert):
+
+**P0 – farmbar belønning (kritisk).**
+- `addMeetup` ga 60 poter per opprettet treff. Hvert treff har en unik id,
+  så hovedbokens idempotens (som er per objekt-id) dedupliserte aldri – fritt
+  farmbart (lag treff → få poter → gjenta). Fjernet: å opprette et treff gir
+  ingen poter.
+- `toggleGoing` ga poter for å melde seg på et treff – et klikk, ikke en
+  gjennomført aktivitet. Fjernet, i tråd med masterplanens «Ingen Poter bare
+  for å klikke join». Å ha vært med teller fortsatt mot sosiale merker via
+  `going`-state, uten valuta for selve klikket.
+- Begge belønningene (`meetupHosted`/`meetupJoined`) er nå dokumentert i
+  data.js som reservert for en **server-bekreftet** «gikk dere tur sammen?»-
+  flyt; klienten deler dem aldri ut selv.
+
+**P0 – radius var kosmetisk.** `content.js` brukte alltid kommunesentroiden
+som radius-senter uansett hvor brukeren var. Nå: `geo.radiusCenter(loc)`
+bruker brukerens egen, **personvern-avrundede** posisjon (3 desimaler ≈
+100 m, `roundCoord`) når den er delt (opt-in engangsavlesning via
+`useMyLocation()`), ellers kommunesentroiden som ærlig fallback. Bydel har vi
+ikke ekte koordinater for og dikter dem ikke opp. UI-et (stedvelgeren) sier
+hvilket senter som faktisk brukes og lar deg slå det av/på. Rå posisjon
+lagres aldri – bare den avrundede.
+
+**P0 – mistet hund manglet utløp.** `lostDogSince` ble aldri lest. Nytt
+`app/lib/lostdog.js`: et varsel har 48 t levetid (`LOST_DOG_TTL_H`), og
+`isLostDogLive(state, now)` er den ene sannheten UI leser (aktiv + ikke løst
++ ikke utløpt). «Sist sett»-teksten lagres nå (`lostDogNote`) og vises i
+banneret sammen med «utløper om N t». `resolveLostDog()` markerer funnet.
+
+**P1 – blokkering var en no-op.** «Blokker bruker» ga bare en toast; feeden
+ble aldri filtrert, og «Blokkerte profiler» var hardkodet tom. Nå: ekte
+`blocked`-state, feed og kommentarer filtreres på forfatter, og
+«Blokkerte profiler» er en reell liste med «Opphev». Full kaskade til
+hunder/grupper/søk/chat krever en delt bruker-id fra backend (dokumentert i
+koden) – lokalt blokkerer vi på det eneste identitetssignalet klienten har.
+
+**P1 – dødt merke/utfordring.** `placesVisited` ble aldri skrevet, så
+«Utforsker»-merket og «besøk nye steder»-utfordringen kunne aldri gjøre
+fremgang (samme klasse som det fjernede værmerket). `verifyPlace` (en
+førstehånds bekreftelse av et ekte sted) registrerer nå stedet som besøkt/
+kjent, idempotent per sted.
+
+**P2 – skjør demo-lekkasje i topplista.** `Leaderboard` brukte
+`demoLeaderboard` uansett modus (bare reddet av at live har 0 hunder). Nå
+gates den eksplisitt på `isDemo`; i live vises en ærlig «topplista er ikke
+klar ennå» i stedet for at en fremtidig live-hundekilde kunne dytte
+demo-navn inn.
+
+Nye enhetstester: `geo.test.mjs` (radiusCenter/roundCoord),
+`lostdog.test.mjs` (utløp/live-status). Ny e2e `safety.spec.js`: blokkering
+fjerner faktisk innlegg fra feeden, og et utløpt/funnet savnet-varsel vises
+ikke. **80 enhetstester + 20 e2e grønne.**
+
+**Fortsatt ikke gjort** (bevisst, krever backend eller egne beslutninger):
+full blokkeringskaskade (delt bruker-id), server-bekreftet meetup-fullføring
+for poter, ekte topplistekilde, og alt i Fase B–H under.
 
 ---
 
@@ -297,7 +355,10 @@ Norsk UI hele veien («Arrangementer», ikke «Events»).
   kan gi dobbel/falsk belønning, streak krever ekte sammenhengende
   kalenderdager (Europe/Oslo), utfordringer måler GPS-bekreftet
   bevegelsestid, ikke veggklokketid
-- automatisert testsuite: 66 enhetstester + 16 e2e-tester (se «Testing»)
+- ekte, utløpsstyrt hastevarsel for mistet hund; ekte blokkering som
+  filtrerer feed og kommentarer; radius måles fra brukerens egen
+  personvern-avrundede posisjon når den deles (ellers kommunesenter)
+- automatisert testsuite: 80 enhetstester + 20 e2e-tester (se «Testing»)
 
 ## Ikke bygget ennå
 - **auth** (ingen innlogging — alt ligger i localStorage, nøkkel `potesjarm-v3`)
@@ -396,6 +457,8 @@ testbare regler i `app/lib/`, og `store.js` er bare limet rundt dem.
 - `onboarding.spec.js` — regresjonstest for buggen der et søkt sted kunne vises
   sammtidig som et annet "valgt" sted.
 - `cold-start.spec.js` — en tom kommune viser ærlige nuller og låst toppliste.
+- `safety.spec.js` — blokkering fjerner faktisk innlegg fra feeden; et
+  utløpt eller «funnet»-markert savnet-varsel vises ikke.
 
 ⚠️ **Miljøspesifikt i denne sandboxen** (se kommentarer i filene):
 - `playwright.config.js` peker eksplisitt på en forhåndsinstallert Chromium

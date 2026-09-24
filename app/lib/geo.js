@@ -490,6 +490,35 @@ export function withinRadius(center, point, radiusKm) {
   return d == null ? true : d <= radiusKm;
 }
 
+/**
+ * Personvern: rund av en koordinat før den lagres/vises. 3 desimaler er
+ * ca. 100 m i Norge – nok til at en radius blir meningsfull, men ikke så
+ * presist at det avslører hjemmeadressen. Vi lagrer ALDRI en rå posisjon.
+ */
+export function roundCoord(n) {
+  return typeof n === "number" ? Math.round(n * 1000) / 1000 : n;
+}
+
+/**
+ * Senteret en radius faktisk måles fra.
+ *
+ * Tidligere ble alltid kommunens sentroide brukt, uansett hvor brukeren var –
+ * så radiusen var mest kosmetisk. Nå:
+ *   1. brukerens egen (personvern-avrundede) posisjon hvis den er delt
+ *   2. ellers kommunens sentroide som ærlig fallback
+ *
+ * Bydel/område har vi ikke ekte koordinater for ennå (det krever et
+ * verifisert datasett – vi dikter dem ikke opp), så et valgt område alene
+ * flytter ikke senteret. UI-et sier hvilket senter som faktisk brukes.
+ */
+export function radiusCenter(loc) {
+  if (loc && typeof loc.lat === "number" && typeof loc.lng === "number") {
+    return { lat: loc.lat, lng: loc.lng, source: "user" };
+  }
+  const k = kommuneById[loc?.kommuneId];
+  return k ? { lat: k.lat, lng: k.lng, source: "kommune" } : null;
+}
+
 /** Søk i kommuner og områder. Returnerer treff sortert på relevans. */
 export function searchPlaces(query, limit = 12) {
   const q = query.trim().toLowerCase();
@@ -535,7 +564,13 @@ export function radiusLabel(loc) {
   if (!loc) return "";
   const r = radiusOptions.find((o) => o.km === loc.radiusKm);
   if (!r || r.km == null) return `hele ${kommuneById[loc.kommuneId]?.name || "kommunen"}`;
-  return `${r.km} km rundt ${placeShort(loc)}`;
+  const from = loc && typeof loc.lat === "number" ? "posisjonen din" : placeShort(loc);
+  return `${r.km} km rundt ${from}`;
+}
+
+/** Har brukeren delt sin egen posisjon (som radiusen da måles fra)? */
+export function hasUserPosition(loc) {
+  return !!(loc && typeof loc.lat === "number" && typeof loc.lng === "number");
 }
 
 export const defaultLocation = { kommuneId: "stavanger", omrade: null, radiusKm: 10 };

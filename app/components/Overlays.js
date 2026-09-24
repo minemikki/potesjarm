@@ -5,7 +5,7 @@ import Icon, { PawLogo } from "./Icon";
 import { useApp } from "./store";
 import { Avatar, AvatarStack, Bar, Chips, CloseBtn, DogAvatar, Empty, Layer, LayerHead, Meter, RouteSketch, SourceTag } from "./ui";
 import { dogTraits, expiryOptions, fmtKm, fmtNum, genitive, img, meetupTypes, PHOTO } from "../lib/data";
-import { kommuneById, omrader, placeLabel, placeShort, radiusOptions, searchPlaces } from "../lib/geo";
+import { kommuneById, omrader, placeLabel, placeShort, radiusOptions, roundCoord, searchPlaces } from "../lib/geo";
 import { placeTypes } from "../lib/seed";
 import { MODE } from "../lib/content";
 import { paceMinPerKm, pawsForWalk } from "../lib/track";
@@ -157,8 +157,30 @@ function LocationForm({ value, onChange }) {
   // og søkefeltet tømmes med det samme slik at "valgt" og "søker" ikke
   // kan vises på én gang.
   const pick = (r) => {
+    // Nytt sted erstatter det gamle fullstendig – også en tidligere delt
+    // posisjon (lat/lng), som ikke lenger gir mening for en annen kommune.
     onChange({ kommuneId: r.kommune.id, omrade: r.omrade || null, radiusKm: value.radiusKm ?? 10 });
     setQ("");
+  };
+
+  const usingMyPos = typeof value.lat === "number";
+  const [locating, setLocating] = useState(false);
+
+  const useMyPos = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        onChange({ ...value, lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude), positionAt: Date.now() });
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 15000 }
+    );
+  };
+  const clearMyPos = () => {
+    const { lat, lng, positionAt, ...rest } = value;
+    onChange(rest);
   };
 
   return (
@@ -215,6 +237,22 @@ function LocationForm({ value, onChange }) {
             {radiusOptions.map((r) => (
               <button key={r.label} className={value.radiusKm === r.km ? "active" : ""} onClick={() => onChange({ ...value, radiusKm: r.km })}>{r.label}</button>
             ))}
+          </div>
+          <div className="locCenter">
+            <small className="muted">
+              {value.radiusKm == null
+                ? "Viser alt i kommunen"
+                : usingMyPos
+                  ? "Måles fra din egen posisjon"
+                  : `Måles fra sentrum av ${kommune.name}`}
+            </small>
+            {usingMyPos ? (
+              <button className="linkish" onClick={clearMyPos}>Bruk sentrum i stedet</button>
+            ) : (
+              <button className="linkish" onClick={useMyPos} disabled={locating}>
+                <Icon name="pin" size={13} /> {locating ? "Henter…" : "Bruk min posisjon"}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -626,7 +664,7 @@ function StoryViewer({ data: start, onClose }) {
 function Comments({ data: post, onClose }) {
   const app = useApp();
   const [text, setText] = useState("");
-  const list = app.comments[post.id] || [];
+  const list = (app.comments[post.id] || []).filter((c) => !app.blocked[c.name]);
   return (
     <Layer kind="drawer" onClose={onClose} className="commentsBox" label="Kommentarer">
       <LayerHead kicker={post.author.toUpperCase()} title="Kommentarer" onClose={onClose} />
@@ -658,7 +696,7 @@ function PostMenu({ data: post, onClose }) {
       <button onClick={() => { app.toggleSave(post.id); onClose(); }}><Icon name="bookmark" size={19} /> {app.saved[post.id] ? "Fjern fra lagret" : "Lagre innlegg"}</button>
       <button onClick={() => act("Du ser færre slike innlegg", "eyeOff")}><Icon name="eyeOff" size={19} /> Ikke interessert</button>
       <button onClick={() => act("Takk. Innlegget er sendt til moderering", "flag")}><Icon name="flag" size={19} /> Rapporter innlegg</button>
-      <button className="danger" onClick={() => act("Brukeren er blokkert", "ban")}><Icon name="ban" size={19} /> Blokker bruker</button>
+      <button className="danger" onClick={() => { onClose(); app.blockAuthor(post.author); }}><Icon name="ban" size={19} /> Blokker {post.author}</button>
       <button className="cancel" onClick={onClose}>Avbryt</button>
     </Layer>
   );
@@ -900,7 +938,11 @@ function Settings({ onClose }) {
 
       <h5>Trygghet</h5>
       <button className="rowBtn" onClick={() => app.open("safety")}><Icon name="shield" size={18} /> Trygghet og nødprofil <Icon name="chevronRight" size={17} /></button>
-      <button className="rowBtn" onClick={() => app.flash("Du har ingen blokkerte profiler", "ban")}><Icon name="ban" size={18} /> Blokkerte profiler <Icon name="chevronRight" size={17} /></button>
+      <button className="rowBtn" onClick={() => app.open("blocked")}>
+        <Icon name="ban" size={18} /> Blokkerte profiler
+        {Object.keys(app.blocked).length > 0 && <span className="rowCount">{Object.keys(app.blocked).length}</span>}
+        <Icon name="chevronRight" size={17} />
+      </button>
 
       <h5>Innhold</h5>
       <label className="toggleRow">
@@ -1007,6 +1049,29 @@ function Safety({ onClose }) {
   );
 }
 
+function Blocked({ onClose }) {
+  const app = useApp();
+  const list = Object.keys(app.blocked);
+  return (
+    <Layer kind="drawer" onClose={onClose} className="listDrawer" label="Blokkerte profiler">
+      <LayerHead kicker="TRYGGHET" title="Blokkerte profiler" onClose={onClose} />
+      {list.length === 0 ? (
+        <Empty icon="ban" title="Ingen blokkerte profiler" text="Blokkerer du noen fra menyen på et innlegg, dukker de opp her." />
+      ) : (
+        <>
+          <p className="muted">Du ser ikke innlegg fra disse profilene. Full blokkering på tvers av chat, grupper og søk kommer når kontoene er koblet til backend.</p>
+          {list.map((author) => (
+            <div key={author} className="rowBtn" style={{ cursor: "default" }}>
+              <Icon name="ban" size={18} /> <span style={{ flex: 1 }}>{author}</span>
+              <button className="linkish" onClick={() => app.unblockAuthor(author)}>Opphev</button>
+            </div>
+          ))}
+        </>
+      )}
+    </Layer>
+  );
+}
+
 function LostDog({ onClose }) {
   const app = useApp();
   const [text, setText] = useState("");
@@ -1025,8 +1090,8 @@ function LostDog({ onClose }) {
         <span>Sist sett</span>
         <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="F.eks. ved vannet kl. 14, blå sele, redd for fremmede…" />
       </label>
-      <p className="fineprint"><Icon name="shield" size={14} /> Del aldri hjemmeadressen din i et offentlig varsel.</p>
-      <button className="pillBtn danger block big" onClick={() => { app.setLostDogActive(true); app.closeAll(); app.setTab("For deg"); app.flash("Hastevarsel er aktivert", "alert"); }}>
+      <p className="fineprint"><Icon name="shield" size={14} /> Del aldri hjemmeadressen din i et offentlig varsel. Varselet utløper automatisk etter 48 timer.</p>
+      <button className="pillBtn danger block big" onClick={() => { app.raiseLostDog(text); app.closeAll(); app.setTab("For deg"); app.flash("Hastevarsel er aktivert", "alert"); }}>
         <Icon name="alert" size={18} /> Send hastevarsel
       </button>
     </Layer>
@@ -1207,6 +1272,7 @@ const MAP = {
   more: More,
   invite: Invite,
   safety: Safety,
+  blocked: Blocked,
   lostDog: LostDog,
   recap: Recap,
   premium: Premium,

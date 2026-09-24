@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { badges, challenges, levelFor, PAWS } from "../lib/data";
-import { defaultLocation, kommuneById } from "../lib/geo";
+import { defaultLocation, kommuneById, roundCoord } from "../lib/geo";
+import { isLostDogLive } from "../lib/lostdog";
 import { COLD_START, getContent, getStats, isEarlyArea, leaderboardUnlocked, MODE } from "../lib/content";
 import { GPS_CONFIG, applyGpsSample, createWalkSession, isValidWalk, pawsForWalk } from "../lib/track";
 import { isNewOsloDay, isSameOsloDay, isSameOsloWeek, nextStreak, osloDateKey, osloHour } from "../lib/time";
@@ -46,6 +47,11 @@ const EMPTY = {
   eventGoing: {},
   savedPlaces: {},
   verifiedPlaces: {},
+  // Blokkerte forfattere (visningsnavn -> true). Filtrerer feed og kommentarer.
+  // Full kaskade til hunder/grupper/søk/chat krever en delt bruker-id fra
+  // backend (samme person på tvers av flater); lokalt blokkerer vi på det
+  // eneste identitetssignalet vi har i klienten – forfatternavnet.
+  blocked: {},
   myMeetups: [],
   myPosts: [],
   myEvents: [],
@@ -56,8 +62,14 @@ const EMPTY = {
   // noe klienten ikke kan vite eller late som uten en backend som bekrefter
   // det. Uten backend kan denne aldri bli mer enn 0, med vilje. Se invite().
   invitesActivated: 0,
+  // Hastevarsel for mistet hund. lostDogSince gir varselet en levetid (se
+  // app/lib/lostdog.js) slik at et gammelt varsel ikke blir stående som
+  // aktivt etter at hunden er funnet. lostDogNote er «sist sett»-teksten
+  // brukeren faktisk skrev; lostDogResolvedAt settes når de trykker «Funnet».
   lostDogActive: false,
   lostDogSince: null,
+  lostDogNote: "",
+  lostDogResolvedAt: null,
   verified: false,
   privacy: true,
   push: true,
@@ -180,13 +192,15 @@ export function AppProvider({ children }) {
   const contentWithMine = useMemo(() => {
     const own = state.location.kommuneId;
     const mine = (list) => list.filter((x) => !x.kommuneId || x.kommuneId === own);
+    const notBlocked = (list) => list.filter((x) => !x.author || !state.blocked[x.author]);
     return {
       ...content,
       meetups: [...mine(state.myMeetups), ...content.meetups],
-      posts: [...mine(state.myPosts), ...content.posts],
+      // Blokkerte forfattere forsvinner faktisk fra feeden – ikke bare en toast.
+      posts: notBlocked([...mine(state.myPosts), ...content.posts]),
       events: [...mine(state.myEvents), ...content.events],
     };
-  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId]);
+  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked]);
 
   const stats = useMemo(() => getStats(contentWithMine), [contentWithMine]);
 
@@ -297,16 +311,17 @@ export function AppProvider({ children }) {
 
     toggleLike: (id) => toggleIn("liked", id),
     toggleSave: (id) => toggleIn("saved", id, "Lagret", "Fjernet fra lagret", "bookmark"),
+    // INGEN poter for å melde seg på et treff. Å trykke «bli med» er et klikk,
+    // ikke en gjennomført aktivitet – og en klikk-belønning kan farmes ved å
+    // melde seg av og på. Poter for treff hører til en server-bekreftet
+    // «gikk dere tur sammen?»-flyt (se PAWS-kommentaren i data.js). Å ha vært
+    // med teller fortsatt ærlig mot sosiale merker via `going`-state, uten
+    // valuta for selve klikket.
     toggleGoing: (id) => {
       let wasOn;
       setState((s) => {
         wasOn = !!s.going[id];
-        const on = !wasOn;
-        let s2 = { ...s, going: { ...s.going, [id]: on } };
-        // pushLedgerOnce gjør at å melde seg av og på samme treff flere
-        // ganger aldri gir mer enn én belønning – nøkkelen er treffets id.
-        if (on) s2 = pushLedgerOnce(s2, "meetup_joined", id, PAWS.meetupJoined);
-        return s2;
+        return { ...s, going: { ...s.going, [id]: !wasOn } };
       });
       flash(wasOn ? "Du er meldt av treffet" : "Du er med! Verten har fått beskjed", wasOn ? "x" : "check");
     },
@@ -314,12 +329,21 @@ export function AppProvider({ children }) {
     toggleFollow: (id) => toggleIn("followed", id, "Du følger nå denne hunden", "Følger ikke lenger", "heart"),
     toggleEvent: (id) => toggleIn("eventGoing", id, "Du er påmeldt!", "Påmelding fjernet", "calendar"),
     togglePlace: (id) => toggleIn("savedPlaces", id, "Sted lagret", "Fjernet fra lagrede", "star"),
+    // Å bekrefte et sted er en førstehånds-påstand om et ekte, navngitt sted
+    // brukeren kjenner – derfor teller det også som et besøkt/kjent sted
+    // (placesVisited), som er signalet «Utforsker»-merket og «nye steder»-
+    // utfordringen måles mot. Idempotent per sted: bekrefter du det samme
+    // stedet igjen, skjer ingenting.
     verifyPlace: (id) => {
       let already;
       setState((s) => {
         already = !!s.verifiedPlaces[id];
         if (already) return s;
-        let s2 = { ...s, verifiedPlaces: { ...s.verifiedPlaces, [id]: true } };
+        let s2 = {
+          ...s,
+          verifiedPlaces: { ...s.verifiedPlaces, [id]: true },
+          placesVisited: s.placesVisited.includes(id) ? s.placesVisited : [...s.placesVisited, id],
+        };
         s2 = pushLedgerOnce(s2, "verify_place", id, PAWS.verifyPlace);
         return s2;
       });
@@ -330,16 +354,18 @@ export function AppProvider({ children }) {
       setComments((c) => ({ ...c, [postId]: [...(c[postId] || []), { name: `${me.ownerName || "Du"} & ${me.dogName}`, avatar: me.photo, text, mine: true }] })),
     sendMessage: (convId, text) => setMessages((m) => ({ ...m, [convId]: [...(m[convId] || []), { me: true, t: text }] })),
 
+    // INGEN poter for å opprette et treff. Hvert treff har en unik id, så en
+    // opprettelses-belønning kan aldri dedupliseres – den ville vært fritt
+    // farmbar (lag treff, få poter, gjenta). Verdien av et treff er at det
+    // faktisk skjer; den belønningen hører til en server-bekreftet
+    // fullføringsflyt, ikke til selve opprettelsen.
     addMeetup: (m) => {
       const id = "u" + Date.now();
-      setState((s) => {
-        let s2 = {
-          ...s,
-          myMeetups: [{ ...m, id, kommuneId: s.location.kommuneId, host: "self", going: ["self"], max: m.max, mine: true }, ...s.myMeetups],
-          going: { ...s.going, [id]: true },
-        };
-        return pushLedgerOnce(s2, "meetup_hosted", id, PAWS.meetupHosted);
-      });
+      setState((s) => ({
+        ...s,
+        myMeetups: [{ ...m, id, kommuneId: s.location.kommuneId, host: "self", going: ["self"], max: m.max, mine: true }, ...s.myMeetups],
+        going: { ...s.going, [id]: true },
+      }));
       flash("Treffet er ute! Hundeeiere i nærheten får beskjed", "live");
       return id;
     },
@@ -431,9 +457,57 @@ export function AppProvider({ children }) {
     },
     setProfile: (p) => patch((s) => ({ profile: { ...s.profile, ...p } })),
     setVerified: (v) => patch({ verified: v }),
-    setLostDogActive: (v) => patch({ lostDogActive: v }),
+    // Hastevarsel: lagrer «sist sett»-teksten og et starttidspunkt som gir
+    // varselet en levetid (app/lib/lostdog.js). Et nytt varsel nullstiller
+    // en tidligere «funnet»-markering.
+    raiseLostDog: (note = "") =>
+      patch({ lostDogActive: true, lostDogSince: Date.now(), lostDogNote: note.trim(), lostDogResolvedAt: null }),
+    resolveLostDog: () => patch({ lostDogActive: false, lostDogResolvedAt: Date.now() }),
+    // Bakoverkompatibel enkel bryter (brukes fortsatt noen steder i UI).
+    setLostDogActive: (v) =>
+      patch((s) => (v
+        ? { lostDogActive: true, lostDogSince: s.lostDogSince || Date.now(), lostDogResolvedAt: null }
+        : { lostDogActive: false, lostDogResolvedAt: Date.now() })),
     setPrivacy: (v) => patch({ privacy: v }),
     setPush: (v) => patch({ push: v }),
+    blockAuthor: (author) => {
+      if (!author) return;
+      patch((s) => ({ blocked: { ...s.blocked, [author]: true } }));
+      flash(`${author} er blokkert. Du ser ikke innleggene deres lenger`, "ban");
+    },
+    unblockAuthor: (author) => patch((s) => {
+      const b = { ...s.blocked };
+      delete b[author];
+      return { blocked: b };
+    }),
+    // Deler brukerens EGEN, personvern-avrundede posisjon, som radiusen da
+    // måles fra i stedet for kommunesentroiden. Opt-in, engangsavlesning –
+    // vi abonnerer ikke på og lagrer aldri en rå posisjon. Se radiusCenter().
+    useMyLocation: () => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        flash("Nettleseren støtter ikke posisjon", "alert");
+        return;
+      }
+      flash("Henter posisjonen din…", "pin");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = roundCoord(pos.coords.latitude);
+          const lng = roundCoord(pos.coords.longitude);
+          patch((s) => ({ location: { ...s.location, lat, lng, positionAt: Date.now() } }));
+          flash("Radius måles nå fra posisjonen din", "check");
+        },
+        (err) => {
+          flash(err.code === 1 ? "Du må gi posisjonstilgang for dette" : "Fikk ikke posisjonen din", "alert");
+        },
+        { enableHighAccuracy: false, maximumAge: 60000, timeout: 15000 }
+      );
+    },
+    // Slår av bruk av egen posisjon – radius faller tilbake til kommunesenter.
+    clearMyLocation: () =>
+      patch((s) => {
+        const { lat, lng, positionAt, ...rest } = s.location;
+        return { location: rest };
+      }),
     // Dette teller BARE at brukeren har sendt en invitasjon – ikke at den er
     // aktivert. `invitesActivated` (og Founder-status/poter) kan aldri settes
     // herfra: det krever en backend som bekrefter at vennen har registrert
@@ -455,6 +529,9 @@ export function AppProvider({ children }) {
     content: contentWithMine,
     stats,
     kommune: kommuneById[state.location.kommuneId],
+    // Ærlig, utløpsbevisst status – UI skal lese denne, ikke rå lostDogActive.
+    lostDogLive: isLostDogLive(state),
+    usingMyPosition: typeof state.location.lat === "number",
     isDemo: content.demo,
     isEarly: isEarlyArea(stats),
     leaderboardUnlocked: leaderboardUnlocked(stats),

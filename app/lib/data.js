@@ -118,7 +118,21 @@ export const badges = [
   { id: "founder", name: "Grunnlegger", metric: "founder", target: 1, icon: "star", color: "sun" },
 ];
 
-/** Poter tjent per handling. Ingen kjøp av Poter. */
+/**
+ * Poter tjent per handling. Ingen kjøp av Poter, ingen pay-to-win.
+ *
+ * VIKTIG: en potebelønning gis bare for en EKTE, fullført handling som ikke
+ * kan farmes ved gjentatte klikk. Derfor:
+ *  - `walkCompleted`/`perKm`/`streakDay`: gis for en GPS-bekreftet tur (track.js).
+ *  - `verifyPlace`: idempotent per sted (bekreftelse av et ekte, navngitt sted).
+ *  - `meetupJoined`/`meetupHosted`: gis IKKE for å klikke «bli med»/«opprett».
+ *    Det er reservert for en server-bekreftet «gikk dere tur sammen?»-flyt.
+ *    Klienten deler dem aldri ut selv (ville vært fritt farmbart).
+ *  - `referralActivated`: kun når backend bekrefter at en invitert venn har
+ *    registrert seg, lagt til hund og gått en gyldig tur.
+ *  - `newPlace`/`addPlace`: reservert for når brukere kan legge til/foreslå
+ *    steder med moderasjon (krever backend).
+ */
 export const PAWS = {
   perKm: 100,
   walkCompleted: 20,

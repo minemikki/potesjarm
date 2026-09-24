@@ -6,6 +6,7 @@ import { useApp } from "./store";
 import { Avatar, AvatarStack, DogAvatar, Empty, RouteSketch, SectionHead, SourceTag } from "./ui";
 import { fmtKm, fmtNum, img, meetupTypes, PHOTO } from "../lib/data";
 import { placeShort } from "../lib/geo";
+import { lostDogHoursLeft } from "../lib/lostdog";
 import { placeTypes } from "../lib/seed";
 
 export default function Home() {
@@ -17,7 +18,7 @@ export default function Home() {
     <div className="home">
       <Hero />
 
-      {app.lostDogActive && <LostBanner />}
+      {app.lostDogLive && <LostBanner />}
 
       {/* Solo-verdi først: dette virker fra dag 1, helt uten andre brukere. */}
       {!app.me.isNew || hasCommunity ? null : <GettingStarted />}
@@ -169,14 +170,19 @@ function Hero() {
 
 function LostBanner() {
   const app = useApp();
+  const hoursLeft = lostDogHoursLeft(app.lostDogSince);
   return (
     <div className="lostBanner">
       <span className="lostIcon"><Icon name="alert" size={22} /></span>
       <div>
         <b>{app.me.dogName} er meldt savnet i {app.kommune?.name}</b>
-        <small>Varselet er synlig for hundeeiere i nærheten. Del gjerne videre.</small>
+        {app.lostDogNote && <small className="lostNote">Sist sett: {app.lostDogNote}</small>}
+        <small>
+          Synlig for hundeeiere i nærheten. Del gjerne videre.
+          {hoursLeft > 0 ? ` Utløper om ${hoursLeft} t.` : " Utløper snart."}
+        </small>
       </div>
-      <button className="pillBtn danger small" onClick={() => { app.setLostDogActive(false); app.flash("Så godt! Varselet er avsluttet", "heart"); }}>Funnet</button>
+      <button className="pillBtn danger small" onClick={() => { app.resolveLostDog(); app.flash("Så godt! Varselet er avsluttet", "heart"); }}>Funnet</button>
     </div>
   );
 }

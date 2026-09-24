@@ -385,7 +385,15 @@ p { margin: 0; }
 .lostIcon { width: 42px; height: 42px; flex: none; border-radius: 14px; display: grid; place-items: center; background: var(--red); color: #fff; }
 .lostBanner div { flex: 1; min-width: 0; }
 .lostBanner b { display: block; color: #b0203a; }
-.lostBanner small { color: #8b5460; font-weight: 600; }
+.lostBanner small { display: block; color: #8b5460; font-weight: 600; }
+.lostBanner small.lostNote { color: #b0203a; font-weight: 700; margin: 1px 0; }
+
+/* Radius-senter-valg i stedvelgeren */
+.locCenter { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.locCenter small { flex: 1; min-width: 0; }
+
+/* Teller på innstillingsrader (f.eks. antall blokkerte) */
+.rowCount { margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--cream-2); color: var(--ink-2); font-size: 12.5px; font-weight: 800; display: inline-grid; place-items: center; }
 
 /* ---------- Historier ---------- */
 .stories { display: flex; gap: clamp(10px, 1.2vw, 18px); overflow-x: auto; scrollbar-width: none; padding: 4px 2px 6px; scroll-snap-type: x proximity; }

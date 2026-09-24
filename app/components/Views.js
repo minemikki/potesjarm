@@ -563,9 +563,21 @@ function Leaderboard({ records }) {
     );
   }
 
+  // Rangeringsraddata finnes bare som demo-fixtures. I live-modus har vi ingen
+  // ekte topplistekilde ennå (den krever backend-aggregering av ekte turer), så
+  // vi later ALDRI som om demo-navn er en ekte lokal ranking. Uten dette vernet
+  // ville en fremtidig live-hundekilde kunne dytte demo-hunder inn i topplista.
+  const rows = app.isDemo ? app.demoLeaderboard : [];
+  if (rows.length === 0) {
+    return (
+      <div className="leaderboard">
+        <Empty icon="trophy" title="Topplista er ikke klar ennå" text="Lokal ranking kommer når nok ekte turer er registrert i området." />
+      </div>
+    );
+  }
   return (
     <div className="leaderboard">
-      {app.demoLeaderboard.map((r) => {
+      {rows.map((r) => {
         const d = app.dogById(r.dog);
         if (!d) return null;
         return (

@@ -21,7 +21,7 @@
    Finnes det ingenting, viser vi 0.
    ========================================================================= */
 
-import { kommuneById, withinRadius } from "./geo";
+import { kommuneById, radiusCenter, withinRadius } from "./geo";
 import { officialGroupFor, seedPlaces } from "./seed";
 import * as demo from "./demo";
 
@@ -52,10 +52,13 @@ export const COLD_START = {
 function inArea(loc, item) {
   if (!loc || !item) return false;
   if (item.kommuneId && item.kommuneId !== loc.kommuneId) return false;
-  const k = kommuneById[loc.kommuneId];
-  if (!k) return false;
+  // Radiusen måles fra brukerens egen delte posisjon når den finnes, ellers
+  // fra kommunens sentroide (se radiusCenter). Slik blir radius reell, ikke
+  // bare kosmetisk.
+  const center = radiusCenter(loc);
+  if (!center) return false;
   if (item.lat == null || item.lng == null) return true;
-  return withinRadius(k, item, loc.radiusKm);
+  return withinRadius(center, item, loc.radiusKm);
 }
 
 /**

@@ -1,7 +1,7 @@
 // Kjøres med: node --test app/lib/geo.test.mjs
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { searchPlaces, kommuner, distanceKm, withinRadius, inBandtvang } from "./geo.js";
+import { searchPlaces, kommuner, kommuneById, distanceKm, withinRadius, inBandtvang, radiusCenter, roundCoord, hasUserPosition } from "./geo.js";
 
 describe("searchPlaces", () => {
   test("finner Tromsø kommune", () => {
@@ -64,6 +64,38 @@ describe("distanceKm / withinRadius", () => {
     const bergen = { lat: 60.393, lng: 5.325 };
     assert.equal(withinRadius(oslo, bergen, 25), false);
     assert.equal(withinRadius(oslo, oslo, 25), true);
+  });
+});
+
+describe("roundCoord – personvern-avrunding", () => {
+  test("runder til 3 desimaler (~100 m)", () => {
+    assert.equal(roundCoord(58.968123), 58.968);
+    assert.equal(roundCoord(5.733987), 5.734);
+  });
+  test("lar ikke-tall passere uendret", () => {
+    assert.equal(roundCoord(undefined), undefined);
+    assert.equal(roundCoord(null), null);
+  });
+});
+
+describe("radiusCenter – ekte senter, ikke bare kommunesentroide", () => {
+  test("bruker brukerens egen posisjon når den er delt", () => {
+    const c = radiusCenter({ kommuneId: "stavanger", lat: 58.9, lng: 5.7 });
+    assert.deepEqual(c, { lat: 58.9, lng: 5.7, source: "user" });
+  });
+  test("faller tilbake til kommunesentroide uten delt posisjon", () => {
+    const c = radiusCenter({ kommuneId: "stavanger" });
+    const k = kommuneById.stavanger;
+    assert.equal(c.source, "kommune");
+    assert.equal(c.lat, k.lat);
+    assert.equal(c.lng, k.lng);
+  });
+  test("ukjent kommune uten posisjon gir null", () => {
+    assert.equal(radiusCenter({ kommuneId: "finnesikke" }), null);
+  });
+  test("hasUserPosition speiler om lat/lng finnes", () => {
+    assert.equal(hasUserPosition({ kommuneId: "stavanger" }), false);
+    assert.equal(hasUserPosition({ kommuneId: "stavanger", lat: 58.9, lng: 5.7 }), true);
   });
 });
 
