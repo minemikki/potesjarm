@@ -118,7 +118,7 @@ export default function Home() {
   const [walkDistance, setWalkDistance] = useState(0);
   const [joinedCircles, setJoinedCircles] = useState({});
   const [followedDogs, setFollowedDogs] = useState({});
-  const [localNå skjer, setLocalNå skjer] = useState(treffs);
+  const [localTreffs, setLocalTreffs] = useState(treffs);
   const [localPosts, setLocalPosts] = useState(feed);
   const [draftSignal, setDraftSignal] = useState("");
   const [draftPost, setDraftPost] = useState("");
@@ -235,7 +235,7 @@ export default function Home() {
 
   const addSignal = () => {
     if (!draftSignal.trim()) return;
-    setLocalNå skjer([{ title: draftSignal.trim(), by: "Michael & Santos", meta: "Nå · " + city, action: "Bli med", tone: "blue", members: 1 }, ...localNå skjer]);
+    setLocalTreffs([{ title: draftSignal.trim(), by: "Michael & Santos", meta: "Nå · " + city, action: "Bli med", tone: "blue", members: 1 }, ...localTreffs]);
     setDraftSignal("");
     setShowComposer(false);
   };
@@ -248,13 +248,13 @@ export default function Home() {
   };
 
   const nav = ["For deg", "Nå skjer", "Grupper", "Hunder"];
-  const visibleNå skjer = useMemo(() => {
+  const visibleTreffs = useMemo(() => {
     if (signalFilter === "Alle") return treffs;
     return treffs.filter((s) => {
       const map = { Turer: "Tur", Lek: "Lek", Nå: "Nå" };
       return s.title.includes(map[signalFilter] || signalFilter) || s.meta.includes(map[signalFilter] || signalFilter);
     });
-  }, [signalFilter, localNå skjer]);
+  }, [signalFilter, localTreffs]);
 
   return (
     <main className="appShell">
@@ -340,8 +340,8 @@ export default function Home() {
               <button onClick={()=>setShowWeeklyRecap(true)}><span>↗</span><div><b>Uka deres</b><small>Lag delbart ukeskort</small></div><strong>→</strong></button>
             </div>
             <div className="sectionTitle"><div><span>NÅ SKJER</span><h2>Treff nær deg</h2></div><button onClick={() => setTab("Nå skjer")}>Se alle →</button></div>
-            <div className="treffStrip">
-              {localNå skjer.slice(0,3).map((s, i) => (
+            <div className="signalStrip">
+              {localTreffs.slice(0,3).map((s, i) => (
                 <button key={s.title} className={"miniSignal " + s.tone} onClick={() => setJoined({ ...joined, [i]: !joined[i] })}>
                   <span className="signalIcon">{i === 0 ? "🐕" : i === 1 ? "🎾" : "🌲"}</span>
                   <b>{s.title}</b><small>{s.meta}</small>
@@ -375,14 +375,14 @@ export default function Home() {
         {tab === "Nå skjer" && (
           <>
             <section className="signalHero">
-              <div><span className="liveDot">● LIVE</span><h2>Hva skjer rundt deg nå?</h2><p>Korte, lokale treffer som gjør det lettere å møtes.</p></div>
+              <div><span className="liveDot">● LIVE</span><h2>Hva skjer rundt deg nå?</h2><p>Lokale treff som gjør det lett å finne noen å gå tur eller møtes med.</p></div>
               <button onClick={() => setShowComposer(true)}>＋ Nytt treff</button>
             </section>
             <div className="filters">
               {["Alle","Turer","Lek","Spørsmål","Nå"].map(f => <button key={f} onClick={() => setSignalFilter(f)} className={signalFilter===f?"active":""}>{f}</button>)}
             </div>
             <div className="signalList">
-              {visibleNå skjer.map((s, i) => (
+              {visibleTreffs.map((s, i) => (
                 <article className="signalCard" key={s.title}>
                   <div className={"statusOrb " + s.tone}>●</div>
                   <div className="signalText"><span>{s.by}</span><h3>{s.title}</h3><p>{s.meta}</p><small>{s.members} er interesserte</small></div>
@@ -395,7 +395,7 @@ export default function Home() {
 
         {tab === "Grupper" && (
           <>
-            <section className="simpleIntro"><span>FELLESSKAP</span><h2>Finn gruppa di.</h2><p>Lokale og interessebaserte sirkler for folk som faktisk har noe til felles.</p></section>
+            <section className="simpleIntro"><span>FELLESSKAP</span><h2>Finn gruppa di.</h2><p>Bli med i lokale grupper for raser, aktiviteter og områder du bryr deg om.</p></section>
             <div className="filters"><button className="active">Alle</button><button>Rase</button><button>Aktivitet</button><button>Valp</button><button>Lokalt</button></div>
             <div className="circleGrid">
               {circles.map((c,i) => <article className="circleCard" key={c.title}><img src={c.image} alt=""/><div><h3>{c.title}</h3><p>{c.body}</p><span>{c.members} medlemmer</span><button className={joinedCircles[i] ? "joined" : ""} onClick={() => setJoinedCircles({...joinedCircles,[i]:!joinedCircles[i]})}>{joinedCircles[i] ? "✓" : "＋"}</button></div></article>)}
