@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const dogImg = (id) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=86`;
@@ -55,6 +55,68 @@ export default function Home() {
   const [liked, setLiked] = useState({});
   const [joined, setJoined] = useState({});
   const [showComposer, setShowComposer] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showPostComposer, setShowPostComposer] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [walkActive, setWalkActive] = useState(false);
+  const [walkSeconds, setWalkSeconds] = useState(0);
+  const [walkDistance, setWalkDistance] = useState(0);
+  const [joinedCircles, setJoinedCircles] = useState({});
+  const [followedDogs, setFollowedDogs] = useState({});
+  const [localSignals, setLocalSignals] = useState(signals);
+  const [localPosts, setLocalPosts] = useState(feed);
+  const [draftSignal, setDraftSignal] = useState("");
+  const [draftPost, setDraftPost] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("potesjarm-demo") || "{}");
+      if (saved.city) setCity(saved.city);
+      if (saved.joined) setJoined(saved.joined);
+      if (saved.likes) setLiked(saved.likes);
+      if (saved.joinedCircles) setJoinedCircles(saved.joinedCircles);
+      if (saved.followedDogs) setFollowedDogs(saved.followedDogs);
+      if (!localStorage.getItem("potesjarm-onboarded")) setShowOnboarding(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("potesjarm-demo", JSON.stringify({ city, joined, liked, joinedCircles, followedDogs }));
+    } catch {}
+  }, [city, joined, liked, joinedCircles, followedDogs]);
+
+  useEffect(() => {
+    if (!walkActive) return;
+    const t = setInterval(() => {
+      setWalkSeconds((s) => s + 1);
+      setWalkDistance((d) => d + 0.003);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [walkActive]);
+
+  const finishWalk = () => {
+    setWalkActive(false);
+    setWalkSeconds(0);
+    setWalkDistance(0);
+  };
+
+  const addSignal = () => {
+    if (!draftSignal.trim()) return;
+    setLocalSignals([{ title: draftSignal.trim(), by: "Michael & Santos", meta: "Nå · " + city, action: "Bli med", tone: "blue", members: 1 }, ...localSignals]);
+    setDraftSignal("");
+    setShowComposer(false);
+  };
+
+  const addPost = () => {
+    if (!draftPost.trim()) return;
+    setLocalPosts([{ id: Date.now(), owner: "Michael & Santos", meta: "Nå · " + city, title: "Nytt fra Santos", body: draftPost.trim(), image: dogImg("photo-1589941013453-ec89f33b5e95"), likes: 0, comments: 0 }, ...localPosts]);
+    setDraftPost("");
+    setShowPostComposer(false);
+  };
 
   const nav = ["For deg", "Signals", "Sirkler", "Hunder"];
   const visibleSignals = useMemo(() => {
@@ -63,7 +125,7 @@ export default function Home() {
       const map = { Turer: "Tur", Lek: "Lek", Nå: "Nå" };
       return s.title.includes(map[signalFilter] || signalFilter) || s.meta.includes(map[signalFilter] || signalFilter);
     });
-  }, [signalFilter]);
+  }, [signalFilter, localSignals]);
 
   return (
     <main className="appShell">
@@ -110,7 +172,7 @@ export default function Home() {
             <h1>{tab === "For deg" ? `God morgen, ${city} 🐾` : tab}</h1>
           </div>
           <div className="topActions">
-            <button>⌕</button><button>♢</button>
+            <button onClick={() => setShowSearch(true)}>⌕</button><button onClick={() => setShowNotifications(true)}>♢</button>
           </div>
         </div>
 
@@ -133,7 +195,7 @@ export default function Home() {
 
             <div className="sectionTitle"><div><span>AKKURAT NÅ</span><h2>Signals nær deg</h2></div><button onClick={() => setTab("Signals")}>Se alle →</button></div>
             <div className="signalStrip">
-              {signals.slice(0,3).map((s, i) => (
+              {localSignals.slice(0,3).map((s, i) => (
                 <button key={s.title} className={"miniSignal " + s.tone} onClick={() => setJoined({ ...joined, [i]: !joined[i] })}>
                   <span className="signalIcon">{i === 0 ? "🐕" : i === 1 ? "🎾" : "🌲"}</span>
                   <b>{s.title}</b><small>{s.meta}</small>
@@ -189,7 +251,7 @@ export default function Home() {
             <section className="simpleIntro"><span>FELLESSKAP</span><h2>Finn flokken din.</h2><p>Lokale og interessebaserte sirkler for folk som faktisk har noe til felles.</p></section>
             <div className="filters"><button className="active">Alle</button><button>Rase</button><button>Aktivitet</button><button>Valp</button><button>Lokalt</button></div>
             <div className="circleGrid">
-              {circles.map(c => <article className="circleCard" key={c.title}><img src={c.image} alt=""/><div><h3>{c.title}</h3><p>{c.body}</p><span>{c.members} medlemmer</span><button>＋</button></div></article>)}
+              {circles.map((c,i) => <article className="circleCard" key={c.title}><img src={c.image} alt=""/><div><h3>{c.title}</h3><p>{c.body}</p><span>{c.members} medlemmer</span><button className={joinedCircles[i] ? "joined" : ""} onClick={() => setJoinedCircles({...joinedCircles,[i]:!joinedCircles[i]})}>{joinedCircles[i] ? "✓" : "＋"}</button></div></article>)}
             </div>
           </>
         )}
@@ -198,7 +260,7 @@ export default function Home() {
           <>
             <section className="simpleIntro"><span>UTFORSK</span><h2>Nye snuter i nærheten.</h2><p>Finn turvenner med samme tempo, energi og lekestil.</p></section>
             <div className="dogGrid">
-              {dogs.map(d => <article className="dogCard" key={d.name}><img src={d.image} alt=""/><div className="dogInfo"><div><h3>{d.name}</h3><p>{d.breed}</p><span>⌖ {d.distance}</span></div><button>♡</button></div><div className="dogStats"><span>🔥 {d.streak} dager</span><span>♥ {d.match}% match</span></div></article>)}
+              {dogs.map((d,i) => <article className="dogCard" key={d.name}><img src={d.image} alt=""/><div className="dogInfo"><div><h3>{d.name}</h3><p>{d.breed}</p><span>⌖ {d.distance}</span></div><button className={followedDogs[i] ? "followed" : ""} onClick={() => setFollowedDogs({...followedDogs,[i]:!followedDogs[i]})}>{followedDogs[i] ? "♥" : "♡"}</button></div><div className="dogStats"><span>🔥 {d.streak} dager</span><span>♥ {d.match}% match</span></div></article>)}
             </div>
           </>
         )}
@@ -220,7 +282,7 @@ export default function Home() {
           <div className="streakTop"><span>DIN STREAK</span><b>🔥 18 dager</b></div>
           <div className="week">{["M","T","O","T","F","L","S"].map((d,i)=><span className={i<6?"done":""} key={i}>{i<6?"🐾":d}</span>)}</div>
           <p>Én tur i dag holder streaken levende.</p>
-          <button>Start tur</button>
+          <button onClick={() => setWalkActive(true)}>Start tur</button>
         </section>
 
         <section className="challengeCard">
@@ -239,7 +301,19 @@ export default function Home() {
         <button onClick={()=>setTab("Kart")} className={tab==="Kart"?"active":""}><span>⌖</span><small>Kart</small></button>
       </nav>
 
-      {showComposer && <div className="modalBackdrop" onClick={()=>setShowComposer(false)}><div className="composer" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowComposer(false)}>×</button><span>NYTT SIGNAL</span><h2>Hva skjer?</h2><textarea placeholder="F.eks. Noen som vil gå Mosvatnet kl. 18?"/><div className="composerTags"><button>🐕 Tur</button><button>🎾 Lek</button><button>❓ Spørsmål</button></div><button className="publish" onClick={()=>setShowComposer(false)}>Send signal</button></div></div>}
+      {showComposer && <div className="modalBackdrop" onClick={()=>setShowComposer(false)}><div className="composer" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowComposer(false)}>×</button><span>NYTT SIGNAL</span><h2>Hva skjer?</h2><textarea value={draftSignal} onChange={e=>setDraftSignal(e.target.value)} placeholder="F.eks. Noen som vil gå Mosvatnet kl. 18?"/><div className="composerTags"><button>🐕 Tur</button><button>🎾 Lek</button><button>❓ Spørsmål</button></div><button className="publish" onClick={addSignal}>Send signal</button></div></div>}
+
+      {showPostComposer && <div className="modalBackdrop" onClick={()=>setShowPostComposer(false)}><div className="composer" onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setShowPostComposer(false)}>×</button><span>NYTT INNLEGG</span><h2>Del hundelivet.</h2><textarea value={draftPost} onChange={e=>setDraftPost(e.target.value)} placeholder="Hva har du og hunden din gjort i dag?"/><div className="composerTags"><button>📷 Bilde</button><button>📍 Sted</button><button>🐾 Tur</button></div><button className="publish" onClick={addPost}>Publiser</button></div></div>}
+
+      {showSearch && <div className="modalBackdrop" onClick={()=>setShowSearch(false)}><div className="searchModal" onClick={e=>e.stopPropagation()}><div className="searchBox"><span>⌕</span><input autoFocus value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} placeholder="Søk hund, sirkel, sted eller tur..."/><button onClick={()=>setShowSearch(false)}>×</button></div><div className="searchResults"><span>FORSLAG</span>{dogs.filter(d=>d.name.toLowerCase().includes(searchQuery.toLowerCase())).map(d=><div key={d.name}><img src={d.image} alt=""/><div><b>{d.name}</b><small>{d.breed} · {d.distance}</small></div><button>Se profil</button></div>)}{circles.filter(c=>c.title.toLowerCase().includes(searchQuery.toLowerCase())).slice(0,3).map(c=><div key={c.title}><img src={c.image} alt=""/><div><b>{c.title}</b><small>{c.members} medlemmer</small></div><button>Åpne</button></div>)}</div></div></div>}
+
+      {showNotifications && <div className="drawerBackdrop" onClick={()=>setShowNotifications(false)}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawerHead"><div><span>AKTIVITET</span><h2>Varsler</h2></div><button onClick={()=>setShowNotifications(false)}>×</button></div><div className="notification"><b>🐾 Luna vil bli turvenn</b><p>94% match med Santos · 8 min siden</p></div><div className="notification"><b>🔥 18 dagers streak!</b><p>Én tur i dag holder streaken levende.</p></div><div className="notification"><b>🌲 Ny challenge i Stavanger</b><p>Utforsk 5 nye steder før søndag.</p></div><div className="notification"><b>🎾 Signal nær deg</b><p>Milo søker lekekamerat på Tjensvoll.</p></div></aside></div>}
+
+      {showProfile && <div className="drawerBackdrop" onClick={()=>setShowProfile(false)}><aside className="drawer profileDrawer" onClick={e=>e.stopPropagation()}><div className="profileCover"><button onClick={()=>setShowProfile(false)}>×</button></div><div className="profileAvatar dogAvatar"/><h2>Santos</h2><p className="profileSub">Schæfer · Stavanger · 3 år</p><div className="profileStats"><div><b>18</b><span>streak</span></div><div><b>243</b><span>turer</span></div><div><b>812 km</b><span>sammen</span></div></div><div className="profileChips"><span>⚡ Høy energi</span><span>🌲 Fjelltur</span><span>🎾 Røff lek</span><span>🐕 Store hunder</span></div><h3>Merker</h3><div className="badgeRow"><span>🏔️<small>Fjellpote</small></span><span>🌧️<small>Regnkriger</small></span><span>🔥<small>14 dager</small></span><span>🌙<small>Nattugle</small></span></div><button className="profileAction">Rediger hundeprofil</button></aside></div>}
+
+      {walkActive && <div className="walkOverlay"><div className="walkTop"><span>LIVE TUR</span><button onClick={finishWalk}>×</button></div><div className="walkPulse">🐾</div><h2>{walkDistance.toFixed(2)} km</h2><p>{String(Math.floor(walkSeconds/60)).padStart(2,"0")}:{String(walkSeconds%60).padStart(2,"0")} · Santos er på tur</p><div className="walkStats"><div><b>{Math.round(walkDistance*1312)}</b><span>skritt</span></div><div><b>{Math.round(walkDistance*72)}</b><span>kcal</span></div><div><b>+{Math.round(walkDistance*100)}</b><span>poter</span></div></div><button className="endWalk" onClick={finishWalk}>Avslutt tur</button></div>}
+
+      {showOnboarding && <div className="modalBackdrop onboardingBackdrop"><div className="onboarding"><span className="onboardPaw">♥</span><span>VELKOMMEN TIL POTESJARM</span><h1>Hundeliv er bedre sammen.</h1><p>Finn turvenner, send lokale signals, bygg streaks og skap hundens historie – alt i byen din.</p><div className="onboardFeatures"><span>🐕 Lokale hundevenner</span><span>◉ Signals akkurat nå</span><span>🔥 Streaks & challenges</span><span>◎ Sirkler & fellesskap</span></div><button onClick={()=>{localStorage.setItem("potesjarm-onboarded","1");setShowOnboarding(false)}}>Kom i gang →</button></div></div>}
     </main>
   );
 }
