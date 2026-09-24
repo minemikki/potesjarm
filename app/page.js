@@ -263,40 +263,51 @@ export default function Home() {
   return (
     <main className="appShell">
       <aside className="desktopRail">
-        <a className="logo" href="#">
-          <span className="logoMark">♥</span>
-          <span>Potesjarm</span><em>Flere poter<br/>flere venner ♡</em>
-        </a>
+        <div className="railTop">
+          <a className="logo" href="#">
+            <span className="logoMark">♥</span>
+            <span>Potesjarm</span><em>Flere poter<br/>flere venner ♡</em>
+          </a>
 
-        <div className="cityCard">
-          <span>Din by</span>
-          <button onClick={() => setShowCityPicker(true)}>
-            <b>{city}</b><small>Bytt område</small>
+          <button className="cityCard cityCardButton" onClick={() => setShowCityPicker(true)}>
+            <span className="cityPin">⌖</span>
+            <div><small>DIN BY</small><b>{city}</b><em>Bytt område</em></div>
+            <strong>›</strong>
           </button>
         </div>
 
-        <nav className="railNav">
+        <nav className="railNav railNavMain">
+          <span className="railSectionLabel">FELLESSKAP</span>
           {nav.map((item) => (
             <button key={item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
               <span>{item === "For deg" ? "⌂" : item === "Nå skjer" ? "◉" : item === "Grupper" ? "◎" : "♙"}</span>
-              {item}
+              <b>{item}</b>
+              {item === "Nå skjer" && <i>3</i>}
             </button>
           ))}
-          <button onClick={() => setTab("Kart")} className={tab === "Kart" ? "active" : ""}><span>⌖</span>Kart</button>
-          <button onClick={() => setTab("Aktivitet")} className={tab === "Aktivitet" ? "active" : ""}><span>🔥</span>Aktivitet</button>
-          <button onClick={() => setTab("Arrangementer")} className={tab === "Arrangementer" ? "active" : ""}><span>◫</span>Arrangementer</button>
-          <button onClick={() => setTab("Utforsk")} className={tab === "Utforsk" ? "active" : ""}><span>✦</span>Utforsk</button>
+
+          <span className="railSectionLabel railSectionBreak">UTFORSK</span>
+          <button onClick={() => setTab("Kart")} className={tab === "Kart" ? "active" : ""}><span>⌖</span><b>Kart</b></button>
+          <button onClick={() => setTab("Aktivitet")} className={tab === "Aktivitet" ? "active" : ""}><span>🔥</span><b>Aktivitet</b></button>
+          <button onClick={() => setTab("Arrangementer")} className={tab === "Arrangementer" ? "active" : ""}><span>◫</span><b>Arrangementer</b></button>
+          <button onClick={() => setTab("Utforsk")} className={tab === "Utforsk" ? "active" : ""}><span>✦</span><b>Utforsk</b></button>
         </nav>
 
-        <button className="primaryCta" onClick={() => setShowComposer(true)}>＋ Lag treff</button>
-        <button className="settingsLink" onClick={() => setShowInvite(true)}>🎁 Inviter venner</button>
-        <button className="settingsLink" onClick={() => setShowSafety(true)}>🛡 Trygghet</button>
-        <button className="settingsLink" onClick={() => setShowSettings(true)}>⚙ Innstillinger</button>
+        <div className="railBottom">
+          <button className="primaryCta" onClick={() => setShowComposer(true)}>＋ <span>Lag treff</span></button>
 
-        <button className="miniProfile" onClick={() => setShowProfile(true)}>
-          <div className="avatar dogAvatar" />
-          <div><b>Michael & Santos</b><span>18 dagers streak 🔥</span></div>
-        </button>
+          <div className="railUtility">
+            <button onClick={() => setShowInvite(true)} title="Inviter venner">🎁</button>
+            <button onClick={() => setShowSafety(true)} title="Trygghet">🛡</button>
+            <button onClick={() => setShowSettings(true)} title="Innstillinger">⚙</button>
+          </div>
+
+          <button className="miniProfile railProfile" onClick={() => setShowProfile(true)}>
+            <div className="avatar dogAvatar" />
+            <div><b>Michael & Santos</b><span>{city}</span></div>
+            <strong>›</strong>
+          </button>
+        </div>
       </aside>
 
       <section className="mainColumn">
