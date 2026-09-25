@@ -82,6 +82,8 @@ export function rowToProfile(row = {}) {
     kommuneId: row.municipality_id || null,
     radiusKm: row.radius_km ?? null,
     avatar: row.avatar_url || null,
+    // Satt av serveren (en av de første 100 i byen på ventelista), aldri av klienten.
+    isFounder: row.is_founder === true,
   };
 }
 

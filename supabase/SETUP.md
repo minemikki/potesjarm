@@ -41,6 +41,13 @@ Level Security). Denne guiden får din instans opp å kjøre.
      Erstatter Sprint 4 sin `list_group_posts` med en beriket variant (samme
      form som hjem-feeden), så gruppefeed og hjem-feed deler kode. Idempotent.
 
+   - `supabase/migrations/008_waitlist.sql` – ventelisten: `waitlist_signups`
+     (hund, e-post, by, ekte plass per by, Founder for de første 100, referral-
+     kode, UTM + referrer), RPC-en `join_waitlist` (kan kalles uten innlogging;
+     tabellen er ellers helt lukket med RLS), og en trigger som setter
+     `profiles.is_founder` når en Founder lager konto med samme e-post.
+     Uten denne faller ventelisten tilbake på Formspree/mailto.
+
 ## 2. Hent nøklene
 
 I dashbordet: **Project Settings → API**. Du trenger:

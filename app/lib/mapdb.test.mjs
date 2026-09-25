@@ -63,7 +63,7 @@ test("profileToRow: ugyldig radius og tomme felt -> null", () => {
 test("rowToProfile: mapper tilbake", () => {
   assert.deepEqual(
     rowToProfile({ display_name: "Kari", municipality_id: "tromso", radius_km: 25, avatar_url: null }),
-    { ownerName: "Kari", kommuneId: "tromso", radiusKm: 25, avatar: null }
+    { ownerName: "Kari", kommuneId: "tromso", radiusKm: 25, avatar: null, isFounder: false }
   );
 });
 
@@ -329,4 +329,10 @@ test("rowToNotificationSettings: manglende => på (default), false respekteres",
   assert.equal(s.messages, false);
   assert.equal(s.lostDog, false);
   assert.equal(s.meetups, true);
+});
+
+test("rowToProfile: isFounder kun når serveren har satt is_founder", () => {
+  assert.equal(rowToProfile({ is_founder: true }).isFounder, true);
+  assert.equal(rowToProfile({ is_founder: false }).isFounder, false);
+  assert.equal(rowToProfile({}).isFounder, false);
 });

@@ -1373,6 +1373,7 @@ function Profile({ onClose }) {
       <div className="profileTop">
         <DogAvatar me size={96} ring="mint" />
         {app.verified && <span className="verifiedTag"><Icon name="verified" size={15} /> Verifisert</span>}
+        {app.profile?.isFounder && <span className="verifiedTag founder"><Icon name="star" size={15} /> Founder · med fra starten</span>}
       </div>
       <div className="detailBody">
         {edit ? (

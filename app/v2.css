@@ -538,3 +538,5 @@ button.todayText:hover b { color: var(--blue); }
 .dogProfile.v2 .dogFoot .pillBtn { width: 100%; justify-content: center; height: 48px; }
 .dogMinor .iconAction { flex-direction: row; gap: 6px; height: 40px; padding: 0 14px; font-size: 13.5px; min-width: 0; }
 .walkPost { overflow: hidden; }
+
+.verifiedTag.founder { color: #a86b00; background: var(--sun-bg); }
