@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./v2.css";
 
 export const metadata = {
   metadataBase: new URL("https://potesjarm.no"),

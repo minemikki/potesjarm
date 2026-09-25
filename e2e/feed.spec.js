@@ -14,8 +14,8 @@ test.describe("Feed (demo)", () => {
   test("lag innlegg, se det i feeden, lik og lagre", async ({ page }) => {
     await gotoSeeded(page, { mode: "demo", location: STAVANGER });
 
-    // Åpne innleggskomponisten via «Del en historie».
-    await page.locator(".story.add").click();
+    // Åpne innleggskomponisten fra «Fra fellesskapet».
+    await page.locator(".secHead .linkish", { hasText: "Del noe" }).click();
     const composer = page.locator(".composer");
     await expect(composer).toBeVisible();
 
@@ -44,7 +44,7 @@ test.describe("Feed (demo)", () => {
   test("kommenter på et innlegg", async ({ page }) => {
     await gotoSeeded(page, { mode: "demo", location: STAVANGER });
 
-    await page.locator(".story.add").click();
+    await page.locator(".secHead .linkish", { hasText: "Del noe" }).click();
     const unik = "Innlegg for kommentar " + Date.now();
     await page.locator(".composer textarea").fill(unik);
     await page.locator(".composer .pillBtn", { hasText: "Publiser" }).click();

@@ -3,7 +3,7 @@
 import { AppProvider, useApp } from "./components/store";
 import { AuthProvider, useAuth } from "./components/auth";
 import LoginScreen from "./components/LoginScreen";
-import { BottomNav, DemoBanner, MobileHeader, RightRail, Sidebar, TopBar } from "./components/Shell";
+import { BottomNav, DemoBanner, MobileHeader, RightRail, Sidebar, TopBar, hasRail } from "./components/Shell";
 import Home from "./components/Home";
 import { ActivityView, DogsView, EventsView, ExploreView, GroupsView, MapView, NowView } from "./components/Views";
 import Overlays from "./components/Overlays";
@@ -25,7 +25,7 @@ function App() {
   const app = useApp();
   const View = VIEWS[app.tab] || Home;
   return (
-    <div className={"app tab-" + app.tab.toLowerCase().normalize("NFD").replace(/[^a-z]/g, "")}>
+    <div className={"app tab-" + app.tab.toLowerCase().normalize("NFD").replace(/[^a-z]/g, "") + (hasRail(app.tab) && !app.groupId ? "" : " noRail")}>
       <Sidebar />
       <div className="stage">
         <MobileHeader />

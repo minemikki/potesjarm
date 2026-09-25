@@ -1097,7 +1097,7 @@ export function AppProvider({ children, authUser = null }) {
             flash("Kunne ikke publisere treffet – prøv igjen", "alert");
             return;
           }
-          flash("Treffet er ute! Hundeeiere i nærheten får beskjed", "live");
+          flash("Treffet er ute! Det vises nå i Nå skjer", "live");
           refreshMeetups();
         });
         return null;
@@ -1108,7 +1108,7 @@ export function AppProvider({ children, authUser = null }) {
         myMeetups: [{ ...m, id, kommuneId: s.location.kommuneId, host: "self", going: ["self"], max: m.max, mine: true }, ...s.myMeetups],
         going: { ...s.going, [id]: true },
       }));
-      flash("Treffet er ute! Hundeeiere i nærheten får beskjed", "live");
+      flash("Treffet er ute! Det vises nå i Nå skjer", "live");
       return id;
     },
     // Vert avlyser sitt eget treff – ekte konsekvens: det fjernes fra lista.
@@ -1127,7 +1127,7 @@ export function AppProvider({ children, authUser = null }) {
         delete going[id];
         return { ...s, myMeetups: s.myMeetups.filter((x) => x.id !== id), going };
       });
-      flash("Treffet er avlyst. Deltakere får beskjed", "x");
+      flash("Treffet er avlyst", "x");
     },
     // Etter et treff: «Ble turen noe av?». Lagrer svaret. Ingen poter deles ut
     // her lokalt – en ekte fullføring (og eventuell belønning/hundevenn-forslag)

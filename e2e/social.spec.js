@@ -20,8 +20,8 @@ test.describe("Treff-detalj og bli med / meld av", () => {
     await openNaaSkjer(page);
 
     // Åpne første treff som ikke er mitt eget.
-    const card = page.locator(".meetup", { has: page.locator(".pillBtn", { hasText: "Bli med" }) }).first();
-    await card.locator(".meetupMain").click();
+    const card = page.locator(".invite", { has: page.locator(".joinBtn", { hasText: "Jeg blir med" }) }).first();
+    await card.locator(".inviteMain").click();
 
     const detail = page.locator(".detail");
     await expect(detail).toBeVisible();
@@ -42,8 +42,8 @@ test.describe("Treff-detalj og bli med / meld av", () => {
   test("treff-chat er tilgjengelig når du er med, med ærlig tom tilstand", async ({ page }) => {
     await gotoSeeded(page, { mode: "demo", location: STAVANGER });
     await openNaaSkjer(page);
-    const card = page.locator(".meetup", { has: page.locator(".pillBtn", { hasText: "Bli med" }) }).first();
-    await card.locator(".meetupMain").click();
+    const card = page.locator(".invite", { has: page.locator(".joinBtn", { hasText: "Jeg blir med" }) }).first();
+    await card.locator(".inviteMain").click();
     await page.locator(".detail .detailFoot .pillBtn", { hasText: "Bli med" }).click();
 
     await page.locator(".detail .rowBtn", { hasText: "Åpne chatten" }).click();
@@ -56,10 +56,10 @@ test.describe("Hundeprofil: følge vs hundevenn", () => {
   test("følge er énveis; hundevenn blir 'sendt', aldri automatisk godtatt", async ({ page }) => {
     await gotoSeeded(page, { mode: "demo", location: STAVANGER });
     await page.locator(".bottomNav button", { hasText: "Mer" }).click();
-    await page.locator(".moreRow", { hasText: "Hunder" }).click();
-    await page.locator(".dogGrid").waitFor();
+    await page.locator(".moreTile", { hasText: "Hunder" }).click();
+    await page.locator(".dogGrid2").waitFor();
 
-    await page.locator(".matchSpot").click();
+    await page.locator(".dog2Photo").first().click();
     const p = page.locator(".dogProfile");
     await expect(p).toBeVisible();
     // Ingen oppdiktet matchprosent – vi viser forklarbare fellestrekk.
@@ -71,9 +71,9 @@ test.describe("Hundeprofil: følge vs hundevenn", () => {
     await expect(p.locator(".iconAction", { hasText: "Følger" })).toBeVisible();
 
     // Hundevenn: blir "Sendt" (pending), aldri "Hundevenn" (godtatt) lokalt.
-    await p.locator(".iconAction", { hasText: "Hundevenn" }).click();
-    await expect(p.locator(".iconAction", { hasText: "Sendt" })).toBeVisible();
-    await expect(p.locator(".iconAction.on", { hasText: "Hundevenn" })).toHaveCount(0);
+    await p.locator(".pillBtn", { hasText: "Send hundevenn" }).click();
+    await expect(p.locator(".pillBtn", { hasText: "Forespørsel sendt" })).toBeVisible();
+    await expect(p.locator(".pillBtn.done", { hasText: "Hundevenner" })).toHaveCount(0);
   });
 });
 

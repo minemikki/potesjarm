@@ -12,6 +12,8 @@ import { paceMinPerKm, pawsForWalk } from "../lib/track";
 import { getDogCommonalities, commonalityHeadline } from "../lib/social";
 import { pushStatus, pushStatusText } from "../lib/push";
 import { notificationIcon } from "../lib/notifications";
+import { INTENTS, expiryFor, intentTitle } from "../lib/today";
+import { ShareCard } from "./Moments";
 
 export default function Overlays() {
   const app = useApp();
@@ -346,12 +348,6 @@ function LocationPicker({ onClose }) {
 }
 
 /* ========================= Komponere ========================= */
-const WHEN = [
-  { id: "Nå", startsIn: 0 },
-  { id: "Om 30 min", startsIn: 30 },
-  { id: "I kveld", startsIn: 240 },
-  { id: "I morgen", startsIn: 1200 },
-];
 
 const GROUP_KINDS = [
   { id: "lokalt", label: "Lokal" },
@@ -393,26 +389,53 @@ function GroupComposer({ onClose }) {
   );
 }
 
+/*
+ * Lag treff i maks tre steg: Hva har dere lyst til? → Når? → Hvor?
+ * Man sier *hva* man vil, ikke skriver en annonse – det senker den sosiale
+ * terskelen. Tittel, maks antall og synlighet avledes, men kan justeres under
+ * «Flere valg». Kontrakten mot app.addMeetup er uendret.
+ */
+const WHEN_V2 = [
+  { id: "Nå", sub: "Synlig i 2 timer" },
+  { id: "Om 30 min", sub: "Synlig i 2 timer" },
+  { id: "I kveld", sub: "Synlig til i kveld" },
+  { id: "I morgen", sub: "Synlig til i morgen" },
+];
+function startsInFor(whenId, now = new Date()) {
+  if (whenId === "Nå") return 0;
+  if (whenId === "Om 30 min") return 30;
+  if (whenId === "I kveld") {
+    const t = new Date(now); t.setHours(19, 0, 0, 0);
+    return Math.max(60, Math.round((t - now) / 60000));
+  }
+  const t = new Date(now); t.setDate(t.getDate() + 1); t.setHours(10, 0, 0, 0);
+  return Math.round((t - now) / 60000);
+}
+
 function MeetupComposer({ data, onClose }) {
   const app = useApp();
   const withDog = data?.with ? app.dogById(data.with) : null;
-  const [type, setType] = useState("tur");
-  const [title, setTitle] = useState(withDog ? `Tur med ${withDog.name}?` : "");
+  const preset = INTENTS.find((x) => x.id === data?.intent) || (withDog ? INTENTS[0] : null);
+  const [step, setStep] = useState(preset ? 1 : 0);
+  const [intent, setIntent] = useState(preset);
   const [when, setWhen] = useState("Nå");
-  const [expiry, setExpiry] = useState("2t");
-  const [place, setPlace] = useState(data?.place || app.places[0]?.name || "");
+  const [place, setPlace] = useState(data?.place || "");
+  const [custom, setCustom] = useState("");
+  const [more, setMore] = useState(false);
+  const [title, setTitle] = useState("");
   const [max, setMax] = useState(6);
-  const t = meetupTypes.find((x) => x.id === type);
+
+  const placeName = (place === "__custom" ? custom : place).trim();
+  const autoTitle = withDog ? `Tur med ${withDog.name}?` : intentTitle(intent, placeName);
 
   const submit = () => {
-    const w = WHEN.find((x) => x.id === when);
     app.addMeetup({
-      type,
-      title: title.trim() || `${t.label} ved ${place || app.kommune?.name}`,
+      type: intent?.type || "tur",
+      title: title.trim() || autoTitle,
       when,
-      startsIn: w.startsIn,
-      expiry,
-      place: place || app.kommune?.name,
+      startsIn: startsInFor(when),
+      expiry: expiryFor(when),
+      place: placeName || app.kommune?.name,
       max,
       pace: "Rolig",
       note: "",
@@ -424,61 +447,94 @@ function MeetupComposer({ data, onClose }) {
     if (!data?.group) app.setTab("Nå skjer");
   };
 
+  const heads = ["Hva har dere lyst til?", "Når?", "Hvor møtes dere?"];
   return (
-    <Layer onClose={onClose} className="sheet composer" label="Lag treff">
-      <LayerHead kicker="LAG TREFF" title="Hva har du lyst til?" onClose={onClose} />
-      {withDog && <div className="inviteWith"><Avatar src={withDog.photo} name={withDog.name} size={34} /> Invitasjon sendes til {withDog.owner} & {withDog.name}</div>}
-
-      <div className="typePicker">
-        {meetupTypes.slice(0, 5).map((x) => (
-          <button key={x.id} className={"tint-" + x.color + (type === x.id ? " active" : "")} onClick={() => setType(x.id)}>
-            <span><Icon name={x.icon} size={22} /></span>
-            {x.label}
-          </button>
-        ))}
+    <Layer onClose={onClose} className="sheet composer compose3" label="Lag treff">
+      <div className="c3Top">
+        {step > 0 ? (
+          <button className="ghostIcon" onClick={() => setStep(step - 1)} aria-label="Tilbake"><Icon name="chevronLeft" size={22} /></button>
+        ) : <span />}
+        <span className="c3Dots" aria-label={`Steg ${step + 1} av 3`}>{[0, 1, 2].map((i) => <i key={i} className={i <= step ? "on" : ""} />)}</span>
+        <CloseBtn onClick={onClose} />
       </div>
+      <h2 className="c3Title">{heads[step]}</h2>
+      {withDog && <div className="inviteWith"><Avatar src={withDog.photo} name={withDog.name} size={30} /> Sammen med {withDog.owner} & {withDog.name}</div>}
+      {step > 0 && intent && (
+        <p className="c3Summary">
+          <button onClick={() => setStep(0)}><Icon name={intent.icon} size={14} /> {intent.label}</button>
+          {step > 1 && <button onClick={() => setStep(1)}><Icon name="clock" size={14} /> {when}</button>}
+        </p>
+      )}
 
-      <label className="field">
-        <span>Tittel</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={`F.eks. ${t.label.toLowerCase()} ved ${app.places[0]?.name || "vannet"}`} autoFocus />
-      </label>
+      {step === 0 && (
+        <div className="intentGrid">
+          {INTENTS.map((it) => {
+            const t = meetupTypes.find((x) => x.id === it.type);
+            return (
+              <button key={it.id} className={"intentTile tint-" + (t?.color || "blue") + (intent?.id === it.id ? " active" : "")} onClick={() => { setIntent(it); setStep(1); }}>
+                <span><Icon name={it.icon} size={22} /></span>
+                <b>{it.label}</b>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      <div className="field">
-        <span>Når</span>
-        <div className="miniChips">{WHEN.map((w) => <button key={w.id} className={when === w.id ? "active" : ""} onClick={() => setWhen(w.id)}>{w.id}</button>)}</div>
-      </div>
+      {step === 1 && (
+        <div className="choiceList">
+          {WHEN_V2.map((w) => (
+            <button key={w.id} className={"choice" + (when === w.id ? " active" : "")} onClick={() => { setWhen(w.id); setStep(2); }}>
+              <b>{w.id}</b><small>{w.sub}</small><Icon name="chevronRight" size={18} />
+            </button>
+          ))}
+        </div>
+      )}
 
-      <div className="fieldRow two">
-        <label className="field">
-          <span>Hvor</span>
-          {app.places.length > 0 ? (
-            <select value={place} onChange={(e) => setPlace(e.target.value)}>
-              {app.places.map((p) => <option key={p.id}>{p.name}</option>)}
-              <option value="">Annet sted…</option>
-            </select>
-          ) : (
-            <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Møtested" />
-          )}
-        </label>
-        <div className="field">
-          <span>Maks antall hunder</span>
-          <div className="stepper">
-            <button onClick={() => setMax(Math.max(2, max - 1))} aria-label="Færre">–</button>
-            <b>{max}</b>
-            <button onClick={() => setMax(Math.min(20, max + 1))} aria-label="Flere">+</button>
+      {step === 2 && (
+        <>
+          <div className="choiceList">
+            {app.places.slice(0, 5).map((p) => (
+              <button key={p.id} className={"choice" + (place === p.name ? " active" : "")} onClick={() => setPlace(p.name)}>
+                <b>{p.name}</b><small>{placeTypes[p.type]?.label || "Turområde"}</small>
+                {place === p.name && <Icon name="check" size={18} stroke={2.6} />}
+              </button>
+            ))}
+            <label className={"choice input" + (place === "__custom" ? " active" : "")}>
+              <Icon name="pin" size={17} />
+              <input
+                value={custom}
+                onFocus={() => setPlace("__custom")}
+                onChange={(e) => { setCustom(e.target.value); setPlace("__custom"); }}
+                placeholder={app.places.length ? "Et annet sted…" : "Hvor møtes dere?"}
+              />
+            </label>
           </div>
-        </div>
-      </div>
 
-      <div className="field">
-        <span>Synlig i</span>
-        <div className="miniChips">
-          {expiryOptions.map((e) => <button key={e.id} className={expiry === e.id ? "active" : ""} onClick={() => setExpiry(e.id)}>{e.label}</button>)}
-        </div>
-      </div>
+          <button className="linkish c3More" onClick={() => setMore(!more)}>
+            {more ? "Færre valg" : "Flere valg"} <Icon name={more ? "chevronUp" : "chevronDown"} size={15} />
+          </button>
+          {more && (
+            <div className="c3Extra">
+              <label className="field">
+                <span>Tittel</span>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={autoTitle} />
+              </label>
+              <div className="field">
+                <span>Maks antall hunder</span>
+                <div className="stepper">
+                  <button onClick={() => setMax(Math.max(2, max - 1))} aria-label="Færre">–</button>
+                  <b>{max}</b>
+                  <button onClick={() => setMax(Math.min(20, max + 1))} aria-label="Flere">+</button>
+                </div>
+              </div>
+            </div>
+          )}
 
-      <p className="fineprint"><Icon name="shield" size={14} /> Møt alltid på et offentlig sted. Treffet forsvinner av seg selv når tiden er ute.</p>
-      <button className="pillBtn primary block big" onClick={submit}><Icon name="live" size={19} /> Publiser treff</button>
+          <p className="c3Preview"><Icon name="live" size={15} /> «{title.trim() || autoTitle}» · {when.toLowerCase()}</p>
+          <p className="fineprint"><Icon name="shield" size={14} /> Møt på et offentlig sted. Treffet forsvinner av seg selv når tiden er ute.</p>
+          <button className="pillBtn primary block big" onClick={submit}>Legg ut treffet</button>
+        </>
+      )}
     </Layer>
   );
 }
@@ -827,82 +883,94 @@ function commonalities(me, d) {
   return getDogCommonalities(me, d, { sameArea: true });
 }
 
+/*
+ * Hundeprofilen skal få deg til å tenke «jeg vil møte denne hunden»:
+ * stort bilde, navn, personlighet som ord (ikke skjema), hva dere har til
+ * felles, og to tydelige handlinger – spør om tur, send hundevenn.
+ */
+const ENERGY_WORD = (e) => (e == null ? null : e <= 2 ? "Rolig" : e === 3 ? "Middels energi" : "Mye energi");
+
 function DogProfile({ data: id, onClose }) {
   const app = useApp();
+  const [showAll, setShowAll] = useState(false);
   const d = app.dogById(id);
   if (!d) return null;
   const rel = app.relationTo(d);
   const common = commonalities(app.me, d);
   const headline = commonalityHeadline(common.length);
-  const [showAll, setShowAll] = useState(false);
   const shownCommon = showAll ? common : common.slice(0, 3);
+  const play = [ENERGY_WORD(d.energy), ...(d.play || [])].filter(Boolean);
+  const thrives = [...(d.comfort || []), d.size ? `${d.size[0].toUpperCase()}${d.size.slice(1)} hund` : null].filter(Boolean);
   return (
-    <Layer onClose={onClose} className="dogProfile" label={d.name}>
+    <Layer onClose={onClose} className="dogProfile v2" label={d.name}>
       <div className="dogHero">
-        <Img id={d.photo} w={900} h={700} className="dogHeroImg" brand fallbackLabel={d.name?.charAt(0)} />
+        <Img id={d.photo} w={900} h={900} className="dogHeroImg" brand fallbackLabel={d.name?.charAt(0)} />
         <CloseBtn onClick={onClose} light />
         <div className="dogHeroText">
-          <h2>{d.name} {d.online && <span className="onlinePill"><i /> Ute nå</span>}</h2>
-          <p>{d.breed} · {d.age} · eier: {d.owner}</p>
+          <h2>{d.name}</h2>
+          <p>{[d.breed, d.age, d.area].filter(Boolean).join(" · ")}</p>
+          {d.owner && <p className="dogOwner">med {d.owner}</p>}
         </div>
       </div>
       <div className="dogProfileBody">
-        {/* Forklarbare fellestrekk i stedet for en oppdiktet matchprosent. */}
-        <div className="matchWhy">
-          <div className="matchWhyHead">
-            <span className="chIcon tint-mint"><Icon name="paw" size={18} /></span>
-            <div><b>{headline}</b><small>{common.length} til felles med {app.me.dogName || "hunden din"}</small></div>
+        {play.length > 0 && (
+          <div className="traitBlock">
+            <h4>Lekestil</h4>
+            <div className="traitChips">{play.map((p) => <span key={p} className="tint-coral">{p}</span>)}</div>
           </div>
-          <ul className="matchList">
-            {shownCommon.map((c) => <li key={c}><Icon name="check" size={15} /> {c}</li>)}
-          </ul>
-          {common.length > 3 && (
-            <button className="linkish" onClick={() => setShowAll(!showAll)}>{showAll ? "Vis mindre" : `Se alle ${common.length}`}</button>
+        )}
+        {thrives.length > 0 && (
+          <div className="traitBlock">
+            <h4>Trives med</h4>
+            <div className="traitChips">{thrives.map((p) => <span key={p} className="tint-mint">{p}</span>)}</div>
+          </div>
+        )}
+        {common.length > 0 && (
+          <div className="matchWhy">
+            <div className="matchWhyHead">
+              <span className="chIcon tint-mint"><Icon name="paw" size={18} /></span>
+              <div><b>{headline}</b><small>Til felles med {app.me.dogName || "hunden din"}</small></div>
+            </div>
+            <ul className="matchList">
+              {shownCommon.map((c) => <li key={c}><Icon name="check" size={15} /> {c}</li>)}
+            </ul>
+            {common.length > 3 && (
+              <button className="linkish" onClick={() => setShowAll(!showAll)}>{showAll ? "Vis mindre" : `Se alle ${common.length}`}</button>
+            )}
+          </div>
+        )}
+        {play.length === 0 && thrives.length === 0 && common.length === 0 && (
+          <p className="muted">{d.name} har ikke fylt ut personligheten sin ennå. En tur sammen er den beste måten å bli kjent på.</p>
+        )}
+        <div className="dogMinor">
+          <button className={"iconAction" + (rel.following ? " on" : "")} onClick={() => app.toggleFollow(d)}>
+            <Icon name="heart" size={17} fill={rel.following ? "currentColor" : "none"} /> {rel.following ? "Følger" : "Følg"}
+          </button>
+          {app.backend && d.real && d.ownerId ? (
+            <button className="iconAction" onClick={() => { onClose(); app.startDirectChat(d.ownerId, { otherName: d.owner, dogId: d.id, dogName: d.name, photo: d.photo }); }}><Icon name="comment" size={17} /> Melding</button>
+          ) : !d.real ? (
+            <button className="iconAction" onClick={() => { onClose(); app.open("chat", d.id); }}><Icon name="comment" size={17} /> Melding</button>
+          ) : null}
+          {/* Blokkering (kun ekte eiere). Kaskaderer i databasen. */}
+          {d.real && d.ownerId && (
+            <button className="iconAction subtle" onClick={() => { app.blockOwner(d); onClose(); }}><Icon name="ban" size={16} /> Blokkér</button>
           )}
         </div>
-        <div className="dogFacts">
-          <span><small>Energi</small><Meter value={d.energy} /></span>
-          <span><small>Størrelse</small><b>{d.size}</b></span>
-          <span><small>Streak</small><b><Icon name="flame" size={15} /> {d.streak} d</b></span>
-        </div>
-        {d.play?.length > 0 && (
-          <>
-            <h4>Liker</h4>
-            <div className="tags">{d.play.map((p) => <small key={p}>{p}</small>)}</div>
-          </>
-        )}
       </div>
-      {/* Blokkering (kun ekte eiere). Kaskaderer i databasen: fjerner følging,
-          vennskap og ventende forespørsler begge veier. */}
-      {d.real && d.ownerId && (
-        <button className="linkish danger blockLink" onClick={() => { app.blockOwner(d); onClose(); }}>
-          <Icon name="ban" size={14} /> Blokkér eier
-        </button>
-      )}
       <div className="detailFoot dogFoot">
-        <button className={"iconAction" + (rel.following ? " on" : "")} onClick={() => app.toggleFollow(d)}>
-          <Icon name="heart" size={18} fill={rel.following ? "currentColor" : "none"} /> {rel.following ? "Følger" : "Følg"}
-        </button>
         {rel.friend ? (
-          <button className="iconAction on"><Icon name="check" size={18} /> Hundevenner</button>
+          <button className="pillBtn done"><Icon name="check" size={16} stroke={2.6} /> Hundevenner</button>
         ) : rel.incoming ? (
           <>
-            <button className="iconAction primaryText" onClick={() => app.acceptFriend(d)}><Icon name="check" size={18} /> Godta</button>
-            <button className="iconAction" onClick={() => app.declineFriend(d)}><Icon name="x" size={18} /> Avslå</button>
+            <button className="pillBtn soft" onClick={() => app.declineFriend(d)}>Avslå</button>
+            <button className="pillBtn done" onClick={() => app.acceptFriend(d)}><Icon name="check" size={16} stroke={2.6} /> Godta hundevenn</button>
           </>
         ) : rel.requested ? (
-          <button className="iconAction" onClick={() => app.cancelFriend(d)}><Icon name="clock" size={18} /> Forespørsel sendt</button>
+          <button className="pillBtn soft" onClick={() => app.cancelFriend(d)}><Icon name="clock" size={16} /> Forespørsel sendt</button>
         ) : (
-          <button className="iconAction" onClick={() => app.requestFriend(d)}><Icon name="userPlus" size={18} /> Hundevenn</button>
+          <button className="pillBtn soft" onClick={() => app.requestFriend(d)}><Icon name="userPlus" size={16} /> Send hundevenn</button>
         )}
-        {/* Melding: ekte hund (backend) åpner/oppretter en ekte 1:1-samtale
-            med eieren; demo-hund bruker den lokale chatten. */}
-        {app.backend && d.real && d.ownerId ? (
-          <button className="iconAction" onClick={() => { onClose(); app.startDirectChat(d.ownerId, { otherName: d.owner, dogId: d.id, dogName: d.name, photo: d.photo }); }}><Icon name="comment" size={18} /> Melding</button>
-        ) : !d.real ? (
-          <button className="iconAction" onClick={() => { onClose(); app.open("chat", d.id); }}><Icon name="comment" size={18} /> Melding</button>
-        ) : null}
-        <button className="pillBtn primary" onClick={() => { onClose(); app.open("meetupComposer", { with: d.id }); }}><Icon name="walk" size={17} /> Foreslå tur</button>
+        <button className="pillBtn primary" onClick={() => { onClose(); app.open("meetupComposer", { with: d.id }); }}><Icon name="walk" size={17} /> Spør om tur</button>
       </div>
     </Layer>
   );
@@ -1451,47 +1519,53 @@ function NotificationSettings({ onClose }) {
 function More({ onClose }) {
   const app = useApp();
   const go = (fn) => { onClose(); fn(); };
-  const sections = [
-    ["Din hund", [
-      ["Min profil", "paw", () => app.open("profile")],
-      ["Aktivitet", "flame", () => app.setTab("Aktivitet")],
-      ["Merker", "trophy", () => app.open("profile")],
-    ]],
-    ["Utforsk", [
-      ["Hunder", "dog", () => app.setTab("Hunder")],
-      ["Kart", "pin", () => app.setTab("Kart")],
-      ["Arrangementer", "calendar", () => app.setTab("Arrangementer")],
-      ["Turområder", "compass", () => app.setTab("Utforsk")],
-    ]],
-    ["Konto", [
-      ["Meldinger", "mail", () => app.open("inbox")],
-      ["Varsler", "bell", () => app.open("notifications")],
-      ["Innstillinger", "settings", () => app.open("settings")],
-      ["Trygghet", "shield", () => app.open("safety")],
-    ]],
+  const msgs = (app.conversations || []).reduce((n, c) => n + (c.unread || 0), 0);
+  const places = [
+    ["Hunder", "dog", "sun", "Hunder i nærheten"],
+    ["Kart", "pin", "mint", "Steder og treff"],
+    ["Aktivitet", "flame", "coral", "Turer og streak"],
+    ["Arrangementer", "calendar", "blue", "Planlagte turer"],
+    ["Utforsk", "compass", "violet", "Nye steder"],
   ];
   return (
-    <Layer kind="sheet" onClose={onClose} className="moreSheet" label="Mer">
+    <Layer kind="sheet" onClose={onClose} className="moreSheet v2" label="Mer">
       <span className="sheetHandle" />
-      <div className="moreProfile" onClick={() => go(() => app.open("profile"))}>
-        <DogAvatar me size={48} ring="mint" />
-        <div><b>{app.me.dogName || "Hunden din"}</b><small>Nivå {app.level.level} · {app.level.name}</small></div>
+      <button className="moreProfile" onClick={() => go(() => app.open("profile"))}>
+        <DogAvatar me size={46} ring="mint" />
+        <div><b>{app.me.dogName || "Hunden din"}</b><small>{app.me.ownerName ? `${app.me.ownerName} · ` : ""}Nivå {app.level.level} · {app.level.name}</small></div>
         <Icon name="chevronRight" size={18} />
+      </button>
+
+      <button className="moreRow msgs" onClick={() => go(() => app.open("inbox"))}>
+        <Icon name="mail" size={19} /> <span>Meldinger</span>
+        {msgs > 0 && <i className="countBadge">{msgs}</i>}
+        <Icon name="chevronRight" size={16} />
+      </button>
+
+      <div className="moreTiles">
+        {places.map(([tab, icon, color, sub]) => (
+          <button key={tab} className={"moreTile tint-" + color + (app.tab === tab ? " active" : "")} onClick={() => go(() => app.setTab(tab))}>
+            <span><Icon name={icon} size={20} /></span>
+            <b>{tab}</b>
+            <small>{sub}</small>
+          </button>
+        ))}
       </div>
-      {sections.map(([title, items]) => (
-        <div key={title} className="moreSection">
-          <h5>{title}</h5>
-          <div className="moreList">
-            {items.map(([label, icon, fn]) => (
-              <button key={label} className="moreRow" onClick={() => go(fn)}>
-                <Icon name={icon} size={19} /> <span>{label}</span> <Icon name="chevronRight" size={16} />
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+
+      <div className="moreList">
+        {[
+          ["Inviter en hundevenn", "gift", () => app.open("invite")],
+          ["Trygghet og nødprofil", "shield", () => app.open("safety")],
+          ["Innstillinger", "settings", () => app.open("settings")],
+        ].map(([label, icon, fn]) => (
+          <button key={label} className="moreRow" onClick={() => go(fn)}>
+            <Icon name={icon} size={19} /> <span>{label}</span> <Icon name="chevronRight" size={16} />
+          </button>
+        ))}
+      </div>
+
       <button className="pillBtn primary block" onClick={() => go(() => app.startWalk())}>
-        <Icon name="play" size={14} fill="currentColor" stroke={0} /> Start tur
+        <Icon name="play" size={14} fill="currentColor" stroke={0} /> Start en tur
       </button>
     </Layer>
   );
@@ -1735,26 +1809,38 @@ function WalkMode() {
   );
 }
 
+/*
+ * Etter tur: et delbart øyeblikk (hund + eier, km, tid, sted), poter vist
+ * diskret med grunnen, og en rolig invitasjon. Bare ekte tall fra turen.
+ */
 function WalkSummary({ data: s, onClose }) {
   const app = useApp();
+  const me = app.me;
+  const km = s.km.toFixed(1).replace(".", ",");
+  const time = s.seconds < 60 ? `${s.seconds} sek` : `${Math.floor(s.seconds / 60)} min`;
+  const date = new Date().toLocaleDateString("nb-NO", { day: "numeric", month: "long" });
   return (
-    <Layer onClose={onClose} className="celebrate" tone="brand" label="Tur fullført">
-      <CloseBtn onClick={onClose} light />
-      <span className="confetti" aria-hidden="true">{Array.from({ length: 14 }).map((_, i) => <i key={i} />)}</span>
-      <span className="chIcon huge tint-coral"><Icon name={s.first ? "paw" : "flame"} size={36} /></span>
-      <span className="kicker">TUR FULLFØRT</span>
-      <h2>{s.first ? "Første tur i boks!" : `Streaken lever – ${s.streak} ${s.streak === 1 ? "dag" : "dager"}!`}</h2>
-      <p className="muted">
-        {s.first ? "Merket «Første tur» er låst opp. Nå begynner historien deres." : `${app.me.dogName || "Dere"} la enda en tur til historien.`}
-      </p>
-      <div className="summaryStats">
-        <span><b>{s.km.toFixed(2).replace(".", ",")} km</b><small>distanse</small></span>
-        <span><b>{s.seconds < 60 ? `${s.seconds} sek` : `${Math.floor(s.seconds / 60)} min`}</b><small>tid</small></span>
-        <span><b>+{s.paws}</b><small>poter</small></span>
-      </div>
+    <Layer onClose={onClose} className="sheet walkDone" label="Tur fullført">
+      <div className="c3Top"><span /><span /><CloseBtn onClick={onClose} /></div>
+      <h2 className="c3Title">{s.first ? "Første tur i boks!" : `Fin tur, ${me.dogName || "dere"}!`}</h2>
+      <ShareCard
+        big={`${km} km`}
+        unit="sammen"
+        line={s.first ? "Første tur – nå begynner historien deres." : s.streak > 1 ? `${s.streak} dager på rad` : "Dagens tur er med."}
+        facts={[time, app.kommune?.name, date]}
+        shareText={`${me.dogName || "Hunden"} og jeg gikk ${km} km i ${app.kommune?.name || "dag"}!`}
+      />
+      {s.paws > 0 && <p className="pawReward"><Icon name="paw" size={20} /> Dere fikk {s.paws} poter for dagens tur.</p>}
+      {app.invitesSent === 0 && (
+        <div className="nudge">
+          <Avatar src={me.photo} name={me.dogName} size={36} />
+          <div><b>Har {me.dogName || "hunden din"} en venn som burde være her?</b><small>Neste tur kan dere gå sammen.</small></div>
+          <button className="pillBtn primary small" onClick={() => { onClose(); app.open("invite"); }}>Inviter</button>
+        </div>
+      )}
       <div className="fieldRow two">
-        <button className="pillBtn soft" onClick={() => { onClose(); app.open("postComposer"); }}><Icon name="share" size={16} /> Del turen</button>
-        <button className="pillBtn primary" onClick={() => { onClose(); app.setTab("Aktivitet"); }}>Se fremgang <Icon name="arrowRight" size={16} /></button>
+        <button className="pillBtn soft" onClick={() => { onClose(); app.open("postComposer"); }}><Icon name="camera" size={16} /> Legg ut i feeden</button>
+        <button className="pillBtn primary" onClick={() => { onClose(); app.setTab("Aktivitet"); }}>Se historien <Icon name="arrowRight" size={16} /></button>
       </div>
     </Layer>
   );

@@ -26,7 +26,7 @@ function metersNorth(m, from = BASE) {
 }
 
 async function startWalk(page) {
-  await page.locator(".streakFoot .pillBtn").click();
+  await page.locator(".hero2 .pillBtn, .rail2.streak .pillBtn", { hasText: "Start" }).first().click();
   await expect(page.locator(".walkMode")).toBeVisible();
 }
 
@@ -83,7 +83,7 @@ test.describe("GPS-turtracking", () => {
 
     // Avslutter en tom tur: skal IKKE åpne feiringsmodalen, ingenting lagres.
     await page.locator(".walkMode >> text=Avslutt tur").click();
-    await expect(page.locator(".celebrate")).toHaveCount(0);
+    await expect(page.locator(".walkDone")).toHaveCount(0);
     const state = await readState(page);
     expect(state.walks.length).toBe(0);
     expect(state.streak).toBe(0);
@@ -146,8 +146,8 @@ test.describe("GPS-turtracking", () => {
     expect(km).not.toContain("0,00");
 
     await page.locator(".walkMode >> text=Avslutt tur").click();
-    await expect(page.locator(".celebrate")).toBeVisible({ timeout: 10000 });
-    await expect(page.locator(".celebrate")).toContainText("Første tur i boks!");
+    await expect(page.locator(".walkDone")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".walkDone")).toContainText("Første tur i boks!");
 
     const state = await readState(page);
     expect(state.walks.length).toBe(1);
@@ -191,8 +191,8 @@ test.describe("GPS-turtracking", () => {
     await startWalk(page);
     await walkSteps(page, context, 5);
     await page.locator(".walkMode >> text=Avslutt tur").click();
-    await expect(page.locator(".celebrate")).toBeVisible({ timeout: 10000 });
-    await page.locator(".celebrate .closeBtn").click();
+    await expect(page.locator(".walkDone")).toBeVisible({ timeout: 10000 });
+    await page.locator(".walkDone .closeBtn").click();
 
     let state = await readState(page);
     expect(state.walks.length).toBe(1);
@@ -201,7 +201,7 @@ test.describe("GPS-turtracking", () => {
     // Forsøk 2: start på nytt, avslutt umiddelbart uten bevegelse.
     await startWalk(page);
     await page.locator(".walkMode >> text=Avslutt tur").click();
-    await expect(page.locator(".celebrate")).toHaveCount(0);
+    await expect(page.locator(".walkDone")).toHaveCount(0);
 
     state = await readState(page);
     expect(state.walks.length).toBe(1); // uendret – ingen ny rad

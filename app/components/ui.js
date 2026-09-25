@@ -203,13 +203,14 @@ export function CloseBtn({ onClick, light }) {
   );
 }
 
-export function LayerHead({ kicker, title, onClose }) {
+export function LayerHead({ kicker, title, onClose, children }) {
   return (
     <div className="layerHead">
       <div>
         {kicker && <span className="kicker">{kicker}</span>}
         <h2>{title}</h2>
       </div>
+      {children}
       {onClose && <CloseBtn onClick={onClose} />}
     </div>
   );

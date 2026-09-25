@@ -1,171 +1,341 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import { useApp } from "./store";
-import { Avatar, AvatarStack, DogAvatar, Empty, Img, RouteSketch, SectionHead, SourceTag } from "./ui";
-import { fmtKm, fmtNum, img, meetupTypes, PHOTO } from "../lib/data";
+import { Avatar, AvatarStack, Img, RouteSketch } from "./ui";
+import { fmtKm, meetupTypes } from "../lib/data";
 import { placeShort } from "../lib/geo";
 import { lostDogHoursLeft } from "../lib/lostdog";
 import { placeTypes } from "../lib/seed";
+import { getDogCommonalities } from "../lib/social";
+import {
+  goingCount, homeHero, hostOf, inviteSentence, liveStatus, startLabel, streakLine, todayItems,
+} from "../lib/today";
 
+function greeting(h) {
+  if (h < 5) return "God natt";
+  if (h < 10) return "God morgen";
+  if (h < 17) return "God dag";
+  return "God kveld";
+}
+
+/** Klokka på klienten (unngår at bygge-tid havner i HTML-en). */
+function useHello() {
+  const [hello, setHello] = useState("Hei");
+  useEffect(() => setHello(greeting(new Date().getHours())), []);
+  return hello;
+}
+
+/* =========================================================================
+   HJEM – hundelivet ditt i dag.
+   Rekkefølgen er bevisst: hvem/hvor → hva skjer → dagens viktigste handling
+   → dagen din → invitasjoner → hunder → fellesskapet → steder.
+   Hver blokk leser ekte state; tomme blokker blir en rolig linje, ikke et kort.
+   ========================================================================= */
 export default function Home() {
   const app = useApp();
-  const s = app.stats;
-  const hasCommunity = s.dogs > 0 || s.posts > 0 || s.meetups > 0;
+  const hello = useHello();
+  const me = app.me;
+  const status = liveStatus({ meetups: app.meetups });
+  const hero = homeHero({ meetups: app.meetups, going: app.going, todayMinutes: me.todayMinutes });
+  const heroId = hero.meetup?.id;
+  const others = [...app.meetups].sort((a, b) => (a.startsIn || 0) - (b.startsIn || 0)).filter((m) => m.id !== heroId);
+  const today = todayItems({ walks: app.walks, meetups: app.meetups, going: app.going, weekWalks: me.weekWalks });
+  const name = me.ownerName?.trim().split(" ")[0];
 
   return (
-    <div className="home">
-      <Hero />
+    <div className="home2">
+      <header className="hello">
+        <p className="helloHi">{hello}{name ? `, ${name}` : ""}</p>
+        <button className="helloPlace" onClick={() => app.open("location")}>
+          Hundelivet i <b>{placeShort(app.location)}</b> <Icon name="chevronDown" size={15} />
+        </button>
+        <p className={"liveLine " + status.tone}>
+          {status.tone === "live" && <i className="liveDot" />}
+          {status.text}
+        </p>
+      </header>
 
       {app.lostDogLive && <LostBanner />}
 
-      {/* Solo-verdi først: dette virker fra dag 1, helt uten andre brukere. */}
-      {!app.me.isNew || hasCommunity ? null : <GettingStarted />}
+      <HomeHero hero={hero} />
 
-      {/* Er fellesskapet helt tomt, sier vi det én gang – ikke tre ganger. */}
-      {!hasCommunity ? (
-        <section className="block">
-          <div className="coldBlock">
-            <div className="coldCopy">
-              <span className="kicker">FELLESSKAPET I {app.kommune?.name?.toUpperCase()}</span>
-              <h2>Ingen andre hundeeiere her ennå</h2>
-              <p>Bli den som starter det.</p>
-            </div>
-            <div className="coldActions">
-              <button className="coldAction tint-coral" onClick={() => app.open("meetupComposer")}>
-                <span><Icon name="live" size={20} /></span>
-                <b>Lag det første treffet</b>
-                <small>Synlig for alle som blir med</small>
-              </button>
-              <button className="coldAction tint-blue" onClick={() => app.open("postComposer")}>
-                <span><Icon name="camera" size={20} /></span>
-                <b>Skriv det første innlegget</b>
-                <small>Sett tonen for fellesskapet</small>
-              </button>
-              <button className="coldAction tint-sun" onClick={() => app.open("invite")}>
-                <span><Icon name="gift" size={20} /></span>
-                <b>Inviter hundeeiere</b>
-                <small>Den raskeste veien videre</small>
-              </button>
-            </div>
+      {today.length > 0 && <TodayLine items={today} />}
+
+      {others.length > 0 && (
+        <section className="sec">
+          <div className="secHead">
+            <h2>Skjer nær deg</h2>
+            <button className="linkish" onClick={() => app.setTab("Nå skjer")}>Alle treff <Icon name="arrowRight" size={14} /></button>
+          </div>
+          <div className="strip">
+            {others.slice(0, 6).map((m) => <InviteCard key={m.id} m={m} compact />)}
           </div>
         </section>
-      ) : (
-        <>
-          {/* Hundevenner */}
-          <section className="block">
-            <SectionHead title="Hundevenner i nærheten" action={s.dogs > 0 ? "Se alle" : null} onAction={() => app.setTab("Hunder")} />
-            {s.dogs === 0 ? (
-              <Empty
-                compact
-                icon="dog"
-                tone="sun"
-                title={`Ingen hunder registrert i ${app.kommune?.name} ennå`}
-                text="Når flere hundeeiere i området blir med, dukker de opp her."
-                cta="Inviter hundeeiere"
-                onCta={() => app.open("invite")}
-              />
-            ) : (
-              <Stories />
-            )}
-          </section>
-
-          {/* Nå skjer */}
-          <section className="block">
-            <SectionHead title="Nå skjer i nærheten" action={s.meetups > 0 ? "Se alle treff" : null} onAction={() => app.setTab("Nå skjer")}>
-              {s.meetupsNow > 0 && <span className="liveTag"><i /> {s.meetupsNow} starter snart</span>}
-            </SectionHead>
-            {s.meetups === 0 ? (
-              <Empty
-                compact
-                icon="live"
-                tone="coral"
-                title="Ingen treff akkurat nå"
-                text={`Lag det første treffet i ${app.kommune?.name} – det tar ti sekunder.`}
-                cta="Lag treff"
-                onCta={() => app.open("meetupComposer")}
-              />
-            ) : (
-              <div className="meetRow">
-                {app.meetups.slice(0, 4).map((m) => <MeetupCard key={m.id} m={m} compact />)}
-              </div>
-            )}
-          </section>
-
-          {/* Innlegg */}
-          <section className="block">
-            <SectionHead title="Fra fellesskapet" action={s.posts > 0 ? "Del noe" : null} onAction={() => app.open("postComposer")} />
-            {s.posts === 0 ? (
-              <Empty compact icon="camera" title="Ingen innlegg her ennå" text="Del den første turen eller spør nabolaget om noe." cta="Lag innlegg" onCta={() => app.open("postComposer")} />
-            ) : (
-              <>
-                <div className="feedGrid">
-                  {app.posts.map((p) => (app.backend ? <FeedPostCard key={p.id} post={p} /> : <PostCard key={p.id} post={p} />))}
-                </div>
-                {app.backend && app.feedHasMore && (
-                  <button className="linkish seeMore" onClick={app.loadMoreFeed}>Last flere innlegg</button>
-                )}
-              </>
-            )}
-          </section>
-        </>
       )}
 
-      {/* Turområder – ekte offentlig informasjon, finnes fra dag 1. */}
+      <section className="sec">
+        <div className="secHead">
+          <h2>Hunder i nærheten</h2>
+          {app.dogs.length > 0 && <button className="linkish" onClick={() => app.setTab("Hunder")}>Se alle <Icon name="arrowRight" size={14} /></button>}
+        </div>
+        {app.dogs.length === 0 ? (
+          <InlineEmpty
+            icon="dog"
+            tone="sun"
+            title={`Ingen andre hunder i ${app.kommune?.name || "området"} ennå.`}
+            text={`${me.dogName || "Hunden din"} kan være den første. Inviter en hundevenn og bygg hundelivet sammen.`}
+            cta="Inviter en hundevenn"
+            onCta={() => app.open("invite")}
+          />
+        ) : (
+          <div className="strip dogs">
+            {app.dogs.slice(0, 10).map((d) => <DogTile key={d.id} d={d} />)}
+          </div>
+        )}
+      </section>
+
+      <section className="sec">
+        <div className="secHead">
+          <h2>Fra fellesskapet</h2>
+          {app.posts.length > 0 && <button className="linkish" onClick={() => app.open("postComposer")}>Del noe <Icon name="plus" size={14} stroke={2.6} /></button>}
+        </div>
+        {app.posts.length === 0 ? (
+          <InlineEmpty
+            icon="camera"
+            tone="blue"
+            title="Ingen innlegg her ennå."
+            text="Del den første turen eller spør nabolaget om noe."
+            cta="Lag innlegg"
+            onCta={() => app.open("postComposer")}
+          />
+        ) : (
+          <>
+            <div className="feedGrid">
+              {app.posts.map((p) => (app.backend ? <FeedPostCard key={p.id} post={p} /> : <PostCard key={p.id} post={p} />))}
+            </div>
+            {app.backend && app.feedHasMore && (
+              <button className="linkish seeMore" onClick={app.loadMoreFeed}>Last flere innlegg</button>
+            )}
+          </>
+        )}
+      </section>
+
+      {me.isNew && <FirstSteps />}
+
       {app.places.length > 0 && (
-        <section className="block">
-          <SectionHead title={`Turområder i ${app.kommune?.name}`} action="Se alle" onAction={() => app.setTab("Utforsk")}>
-            <SourceTag />
-          </SectionHead>
-          <div className="placeRow">
-            {app.places.slice(0, 4).map((p) => <PlaceMini key={p.id} place={p} />)}
+        <section className="sec">
+          <div className="secHead">
+            <h2>Turområder i {app.kommune?.name}</h2>
+            <button className="linkish" onClick={() => app.setTab("Utforsk")}>Utforsk <Icon name="arrowRight" size={14} /></button>
+          </div>
+          <div className="strip">
+            {app.places.slice(0, 6).map((p) => <PlaceMini key={p.id} place={p} />)}
           </div>
         </section>
       )}
+
+      <InviteNudge />
     </div>
   );
 }
 
-function Hero() {
+/* ---- Hero: dagens viktigste handling (dynamisk, fra ekte state) ---- */
+function HomeHero({ hero }) {
   const app = useApp();
-  const s = app.stats;
-  const empty = s.dogs === 0;
-  return (
-    <section className="hero" style={{ "--hero": `url(${img(PHOTO.hero, 1600)})` }}>
-      <div className="heroCopy">
-        <span className="heroLive">
-          {s.meetupsNow > 0 ? <><i /> {s.meetupsNow} TREFF STARTER SNART</> : <>HUNDELIV I {app.kommune?.name?.toUpperCase()}</>}
-        </span>
-        <h2>{empty ? <>Hundelivet her<br />starter med dere</> : <>Finn noen<br />å gå tur med i dag?</>}</h2>
-        <p>
-          {empty
-            ? "Spor turene, bygg streak og oppdag nye turområder."
-            : "Møt hundevenner og bli med på turer i nærheten."}
-        </p>
-        <div className="heroBtns">
-          {empty ? (
-            <>
-              <button className="pillBtn primary big" onClick={app.startWalk}><Icon name="play" size={18} fill="currentColor" stroke={0} /> Start en tur</button>
-              <button className="pillBtn white big" onClick={() => app.open("meetupComposer")}><Icon name="plus" size={19} stroke={2.6} /> Lag treff</button>
-            </>
-          ) : (
-            <>
-              <button className="pillBtn primary big" onClick={() => app.open("meetupComposer")}><Icon name="userPlus" size={20} /> Lag treff</button>
-              <button className="pillBtn white big" onClick={() => app.setTab("Kart")}><Icon name="map" size={19} /> Åpne kart</button>
-            </>
+  const me = app.me;
+  const m = hero.meetup;
+
+  if (hero.kind === "going" || hero.kind === "join") {
+    const host = hostOf(m, app.dogById, app.me);
+    const going = !!app.going[m.id] || m.mine;
+    const count = goingCount(m, !!app.going[m.id]);
+    const when = startLabel(m.startsIn);
+    const t = meetupTypes.find((x) => x.id === m.type) || meetupTypes[0];
+    return (
+      <section className={"hero2 " + (hero.kind === "going" ? "isGoing" : "")}>
+        <div className="hero2Body">
+          <span className="hero2Kicker">
+            {(m.startsIn || 0) <= 10 && <i className="liveDot" />}
+            {hero.kind === "going" ? (m.mine ? "Ditt treff" : "Du er med") : when === "nå" ? "Skjer nå" : `Skjer ${when}`}
+          </span>
+          <h2>{hero.kind === "going" ? m.title : `${inviteSentence(m, host)} ${when}`}</h2>
+          <p className="hero2Meta">
+            <Icon name={t.icon} size={15} /> {hero.kind === "going" ? `${(m.place || "").split(",")[0]} · ${when}` : m.title}
+          </p>
+          <div className="hero2Who">
+            <Avatar src={host.photo} name={host.dogName || host.name} size={30} />
+            <span>
+              {host.self ? "Du er vert" : [host.name, host.dogName].filter(Boolean).join(" & ")}
+              {count > 0 && <> · {count} {count === 1 ? "hund er med" : "hunder er med"}</>}
+            </span>
+          </div>
+          <div className="hero2Actions">
+            {hero.kind === "join" && (
+              <button className="pillBtn primary" onClick={() => app.toggleGoing(m.id)}>Jeg blir med</button>
+            )}
+            <button className={"pillBtn " + (hero.kind === "join" ? "ghostLight" : "white")} onClick={() => app.open("meetup", m.id)}>Se treff</button>
+            {hero.kind === "going" && (
+              <button className="pillBtn ghostLight" onClick={() => app.startMeetupChat(m.id)}><Icon name="comment" size={16} /> Chat</button>
+            )}
+          </div>
+          {hero.kind === "join" && hero.more > 0 && (
+            <button className="hero2More" onClick={() => app.setTab("Nå skjer")}>
+              + {hero.more} {hero.more === 1 ? "treff til" : "treff til"} nær deg <Icon name="arrowRight" size={13} />
+            </button>
           )}
         </div>
-      </div>
+        {going && <span className="hero2Badge"><Icon name="check" size={14} stroke={2.8} /></span>}
+      </section>
+    );
+  }
 
-      {/* Tellerne er ekte. Er det null, står det null. */}
-      <div className="heroBadge">
-        {s.dogs > 0 && <AvatarStack ids={app.dogs.slice(0, 4).map((d) => d.id)} size={28} max={4} />}
-        <span>
-          <b>{fmtNum(s.dogs)}</b> {s.dogs === 1 ? "hund" : "hunder"}<br />i {placeShort(app.location)}
-        </span>
+  if (hero.kind === "walk") {
+    return (
+      <section className="hero2 walk">
+        <div className="hero2Body">
+          <span className="hero2Kicker">I dag</span>
+          <h2>Klar for dagens tur{me.dogName ? `, ${me.dogName}` : ""}?</h2>
+          <p className="hero2Meta">{streakLine({ streak: me.streak, totalWalks: me.totalWalks, walkedToday: false })}</p>
+          <div className="hero2Actions">
+            <button className="pillBtn primary" onClick={app.startWalk}><Icon name="play" size={14} fill="currentColor" stroke={0} /> Start en tur</button>
+            <button className="pillBtn ghostLight" onClick={() => app.open("meetupComposer")}>Gå sammen med noen</button>
+          </div>
+        </div>
+        <span className="hero2Dog"><Avatar src={me.photo} name={me.dogName} size={76} /></span>
+      </section>
+    );
+  }
+
+  return (
+    <section className="hero2 create">
+      <div className="hero2Body">
+        <span className="hero2Kicker">Dagens tur er gått</span>
+        <h2>Skal noen ut i kveld?</h2>
+        <p className="hero2Meta">Legg ut et treff – ofte holder det med én annen hund.</p>
+        <div className="hero2Actions">
+          <button className="pillBtn primary" onClick={() => app.open("meetupComposer")}><Icon name="plus" size={16} stroke={2.6} /> Lag et treff</button>
+          <button className="pillBtn ghostLight" onClick={app.startWalk}><Icon name="play" size={13} fill="currentColor" stroke={0} /> Start en tur til</button>
+        </div>
       </div>
-      <div className="heroScribble hand" aria-hidden="true">Bedre<br />turer<br />sammen <span>♡</span></div>
+      <span className="hero2Dog"><Avatar src={me.photo} name={me.dogName} size={76} /></span>
+    </section>
+  );
+}
+
+/* ---- I dag: en liten dagbok, bare med ekte ting ---- */
+function TodayLine({ items }) {
+  const app = useApp();
+  return (
+    <section className="sec today">
+      <div className="secHead"><h2>I dag</h2></div>
+      <ol className="todayList">
+        {items.map((it) => (
+          <li key={it.key} className={"todayItem " + it.kind + (it.done ? " done" : "")}>
+            <time>{it.time}</time>
+            <span className="todayDot" aria-hidden="true">
+              <Icon name={it.kind === "walk" ? "walk" : it.kind === "meetup" ? "live" : it.done ? "check" : "paw"} size={14} />
+            </span>
+            {it.kind === "meetup" ? (
+              <button className="todayText" onClick={() => app.open("meetup", it.id)}><b>{it.title}</b><small>{it.sub}</small></button>
+            ) : (
+              <span className="todayText">
+                <b>{it.title}</b>
+                <small>{it.sub}</small>
+                {it.kind === "goal" && <i className="todayBar"><i style={{ width: it.progress * 100 + "%" }} /></i>}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/* ---- Tom tilstand som en rolig linje, ikke et stort kort ---- */
+export function InlineEmpty({ icon, tone = "blue", title, text, cta, onCta, secondary, onSecondary }) {
+  return (
+    <div className={"inlineEmpty tint-" + tone}>
+      <span className="inlineEmptyIcon"><Icon name={icon} size={20} /></span>
+      <div>
+        <b>{title}</b>
+        {text && <p>{text}</p>}
+        {(cta || secondary) && (
+          <div className="inlineEmptyActions">
+            {cta && <button className="pillBtn primary small" onClick={onCta}>{cta}</button>}
+            {secondary && <button className="linkish" onClick={onSecondary}>{secondary}</button>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---- Hund som bilde-flis: navn + ett ekte signal ---- */
+export function dogSignal(app, d) {
+  if (app.followed?.[d.id]) return "Du følger";
+  const c = getDogCommonalities(app.me, d, { sameArea: true });
+  const pick = c.find((x) => !/Samme område/.test(x)) || c[0];
+  if (pick) return pick;
+  if (/valp/i.test(d.age || "") || /mnd/.test(d.age || "")) return "Valp";
+  return d.age || "";
+}
+
+export function DogTile({ d }) {
+  const app = useApp();
+  return (
+    <button className="dogTile" onClick={() => app.openDog(d.id)}>
+      <Img id={d.photo} w={260} h={320} className="dogTileImg" brand fallbackLabel={d.name?.charAt(0)} />
+      <b>{d.name}</b>
+      <small>{dogSignal(app, d)}</small>
+    </button>
+  );
+}
+
+/* ---- Kom i gang: kompakt sjekkliste for nye brukere ---- */
+function FirstSteps() {
+  const app = useApp();
+  const me = app.me;
+  const steps = [
+    { id: "profil", icon: "dog", title: "Lag hundeprofilen", done: !!me.dogName, action: () => app.open("profile") },
+    { id: "tur", icon: "walk", title: "Gå din første tur", done: me.totalWalks > 0, action: app.startWalk },
+    { id: "sted", icon: "pin", title: "Lagre et turområde", done: Object.values(app.savedPlaces).some(Boolean), action: () => app.setTab("Utforsk") },
+    { id: "inviter", icon: "gift", title: "Inviter en hundeeier", done: app.invitesActivated > 0, action: () => app.open("invite") },
+  ];
+  const done = steps.filter((s) => s.done).length;
+  if (done === steps.length) return null;
+  return (
+    <section className="sec">
+      <div className="secHead"><h2>Kom i gang</h2><span className="progressPill">{done} av {steps.length}</span></div>
+      <div className="stepList">
+        {steps.map((s) => (
+          <button key={s.id} className={"stepRow" + (s.done ? " done" : "")} onClick={s.action} disabled={s.done}>
+            <span className="stepCheck"><Icon name={s.done ? "check" : s.icon} size={16} stroke={s.done ? 2.8 : 2} /></span>
+            <b>{s.title}</b>
+            {!s.done && <Icon name="chevronRight" size={16} />}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ---- Invite-loop: bare etter en meningsfull handling, lett å avvise ---- */
+function InviteNudge() {
+  const app = useApp();
+  const [hidden, setHidden] = useState(false);
+  const earned = app.me.totalWalks > 0 || app.myMeetups?.length > 0 || Object.values(app.going).some(Boolean);
+  if (hidden || !earned || app.invitesSent > 0) return null;
+  return (
+    <section className="nudge">
+      <Avatar src={app.me.photo} name={app.me.dogName} size={40} />
+      <div>
+        <b>Har {app.me.dogName || "hunden din"} en venn som burde være her?</b>
+        <small>Hundelivet blir bedre jo flere i nabolaget som er med.</small>
+      </div>
+      <button className="pillBtn primary small" onClick={() => app.open("invite")}>Inviter</button>
+      <button className="ghostIcon" onClick={() => setHidden(true)} aria-label="Ikke nå"><Icon name="x" size={16} /></button>
     </section>
   );
 }
@@ -185,72 +355,6 @@ function LostBanner() {
         </small>
       </div>
       <button className="pillBtn danger small" onClick={() => { app.resolveLostDog(); app.flash("Så godt! Varselet er avsluttet", "heart"); }}>Funnet</button>
-    </div>
-  );
-}
-
-/**
- * Cold start på brukernivå: fire steg som alle gir verdi uten at det
- * finnes én eneste annen bruker i byen.
- */
-function GettingStarted() {
-  const app = useApp();
-  const me = app.me;
-  const steps = [
-    { id: "profil", icon: "dog", color: "sun", title: "Lag hundeprofilen", text: "Rase, alder, energi og lekestil.", done: !!me.dogName, action: () => app.open("profile") },
-    { id: "tur", icon: "walk", color: "blue", title: "Gå din første tur", text: "Start streaken og tjen dine første poter.", done: me.totalWalks > 0, action: app.startWalk },
-    { id: "sted", icon: "pin", color: "mint", title: "Lagre et turområde", text: `${app.stats.places} offentlige turområder i ${app.kommune?.name}.`, done: Object.values(app.savedPlaces).some(Boolean), action: () => app.setTab("Utforsk") },
-    { id: "inviter", icon: "gift", color: "coral", title: "Inviter en hundeeier", text: "Fellesskapet her blir det dere gjør det til.", done: app.invitesActivated > 0, action: () => app.open("invite") },
-  ];
-  const doneCount = steps.filter((s) => s.done).length;
-  if (doneCount === steps.length) return null;
-
-  // Uferdige steg først, så de handlingsrettede kortene alltid er øverst.
-  // Viser to av gangen så skjermen ikke blir tung; resten bak «Se flere».
-  const ordered = [...steps].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
-  const [showAll, setShowAll] = useState(false);
-  const shown = showAll ? ordered : ordered.slice(0, 2);
-
-  return (
-    <section className="block getStarted">
-      <SectionHead title="Kom i gang">
-        <span className="progressPill">{doneCount} av {steps.length}</span>
-      </SectionHead>
-      <div className="stepGrid">
-        {shown.map((s) => (
-          <button key={s.id} className={"stepCard tint-" + s.color + (s.done ? " done" : "")} onClick={s.action}>
-            <span className="stepIcon">
-              <Icon name={s.done ? "check" : s.icon} size={20} stroke={s.done ? 2.8 : 2} />
-            </span>
-            <b>{s.title}</b>
-            <small>{s.text}</small>
-          </button>
-        ))}
-      </div>
-      {ordered.length > 2 && (
-        <button className="linkish seeMore" onClick={() => setShowAll(!showAll)}>
-          {showAll ? "Vis færre" : `Se flere (${ordered.length - 2})`}
-        </button>
-      )}
-    </section>
-  );
-}
-
-function Stories() {
-  const app = useApp();
-  return (
-    <div className="stories">
-      <button className="story add" onClick={() => app.open("postComposer")}>
-        <span className="storyRing"><span className="storyAdd"><Icon name="plus" size={26} stroke={2.4} /></span></span>
-        <b>Del en historie</b>
-      </button>
-      {app.dogs.map((d, i) => (
-        <button className="story" key={d.id} onClick={() => app.open("story", i)}>
-          <Avatar src={d.photo} name={d.name} size={64} ring={d.ring} online={d.online} />
-          <b>{d.name}</b>
-          <small>{d.age}</small>
-        </button>
-      ))}
     </div>
   );
 }
@@ -397,49 +501,66 @@ export function PostCard({ post }) {
   );
 }
 
-export function MeetupCard({ m, compact }) {
+/* =========================================================================
+   Invitasjonskortet – hjertet i Nå skjer. Leses som en invitasjon, ikke som
+   en tabellrad: hvem, hva, hvor, når, hvem er med, én tydelig handling.
+   ========================================================================= */
+export function InviteCard({ m, compact }) {
   const app = useApp();
+  const [pop, setPop] = useState(false);
   const t = meetupTypes.find((x) => x.id === m.type) || meetupTypes[0];
   const isGoing = !!app.going[m.id];
-  const live = m.startsIn <= 0;
-  // Ekte treff (fra Supabase) kjenner ikke deltakernes hunde-id-er lokalt –
-  // vi viser da et ærlig antall i stedet for en oppdiktet avatar-stabel av
-  // hunder vi ikke faktisk har data om.
-  const goingCount = m.real ? m.goingCount + (isGoing && !m.iAmGoing ? 1 : 0) : (isGoing && !m.going.includes("self") ? m.going.length + 1 : m.going.length);
-  const host = m.real || m.host === "self" ? null : app.dogById(m.host);
-  const hostLabel = m.real ? `${m.hostName}${m.hostDogName ? " & " + m.hostDogName : ""}` : `${host?.owner} & ${host?.name}`;
+  const host = hostOf(m, app.dogById, app.me);
+  const count = goingCount(m, isGoing);
+  const when = startLabel(m.startsIn);
+  const live = (m.startsIn || 0) <= 10;
+  const spots = m.max ? Math.max(0, m.max - count) : null;
+  const join = () => {
+    if (!isGoing) { setPop(true); setTimeout(() => setPop(false), 420); }
+    app.toggleGoing(m.id);
+  };
+  // Demo-treff kjenner deltakernes hunder; ekte treff viser et ærlig antall.
+  const faces = m.real ? [] : (isGoing && !(m.going || []).includes("self") ? [...(m.going || []), "self"] : m.going || []);
+
   return (
-    <article className={"meetup tint-" + t.color + (compact ? " compact" : "") + (isGoing ? " isGoing" : "")}>
-      <button className="meetupMain" onClick={() => app.open("meetup", m.id)}>
-        <div className="meetupTop">
-          <span className="meetupType"><Icon name={t.icon} size={17} /> {t.label}</span>
-          <span className={"when" + (live ? " live" : "")}>{live && <i />}{m.when}</span>
+    <article className={"invite tint-" + t.color + (compact ? " compact" : "") + (isGoing ? " isGoing" : "")}>
+      <button className="inviteMain" onClick={() => app.open("meetup", m.id)}>
+        <div className="inviteTop">
+          <Avatar src={host.photo} name={host.dogName || host.name} size={compact ? 34 : 40} />
+          <span className="inviteWho">
+            <b>{host.dogName || host.name || "Hundeeier"}</b>
+            <small>{host.self ? "du er vert" : host.dogName && host.name ? `med ${host.name}` : t.label}</small>
+          </span>
+          <span className={"inviteWhen" + (live ? " live" : "")}>{live && <i className="liveDot" />}{when}</span>
         </div>
         <h3>{m.title}</h3>
-        <p className="meetupPlace"><Icon name="pin" size={14} /> {m.place}</p>
-        {!compact && m.note && <p className="meetupNote">{m.note}</p>}
-        <div className="meetupHost">
-          {m.real ? (
-            <Avatar src={m.hostPhoto} name={m.hostDogName || m.hostName} size={26} />
-          ) : (
-            <DogAvatar id={m.host} me={m.host === "self"} size={26} />
-          )}
-          <small>{m.host === "self" ? "Du er vert" : hostLabel}</small>
-        </div>
+        <p className="invitePlace">
+          <span className="inviteType"><Icon name={t.icon} size={14} /> {t.label}</span>
+          {m.place && <><span className="sep">·</span><Icon name="pin" size={13} /> {(m.place || "").split(",")[0]}</>}
+        </p>
+        {!compact && m.note && <p className="inviteNote">{m.note}</p>}
       </button>
-      <div className="meetupFoot">
-        <span className="going">
-          {!m.real && <AvatarStack ids={isGoing && !m.going.includes("self") ? [...m.going, "self"] : m.going} size={24} />}
-          <small>{goingCount}/{m.max}</small>
+      <div className="inviteFoot">
+        <span className="inviteGoing">
+          {faces.length > 0 && <AvatarStack ids={faces} size={22} />}
+          <small>
+            {count === 0 ? "Bli den første" : `${count} ${count === 1 ? "hund" : "hunder"} er med`}
+            {!compact && spots != null && count > 0 && spots <= 3 && spots > 0 ? ` · ${spots} ${spots === 1 ? "plass" : "plasser"} igjen` : ""}
+          </small>
         </span>
         {m.mine ? (
           <span className="hostTag">Ditt treff</span>
         ) : (
-          <button className={"pillBtn small " + (isGoing ? "done" : "primary")} onClick={() => app.toggleGoing(m.id)}>
-            {isGoing ? <><Icon name="check" size={15} stroke={2.6} /> Du er med</> : "Bli med"}
+          <button className={"joinBtn" + (isGoing ? " done" : "") + (pop ? " pop" : "")} onClick={join} aria-pressed={isGoing}>
+            {isGoing ? <><Icon name="check" size={15} stroke={2.8} /> Du er med</> : "Jeg blir med"}
           </button>
         )}
       </div>
     </article>
   );
+}
+
+/** Bakoverkompatibelt navn (kart-arket og andre bruker MeetupCard). */
+export function MeetupCard(props) {
+  return <InviteCard {...props} />;
 }
