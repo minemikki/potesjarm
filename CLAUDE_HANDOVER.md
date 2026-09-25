@@ -431,6 +431,31 @@ Ingen logikkendringer i tester. **89 enhetstester + 24 e2e grønne.**
 
 ---
 
+# 3h. Gruppe-detalj redesignet strukturelt (runde 6)
+
+Gammel header var topptung og føltes som et markedsføringskort (stort tomt
+cover, flytende ikon, giant white card, to store 50/50-CTA-er, tabs som løse
+filterchips). Bygget helt om i `Views.js` (`GroupPage`) + ny CSS (`.gHead`
+m.fl.), gjenbruker samme data/state/actions.
+
+Ny struktur (`.gHead`): kompakt merkevare-cover (~112–136px, indigo gradient +
+pote-mønster, tilbakeknapp) → identitetsrad der **bare avataren** overlapper
+cover-kanten og tittel+metadata ligger under coveret på krembakgrunn (fikset
+en bug der den indigo tittelen lå usynlig oppå det mørke coveret) → liten
+«Potesjarm-offisiell»-badge → kort beskrivelse + «Mer» (åpner Om-fanen) →
+kompakte handlinger `[Bli med] [Inviter] [•••]` (••• = ny `groupMenu`:
+del gruppe / forlat gruppe) → **integrerte underline-faner** (Innlegg/Treff/
+Medlemmer/Om) rett under headeren → innhold. Alt innenfor ~én skjerm på
+390×844 og 430×932.
+
+Metadata er ekte: «Stavanger · Lokal gruppe · N medlemmer», eller «Ny gruppe»
+når tallet er 0. Cover har alltid en indigo base, så en manglende/feilende
+cover-foto degraderer til en on-brand flate, aldri blankt hvitt.
+
+**89 enhetstester + 24 e2e grønne.**
+
+---
+
 # 4. Designretning (godkjent)
 
 Identitet:

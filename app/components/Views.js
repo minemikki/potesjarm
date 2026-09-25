@@ -154,40 +154,46 @@ function GroupPage({ id }) {
   if (!g) return null;
   const joined = !!app.joinedGroups[g.id];
   const members = g.faces || [];
+  // Ekte tall: har gruppa et medlemstall viser vi det, ellers «Ny gruppe».
+  const memberText = g.members ? `${fmtNum(g.members)} medlemmer` : "Ny gruppe";
+  const kName = kommuneById[g.kommuneId]?.name || app.kommune?.name;
+  const tabs = ["Innlegg", "Treff", "Medlemmer", "Om"];
 
   return (
     <div className="view groupPage">
-      <button className="backLink" onClick={app.closeGroup}><Icon name="chevronLeft" size={18} /> Alle grupper</button>
-      <section className={"groupHeader tint-" + (g.color || "blue")}>
-        {/* Ingen blank hvit cover: har gruppa foto vises det, ellers en
-            merkevare-header (indigo gradient + pote-mønster). */}
-        {g.photo
-          ? <div className="groupBanner" style={{ backgroundImage: `url(${img(g.photo, 1400, 500)})` }} />
-          : <div className="groupBanner branded" />}
-        <div className="groupHeaderBody">
-          {g.photo ? <Img id={g.photo} w={200} h={200} className="groupAvatar" rounded /> : <span className="groupAvatar blank"><Icon name="users" size={34} /></span>}
-          <div className="groupTitle">
-            <span className="kicker">{g.tag?.toUpperCase()} · {app.kommune?.name?.toUpperCase()}</span>
+      <section className="gHead">
+        {/* Kompakt merkevare-cover – identitet, ikke dekorativ tomflate. */}
+        <div className={"gCover" + (g.photo ? "" : " branded")} style={g.photo ? { backgroundImage: `url(${img(g.photo, 1200, 360)})` } : undefined}>
+          <button className="gBack" onClick={app.closeGroup} aria-label="Tilbake"><Icon name="chevronLeft" size={20} /></button>
+        </div>
+        {/* Identitet: avatar forankret ved cover-kanten, tittel + metadata ved siden. */}
+        <div className="gIdentity">
+          {g.photo
+            ? <Img id={g.photo} w={160} h={160} className="gAvatar" rounded />
+            : <span className="gAvatar blank"><Icon name="users" size={26} /></span>}
+          <div className="gInfo">
             <h2>{g.name}</h2>
-            <p>{g.about}</p>
-            <div className="groupMeta">
-              {g.official ? (
-                <span><Icon name="shield" size={15} /> Opprettet av Potesjarm</span>
-              ) : (
-                <span>{members.length > 0 && <AvatarStack ids={members} size={24} />} {fmtNum(g.members)} medlemmer</span>
-              )}
-            </div>
+            <p className="gMeta">{[kName, g.tag === "Lokalt" ? "Lokal gruppe" : g.tag, memberText].filter(Boolean).join(" · ")}</p>
           </div>
-          <div className="groupCtas">
-            <button className={"pillBtn " + (joined ? "done" : "primary")} onClick={() => app.toggleGroup(g.id)}>
-              {joined ? <><Icon name="check" size={16} stroke={2.6} /> Medlem</> : <><Icon name="plus" size={16} stroke={2.6} /> Bli med</>}
-            </button>
-            <button className="pillBtn soft" onClick={() => app.open("invite")}><Icon name="userPlus" size={16} /> Inviter</button>
-          </div>
+        </div>
+        {g.official && <span className="gBadge"><Icon name="shield" size={13} /> Potesjarm-offisiell</span>}
+        <p className="gDesc">
+          {g.about} {tab !== "Om" && <button className="linkish inline" onClick={() => setTab("Om")}>Mer</button>}
+        </p>
+        <div className="gActions">
+          <button className={"pillBtn " + (joined ? "done" : "primary")} onClick={() => app.toggleGroup(g.id)}>
+            {joined ? <><Icon name="check" size={16} stroke={2.6} /> Medlem</> : "Bli med"}
+          </button>
+          <button className="pillBtn soft compact" onClick={() => app.open("invite")}><Icon name="userPlus" size={16} /> Inviter</button>
+          <button className="iconBtn ghost" onClick={() => app.open("groupMenu", g.id)} aria-label="Mer"><Icon name="more" size={20} /></button>
         </div>
       </section>
 
-      <Chips items={["Innlegg", "Treff", "Medlemmer", "Om"]} value={tab} onChange={setTab} />
+      <nav className="gTabs" role="tablist">
+        {tabs.map((t) => (
+          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "active" : ""} onClick={() => setTab(t)}>{t}</button>
+        ))}
+      </nav>
 
       {tab === "Innlegg" && (
         <>

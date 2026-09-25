@@ -866,6 +866,22 @@ function PostMenu({ data: post, onClose }) {
   );
 }
 
+function GroupMenu({ data: id, onClose }) {
+  const app = useApp();
+  const g = app.groups.find((x) => x.id === id);
+  if (!g) return null;
+  const joined = !!app.joinedGroups[g.id];
+  return (
+    <Layer kind="sheet" onClose={onClose} className="actionSheet" label="Valg">
+      <span className="sheetHandle" />
+      <b className="sheetTitle">{g.name}</b>
+      <button onClick={() => { onClose(); app.shareLink(`/gruppe/${g.id}`, "Lenke til gruppa er kopiert"); }}><Icon name="share" size={19} /> Del gruppe</button>
+      {joined && <button className="danger" onClick={() => { onClose(); app.toggleGroup(g.id); }}><Icon name="logout" size={19} /> Forlat gruppa</button>}
+      <button className="cancel" onClick={onClose}>Avbryt</button>
+    </Layer>
+  );
+}
+
 function Search({ onClose }) {
   const app = useApp();
   const [q, setQ] = useState("");
@@ -1448,6 +1464,7 @@ const MAP = {
   story: StoryViewer,
   comments: Comments,
   postMenu: PostMenu,
+  groupMenu: GroupMenu,
   search: Search,
   notifications: Notifications,
   inbox: Inbox,
