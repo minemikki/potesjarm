@@ -668,8 +668,29 @@ mapping-/regelfunksjoner ligger i `app/lib/mapdb.js` og `app/lib/social.js`
   (ekte `reports`-rad). Blokkering skjuler medlemmer/innlegg (server-side i
   RPC). Sist-admin kan ikke forlate uten overføring.
 
-**Fortsatt lokal/demo (ikke ekte multi-user ennå):** 1:1-meldinger/chat (skjult
-for ekte hunder til Sprint 5), like/kommentarer på innlegg (Sprint 6), generell
-feed og arrangementer, kart-pins for treff, full deltaker-avatarliste i treff
-(vises som ærlig antall). Disse er markert i koden og venter på sine sprinter
-(5: chat, 6: feed/likes/kommentarer, 7: varsler, 8: kart).
+- **Sprint 5 – Ekte chat + Realtime:** migrasjon `005_sprint5_chat_realtime.sql`.
+  Bygger på de eksisterende `conversations`/`conversation_members`/`messages`:
+  legger til `kind` ('direct'|'meetup'), `meetup_id`, `dm_key` med unike
+  indekser (ingen duplikate direkte-samtaler, én samtale per treff). **Retter en
+  RLS-bug** på `messages` (den gamle policyen `m.conversation_id = conversation_id`
+  bandt til seg selv → enhver deltaker kunne lese ALLE samtaler; kritisk siden
+  Realtime håndhever nettopp den policyen). SECURITY DEFINER-RPC-er:
+  `get_or_create_direct_conversation` (nekter self-chat + blokkering, dedupe via
+  `dm_key`), `get_or_create_meetup_conversation` (kun vert/deltaker),
+  `send_message` (medlemskap + blokk-sjekk, returnerer rå rad for dedupe),
+  `list_conversations` (innboks m/ siste melding + ulest, blokkerte skjult),
+  `list_messages` (kun medlem, blokkert = tom), `mark_conversation_read`.
+  `db/chat.js` (repo + Realtime-abonnement), `lib/chat.js` (rene regler:
+  dedupe/unread/sort/self+blokk-speil, testet). Store: `realConversations`,
+  `chatMsgs`, `startDirectChat`/`startMeetupChat`/`sendChatMessage`/
+  `markConversationRead`, Realtime-effekt på åpen samtale. UI: ekte innboks,
+  Chat/MeetupChat mot ekte samtaler (ingen fake online-status), «Melding» fra
+  hundeprofil, «Skriv til verten» + treff-chat fra treff-detalj. Migrasjonen
+  aktiverer Realtime på `messages` selv (idempotent).
+
+**Fortsatt lokal/demo (ikke ekte multi-user ennå):** like/kommentarer på innlegg
+(Sprint 6), generell feed og arrangementer, kart-pins for treff, full
+deltaker-avatarliste i treff (vises som ærlig antall). Full gruppechat og
+push/varsler er bevisst utsatt (Sprint 5 dekker 1:1 + treff-chat, ikke
+gruppechat). Disse er markert i koden og venter på sine sprinter
+(6: feed/likes/kommentarer, 7: varsler/push, 8: kart).

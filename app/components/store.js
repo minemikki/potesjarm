@@ -17,7 +17,9 @@ import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCanc
 import { discoverDogs, getDog } from "../lib/db/dogs";
 import * as social from "../lib/db/social";
 import * as groupsDb from "../lib/db/groups";
-import { meetupComposerToRow } from "../lib/mapdb";
+import * as chatDb from "../lib/db/chat";
+import { meetupComposerToRow, rowToConversation, rawMessageToMessage } from "../lib/mapdb";
+import { canStartDirectChat, mergeMessages, sortConversations } from "../lib/chat";
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -143,6 +145,11 @@ export function AppProvider({ children, authUser = null }) {
   const [realGroups, setRealGroups] = useState([]);
   const [groupMembers, setGroupMembers] = useState([]);
   const [groupPosts, setGroupPosts] = useState([]);
+  // Ekte samtaler (innboks) + meldinger per samtale. extraConvs holder en
+  // nyopprettet samtale med en gang, så den kan åpnes før listen er hentet.
+  const [realConversations, setRealConversations] = useState([]);
+  const [extraConvs, setExtraConvs] = useState({});
+  const [chatMsgs, setChatMsgs] = useState({});
   const [tab, setTabState] = useState("For deg");
   const [groupId, setGroupId] = useState(null);
   const [comments, setComments] = useState({});
@@ -281,6 +288,50 @@ export function AppProvider({ children, authUser = null }) {
   useEffect(() => {
     refreshMeetups();
   }, [refreshMeetups, state.location.kommuneId]);
+
+  /* ---- Sprint 5: ekte chat (samtaler + meldinger + Realtime) ---- */
+
+  // Innboksen: alle mine samtaler med siste melding + ulest-antall.
+  const refreshConversations = useCallback(async () => {
+    if (!backend) return;
+    const { data } = await chatDb.listConversations();
+    setRealConversations(sortConversations(data));
+  }, [backend, authUser?.id]);
+
+  useEffect(() => {
+    if (backend) refreshConversations();
+    else { setRealConversations([]); setExtraConvs({}); setChatMsgs({}); }
+  }, [backend, refreshConversations]);
+
+  // Meldinger i én samtale. Serveren er fasit (joinede navn, rekkefølge),
+  // men vi fletter inn evt. optimistiske meldinger som ikke er lagret ennå.
+  const refreshMessages = useCallback(async (convId) => {
+    if (!backend || !convId) return;
+    const { data } = await chatDb.listMessages(convId);
+    setChatMsgs((m) => ({ ...m, [convId]: mergeMessages(m[convId] || [], data) }));
+  }, [backend]);
+
+  // Samtale-id fra den øverste chat-overlayen (kun ekte uuid-er, ikke demo).
+  const topOverlay = overlays[overlays.length - 1];
+  const activeChatConvId =
+    backend && topOverlay && (topOverlay.type === "chat" || topOverlay.type === "meetupChat")
+      && typeof topOverlay.data === "string" && /^[0-9a-f]{8}-/.test(topOverlay.data)
+      ? topOverlay.data : null;
+
+  // Åpen samtale: last meldinger, marker lest, og abonner på nye via Realtime.
+  // Realtime håndhever RLS (msg read) – bare medlemmer får hendelsene.
+  useEffect(() => {
+    if (!activeChatConvId) return;
+    let alive = true;
+    refreshMessages(activeChatConvId);
+    chatDb.markRead(activeChatConvId).then(() => { if (alive) refreshConversations(); });
+    const unsub = chatDb.subscribeMessages(activeChatConvId, () => {
+      if (!alive) return;
+      refreshMessages(activeChatConvId);
+      chatDb.markRead(activeChatConvId).then(() => { if (alive) refreshConversations(); });
+    });
+    return () => { alive = false; unsub(); };
+  }, [activeChatConvId, refreshMessages, refreshConversations]);
 
   // Demo-modus laster demo-samtaler slik at chatten har noe å vise.
   useEffect(() => {
@@ -707,7 +758,82 @@ export function AppProvider({ children, authUser = null }) {
 
     addComment: (postId, text) =>
       setComments((c) => ({ ...c, [postId]: [...(c[postId] || []), { name: `${me.ownerName || "Du"} & ${me.dogName}`, avatar: me.photo, text, mine: true }] })),
+    // Lokal/demo-chat (uendret). Ekte chat går via sendChatMessage.
     sendMessage: (convId, text) => setMessages((m) => ({ ...m, [convId]: [...(m[convId] || []), { me: true, t: text }] })),
+
+    /* ---- Sprint 5: ekte chat ---- */
+
+    // Åpne en 1:1-samtale med en annen bruker. Backend: hent/opprett ekte
+    // samtale (self-chat + blokkering nektes både her og i RPC-en). Uten
+    // backend faller vi tilbake på den lokale/demo-chatten mot hunde-id.
+    startDirectChat: async (otherProfileId, meta = {}) => {
+      if (!backend) { open("chat", meta.dogId || otherProfileId); return; }
+      if (!canStartDirectChat({ meId: authUser.id, otherId: otherProfileId, blocked: stateRef.current.blocked })) {
+        flash("Du kan ikke sende melding til denne brukeren", "alert");
+        return;
+      }
+      const { data: convId, error } = await chatDb.getOrCreateDirect(otherProfileId);
+      if (error || !convId) { flash("Kunne ikke åpne samtalen", "alert"); return; }
+      setExtraConvs((m) => ({
+        ...m,
+        [convId]: rowToConversation({
+          id: convId, kind: "direct", other_id: otherProfileId,
+          other_name: meta.otherName, other_dog_id: meta.dogId,
+          other_dog_name: meta.dogName, other_photo: meta.photo,
+        }),
+      }));
+      open("chat", convId);
+      refreshConversations();
+    },
+
+    // Åpne treff-chatten. Backend: hent/opprett samtalen (kun vert/deltaker –
+    // håndheves i RPC-en). Uten backend: den lokale/demo-treffchatten.
+    startMeetupChat: async (meetupId) => {
+      if (!backend) { open("meetupChat", meetupId); return; }
+      const { data: convId, error } = await chatDb.getOrCreateMeetup(meetupId);
+      if (error || !convId) { flash("Kunne ikke åpne treff-chatten", "alert"); return; }
+      const m = contentWithMine.meetups.find((x) => x.id === meetupId);
+      setExtraConvs((mm) => ({
+        ...mm,
+        [convId]: rowToConversation({ id: convId, kind: "meetup", meetup_id: meetupId, meetup_title: m?.title }),
+      }));
+      open("meetupChat", convId);
+      refreshConversations();
+    },
+
+    // Send en melding i en ekte samtale (optimistisk + RPC + dedupe).
+    sendChatMessage: (convId, text) => {
+      const body = (text || "").trim();
+      if (!body) return;
+      if (!backend) { setMessages((m) => ({ ...m, [convId]: [...(m[convId] || []), { me: true, t: body }] })); return; }
+      const tmpId = "tmp:" + Date.now();
+      setChatMsgs((m) => ({
+        ...m,
+        [convId]: mergeMessages(m[convId] || [], [
+          { id: tmpId, mine: true, senderId: authUser.id, body, at: new Date().toISOString() },
+        ]),
+      }));
+      chatDb.sendMessage(convId, body).then(({ data, error }) => {
+        if (error || !data) {
+          flash("Meldingen ble ikke sendt", "alert");
+          setChatMsgs((m) => ({ ...m, [convId]: (m[convId] || []).filter((x) => x.id !== tmpId) }));
+          return;
+        }
+        // Erstatt den optimistiske med den ekte raden (merge kollapser tmp).
+        setChatMsgs((m) => ({
+          ...m,
+          [convId]: mergeMessages(m[convId] || [], [rawMessageToMessage(data, authUser.id)]),
+        }));
+        refreshMessages(convId);
+        refreshConversations();
+      });
+    },
+
+    // Marker en samtale som lest (nullstiller ulest-badgen).
+    markConversationRead: (convId) => {
+      if (!backend || !convId) return;
+      chatDb.markRead(convId).then(() => refreshConversations());
+    },
 
     // INGEN poter for å opprette et treff. Hvert treff har en unik id, så en
     // opprettelses-belønning kan aldri dedupliseres – den ville vært fritt
@@ -943,6 +1069,15 @@ export function AppProvider({ children, authUser = null }) {
     resetAll: () => { try { localStorage.removeItem(STORAGE_KEY); } catch {} location.reload(); },
   };
 
+  // Ekte innboks: samtalene fra serveren + evt. en nyåpnet samtale som ennå
+  // ikke er i lista. Uten backend brukes demo-samtalene fra contentWithMine.
+  const realConversationsMerged = useMemo(() => {
+    const map = new Map();
+    for (const c of realConversations) map.set(c.id, c);
+    for (const id in extraConvs) if (!map.has(id)) map.set(id, extraConvs[id]);
+    return sortConversations([...map.values()]);
+  }, [realConversations, extraConvs]);
+
   const value = {
     ...state,
     hydrated,
@@ -950,6 +1085,10 @@ export function AppProvider({ children, authUser = null }) {
     // innhold
     ...contentWithMine,
     content: contentWithMine,
+    // Ekte chat overstyrer demo-samtalene når backend er på.
+    conversations: backend ? realConversationsMerged : contentWithMine.conversations,
+    conversationById: (id) => realConversations.find((c) => c.id === id) || extraConvs[id] || null,
+    chatMessagesFor: (convId) => chatMsgs[convId] || [],
     stats,
     kommune: kommuneById[state.location.kommuneId],
     // Relasjonsstatus (følge/hundevenn/blokkert) for en hund – se friends.js.

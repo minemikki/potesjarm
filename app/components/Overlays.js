@@ -625,7 +625,7 @@ function MeetupDetail({ data: id, onClose }) {
         {(isGoing || m.mine) && (
           <>
             <h4>Treff-chat</h4>
-            <button className="rowBtn" onClick={() => { app.close("meetup"); app.open("meetupChat", m.id); }}>
+            <button className="rowBtn" onClick={() => { app.close("meetup"); app.startMeetupChat(m.id); }}>
               <Icon name="comment" size={18} /> Åpne chatten for treffet <Icon name="chevronRight" size={17} />
             </button>
           </>
@@ -653,13 +653,17 @@ function MeetupDetail({ data: id, onClose }) {
           </button>
         ) : (
           <>
-            {/* 1:1-melding til vert krever en ekte hundeprofil å åpne – kommer
-                med Sprint 3 (sosial graf). Vises kun for lokale/demo-treff. */}
-            {!m.real && (
+            {/* Skriv 1:1 til verten. Ekte treff (backend): åpne/opprett en ekte
+                direkte-samtale med vertens profil. Demo: den lokale chatten. */}
+            {app.backend && m.real ? (
+              <button className="pillBtn soft" onClick={() => { app.close("meetup"); app.startDirectChat(m.hostId, { otherName: m.hostName, dogId: m.hostDogId, dogName: m.hostDogName, photo: m.hostPhoto }); }}>
+                <Icon name="comment" size={17} /> Skriv til verten
+              </button>
+            ) : !m.real ? (
               <button className="pillBtn soft" onClick={() => { app.close("meetup"); app.open("chat", m.host); }}>
                 <Icon name="comment" size={17} /> Skriv til verten
               </button>
-            )}
+            ) : null}
             <button className={"pillBtn " + (isGoing ? "done" : "primary")} onClick={() => app.toggleGoing(m.id)}>
               {isGoing ? <><Icon name="check" size={16} stroke={2.6} /> Du er med</> : "Bli med"}
             </button>
@@ -673,12 +677,34 @@ function MeetupDetail({ data: id, onClose }) {
 /** Gruppechat for et treff – alle som er med kan skrive. Ingen fake meldinger. */
 function MeetupChat({ data: id, onClose }) {
   const app = useApp();
-  const m = app.meetups.find((x) => x.id === id);
   const [text, setText] = useState("");
   const end = useRef();
+  // Ekte treff-chat (backend) har en samtale-id; demo bruker treff-id.
+  const realConv = app.backend ? app.conversationById(id) : null;
+
+  if (realConv) {
+    const list = app.chatMessagesFor(realConv.id);
+    return (
+      <Layer onClose={onClose} className="chatBox" label="Treff-chat">
+        <div className="chatHead">
+          <button className="ghostIcon" onClick={onClose} aria-label="Tilbake"><Icon name="chevronLeft" size={22} /></button>
+          <span className="chIcon tint-coral"><Icon name="live" size={18} /></span>
+          <span><b>{realConv.meetupTitle || "Treff-chat"}</b><small>Alle som er med ser samtalen</small></span>
+        </div>
+        <ChatMessages list={list} empty="Start samtalen. Alle som er med på treffet ser den." end={end} />
+        <form className="inputRow" onSubmit={(e) => { e.preventDefault(); if (!text.trim()) return; app.sendChatMessage(realConv.id, text.trim()); setText(""); }}>
+          <DogAvatar me size={34} />
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Skriv en melding…" autoFocus />
+          <button className="sendBtn" aria-label="Send"><Icon name="send" size={18} /></button>
+        </form>
+      </Layer>
+    );
+  }
+
+  // Lokal/demo-treffchat (uendret).
+  const m = app.meetups.find((x) => x.id === id);
   const convId = "meetup:" + id;
-  const list = app.messages[convId] || [];
-  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [list.length]);
+  const list = (app.messages[convId] || []).map((msg, i) => ({ id: i, mine: msg.me, body: msg.t }));
   if (!m) return null;
   const people = app.going[m.id] && !m.going.includes("self") ? [...m.going, "self"] : m.going;
   return (
@@ -688,11 +714,7 @@ function MeetupChat({ data: id, onClose }) {
         <span className="chIcon tint-coral"><Icon name="live" size={18} /></span>
         <span><b>{m.title}</b><small>{people.length} {people.length === 1 ? "deltaker" : "deltakere"}</small></span>
       </div>
-      <div className="chatBody">
-        {list.length === 0 && <p className="muted center">Start samtalen. Alle som er med på treffet ser den.</p>}
-        {list.map((msg, i) => <div key={i} className={"bubble " + (msg.me ? "mine" : "theirs")}>{msg.t}</div>)}
-        <span ref={end} />
-      </div>
+      <ChatMessages list={list} empty="Start samtalen. Alle som er med på treffet ser den." end={end} />
       <form className="inputRow" onSubmit={(e) => { e.preventDefault(); if (!text.trim()) return; app.sendMessage(convId, text.trim()); setText(""); }}>
         <DogAvatar me size={34} />
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Skriv en melding…" autoFocus />
@@ -860,11 +882,13 @@ function DogProfile({ data: id, onClose }) {
         ) : (
           <button className="iconAction" onClick={() => app.requestFriend(d)}><Icon name="userPlus" size={18} /> Hundevenn</button>
         )}
-        {/* Melding vises kun der ekte 1:1-chat finnes (lokal/demo). Ekte chat
-            kommer i neste sprint – vi later aldri som en chat er ekte. */}
-        {!d.real && (
+        {/* Melding: ekte hund (backend) åpner/oppretter en ekte 1:1-samtale
+            med eieren; demo-hund bruker den lokale chatten. */}
+        {app.backend && d.real && d.ownerId ? (
+          <button className="iconAction" onClick={() => { onClose(); app.startDirectChat(d.ownerId, { otherName: d.owner, dogId: d.id, dogName: d.name, photo: d.photo }); }}><Icon name="comment" size={18} /> Melding</button>
+        ) : !d.real ? (
           <button className="iconAction" onClick={() => { onClose(); app.open("chat", d.id); }}><Icon name="comment" size={18} /> Melding</button>
-        )}
+        ) : null}
         <button className="pillBtn primary" onClick={() => { onClose(); app.open("meetupComposer", { with: d.id }); }}><Icon name="walk" size={17} /> Foreslå tur</button>
       </div>
     </Layer>
@@ -1063,6 +1087,17 @@ function Inbox({ onClose }) {
           cta="Se treff"
           onCta={() => { onClose(); app.setTab("Nå skjer"); }}
         />
+      ) : app.backend ? (
+        // Ekte innboks: samtaler fra Supabase (siste melding + ulest-antall).
+        app.conversations.map((c) => (
+          <button key={c.id} className="noteRow" onClick={() => app.open(c.kind === "meetup" ? "meetupChat" : "chat", c.id)}>
+            {c.kind === "meetup"
+              ? <span className="noteIcon tint-coral"><Icon name="live" size={20} /></span>
+              : <Avatar src={c.otherPhoto} name={c.otherDogName || c.otherName} size={48} />}
+            <span><b className="clip">{c.title}</b><small className="clip">{c.lastBody || "Ingen meldinger ennå"}</small></span>
+            {c.unread > 0 && <i className="countBadge">{c.unread}</i>}
+          </button>
+        ))
       ) : (
         app.conversations.map((c) => {
           const d = app.dogById(c.dog);
@@ -1082,14 +1117,39 @@ function Inbox({ onClose }) {
 
 function Chat({ data: id, onClose }) {
   const app = useApp();
+  // Ekte 1:1-samtale (backend) har en samtale-id; demo bruker hunde-id.
+  const realConv = app.backend ? app.conversationById(id) : null;
+  const [text, setText] = useState("");
+  const end = useRef();
+
+  if (realConv) {
+    const list = app.chatMessagesFor(realConv.id);
+    return (
+      <Layer onClose={onClose} className="chatBox" label="Samtale">
+        <div className="chatHead">
+          <button className="ghostIcon" onClick={onClose} aria-label="Tilbake"><Icon name="chevronLeft" size={22} /></button>
+          <Avatar src={realConv.otherPhoto} name={realConv.otherDogName || realConv.otherName} size={40} />
+          {/* Ingen fake online-status: vi vet ikke om den andre er aktiv. */}
+          <span><b>{realConv.title}</b></span>
+          {realConv.otherDogId && (
+            <button className="pillBtn small soft" onClick={() => { onClose(); app.open("meetupComposer", { with: realConv.otherDogId }); }}><Icon name="walk" size={15} /> Foreslå tur</button>
+          )}
+        </div>
+        <ChatMessages list={list} empty={`Si hei til ${realConv.otherName}.`} end={end} />
+        <form className="inputRow" onSubmit={(e) => { e.preventDefault(); if (!text.trim()) return; app.sendChatMessage(realConv.id, text.trim()); setText(""); }}>
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Skriv en melding…" autoFocus />
+          <button className="sendBtn" aria-label="Send"><Icon name="send" size={18} /></button>
+        </form>
+      </Layer>
+    );
+  }
+
+  // Lokal/demo-chat (uendret) mot en hunde-id.
   const conv = app.conversations.find((x) => x.id === id);
   const dogId = conv ? conv.dog : id;
   const convId = conv ? conv.id : id;
   const d = app.dogById(dogId);
-  const [text, setText] = useState("");
-  const end = useRef();
-  const list = app.messages[convId] || [];
-  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [list.length]);
+  const list = (app.messages[convId] || []).map((m, i) => ({ id: i, mine: m.me, body: m.t }));
   if (!d) return null;
   return (
     <Layer onClose={onClose} className="chatBox" label="Samtale">
@@ -1099,16 +1159,24 @@ function Chat({ data: id, onClose }) {
         <span><b>{d.owner} & {d.name}</b><small>{d.online ? "Ute på tur nå" : "Aktiv nylig"}</small></span>
         <button className="pillBtn small soft" onClick={() => { onClose(); app.open("meetupComposer", { with: d.id }); }}><Icon name="walk" size={15} /> Foreslå tur</button>
       </div>
-      <div className="chatBody">
-        {list.length === 0 && <p className="muted center">Si hei til {d.owner}.</p>}
-        {list.map((m, i) => <div key={i} className={"bubble " + (m.me ? "mine" : "theirs")}>{m.t}</div>)}
-        <span ref={end} />
-      </div>
+      <ChatMessages list={list} empty={`Si hei til ${d.owner}.`} end={end} />
       <form className="inputRow" onSubmit={(e) => { e.preventDefault(); if (!text.trim()) return; app.sendMessage(convId, text.trim()); setText(""); }}>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Skriv en melding…" autoFocus />
         <button className="sendBtn" aria-label="Send"><Icon name="send" size={18} /></button>
       </form>
     </Layer>
+  );
+}
+
+/** Meldingslisten i en ekte samtale (bobler + auto-scroll). */
+function ChatMessages({ list, empty, end }) {
+  useEffect(() => end.current?.scrollIntoView({ behavior: "smooth" }), [list.length, end]);
+  return (
+    <div className="chatBody">
+      {list.length === 0 && <p className="muted center">{empty}</p>}
+      {list.map((m) => <div key={m.id} className={"bubble " + (m.mine ? "mine" : "theirs")}>{m.body}</div>)}
+      <span ref={end} />
+    </div>
   );
 }
 

@@ -11,6 +11,9 @@ import {
   relativeWhen,
   meetupComposerToRow,
   rowToMeetup,
+  rowToConversation,
+  rowToMessage,
+  rawMessageToMessage,
 } from "./mapdb.js";
 
 const NOW = new Date(Date.UTC(2026, 0, 15)); // 2026-01-15
@@ -216,4 +219,47 @@ test("rowToGroupPost: forfatter + hund + tekst", () => {
   assert.equal(p.authorName, "Nora");
   assert.equal(p.dogName, "Milo");
   assert.equal(p.body, "Hei alle!");
+});
+
+test("rowToConversation: direkte -> tittel fra motpart, aldri fake online", () => {
+  const c = rowToConversation({
+    id: "c1", kind: "direct", other_id: "u2", other_name: "Kari",
+    other_dog_id: "d2", other_dog_name: "Luna", other_photo: "x.jpg",
+    last_body: "Hei!", last_at: "2026-01-01T10:00:00Z", unread: 3,
+  });
+  assert.equal(c.kind, "direct");
+  assert.equal(c.title, "Kari & Luna");
+  assert.equal(c.otherId, "u2");
+  assert.equal(c.unread, 3);
+  assert.equal(c.lastBody, "Hei!");
+  assert.equal("online" in c, false); // ingen online-status oppfunnet
+});
+
+test("rowToConversation: treff -> tittel fra treffet", () => {
+  const c = rowToConversation({ id: "c2", kind: "meetup", meetup_id: "m1", meetup_title: "Kveldstur" });
+  assert.equal(c.kind, "meetup");
+  assert.equal(c.title, "Kveldstur");
+  assert.equal(c.meetupId, "m1");
+});
+
+test("rowToConversation: manglende navn -> Hundeeier, aldri gjettet", () => {
+  const c = rowToConversation({ id: "c3", kind: "direct", other_id: "u9" });
+  assert.equal(c.otherName, "Hundeeier");
+  assert.equal(c.unread, 0);
+});
+
+test("rowToMessage: mine kommer fra serveren (is_mine)", () => {
+  const m = rowToMessage({ id: "1", is_mine: true, sender_id: "me", body: "hei", created_at: "2026-01-01T10:00:00Z", sender_name: "Per" });
+  assert.equal(m.mine, true);
+  assert.equal(m.body, "hei");
+  assert.equal(m.senderName, "Per");
+  const t = rowToMessage({ id: "2", is_mine: false, sender_id: "you", body: "hallo" });
+  assert.equal(t.mine, false);
+});
+
+test("rawMessageToMessage: mine avgjøres av myId", () => {
+  const mine = rawMessageToMessage({ id: "1", sender_id: "me", body: "a", created_at: "t" }, "me");
+  assert.equal(mine.mine, true);
+  const theirs = rawMessageToMessage({ id: "2", sender_id: "you", body: "b" }, "me");
+  assert.equal(theirs.mine, false);
 });

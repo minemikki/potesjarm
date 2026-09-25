@@ -18,6 +18,13 @@ Level Security). Denne guiden får din instans opp å kjøre.
    - `supabase/migrations/004_sprint4_groups.sql` – Sprint 4: grupper.
      `meetups.group_id` + RPC-er for medlemskap, gruppefeed, gruppetreff og
      moderering (fjern medlem, roller, slett innlegg). Idempotent.
+   - `supabase/migrations/005_sprint5_chat_realtime.sql` – Sprint 5: ekte chat.
+     `conversations.kind/meetup_id/dm_key` (hindrer duplikate direkte-samtaler
+     og >1 treff-samtale), **retting av en RLS-bug på `messages`** (den gamle
+     policyen lot enhver samtaledeltaker lese ALLE samtaler), RPC-er for
+     hent/opprett direkte- og treff-samtale, send melding, samtaleliste,
+     meldinger og marker-lest, samt **aktivering av Realtime på `messages`**.
+     Idempotent. Se «Realtime» under.
 
 ## 2. Hent nøklene
 
@@ -46,6 +53,17 @@ ventelisten. For å la ekte kunder logge inn:
 - Med Supabase-nøklene satt vil ikke-innloggede se innloggingsskjermen (magic
   link), og innloggede får appen med sin ekte profil og hund.
 - Uten nøklene kjører appen videre som lokal prototype/demo (ingen innlogging).
+
+### Realtime (chat) – aktiveres automatisk av migrasjon 005
+
+Migrasjon `005` legger `messages` til `supabase_realtime`-publiseringen selv
+(idempotent), så nye meldinger strømmer til deltakerne uten et manuelt steg.
+Realtime håndhever `messages`-sin SELECT-policy, så kun samtalens medlemmer får
+hendelsene – derfor retter `005` også den gamle, for vide policyen først.
+
+Vil du heller slå det på i dashbordet: **Database → Replication →
+`supabase_realtime` → legg til tabellen `messages`**. Kjører du migrasjonen er
+dette allerede gjort.
 
 ### Magic link – redirect-URL
 

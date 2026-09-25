@@ -280,3 +280,58 @@ export function rowToGroupPost(row = {}) {
     createdAt: row.created_at || null,
   };
 }
+
+/* --- Sprint 5: chat -------------------------------------------------------- */
+
+/** En rad fra list_conversations() -> innboks-form. Ingen fake online-status. */
+export function rowToConversation(row = {}) {
+  const kind = row.kind === "meetup" ? "meetup" : "direct";
+  return {
+    id: row.id,
+    real: true,
+    kind,
+    meetupId: row.meetup_id || null,
+    // Motpart (kun direkte). Navn faller tilbake til "Hundeeier" – aldri gjettet.
+    otherId: row.other_id || null,
+    otherName: row.other_name || "Hundeeier",
+    otherDogId: row.other_dog_id || null,
+    otherDogName: row.other_dog_name || "",
+    otherPhoto: row.other_photo || null,
+    meetupTitle: row.meetup_title || "",
+    // Tittel/undertittel som innboksen viser.
+    title: kind === "meetup" ? (row.meetup_title || "Treff-chat")
+      : [row.other_name, row.other_dog_name].filter(Boolean).join(" & ") || "Hundeeier",
+    lastBody: row.last_body || "",
+    lastAt: row.last_at || null,
+    unread: typeof row.unread === "number" ? row.unread : 0,
+  };
+}
+
+/** En rad fra list_messages() -> boble-form. `mine` fra serveren, ikke gjettet. */
+export function rowToMessage(row = {}) {
+  return {
+    id: row.id,
+    mine: row.is_mine === true,
+    senderId: row.sender_id || null,
+    body: row.body || "",
+    at: row.created_at || null,
+    senderName: row.sender_name || "Hundeeier",
+    senderDogName: row.sender_dog_name || "",
+    senderPhoto: row.sender_photo || null,
+  };
+}
+
+/** Rå messages-rad (fra send_message RPC eller Realtime-payload) -> boble-form.
+ *  Realtime gir ikke joinede navn; de fylles ved neste list_messages-refresh. */
+export function rawMessageToMessage(row = {}, myId = null) {
+  return {
+    id: row.id,
+    mine: !!myId && row.sender_id === myId,
+    senderId: row.sender_id || null,
+    body: row.body || "",
+    at: row.created_at || null,
+    senderName: "",
+    senderDogName: "",
+    senderPhoto: null,
+  };
+}
