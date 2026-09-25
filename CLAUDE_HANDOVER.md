@@ -631,3 +631,35 @@ testbare regler i `app/lib/`, og `store.js` er bare limet rundt dem.
 Skjermbilder/manuell visuell QA: kjør appen med
 `npm run build && npx next start -p 3100` og sjekk alltid 1366×768 og 390×844,
 og at ingen visning scroller sidelengs.
+
+---
+
+# Backend-status (Supabase) — Sprint 1–3
+
+Appen er koblet til en ekte Supabase-backend (bygget på `supabase/schema.sql`
++ migrasjoner i `supabase/migrations/`). Alt ligger bak `WAITLIST_MODE` og er
+kun aktivt for innloggede brukere; uten Supabase-nøkler kjører appen uendret
+som lokal prototype/demo. Se `supabase/SETUP.md`.
+
+**Datalag-seam:** `backend = authUser?.id && isSupabaseConfigured` i `store.js`.
+Er den sann er databasen fasit; ellers brukes den gamle lokale/demo-veien. Rene
+mapping-/regelfunksjoner ligger i `app/lib/mapdb.js` og `app/lib/social.js`
+(enhetstestet), Supabase-spørringer i `app/lib/db/*`.
+
+- **Sprint 1 – Auth + profiler + hunder:** magic link (`app/components/auth.js`),
+  `profiles`/`dogs` skrives fra onboarding/profilendring (`db/profiles.js`,
+  `db/dogs.js`, `db/sync.js`).
+- **Sprint 2 – Ekte treff:** `meetups`/`meetup_participants` (`db/meetups.js`),
+  lag/bli med/avlys, per kommune.
+- **Sprint 3 – Sosial graf:** migrasjon `003_sprint3_social_graph.sql` la til
+  hundevenn (`friend_requests` + `friendships`), `dogs.discoverable`, og
+  SECURITY DEFINER-RPC-er for følge/venn/blokk/oppdag (håndhever blokkering i
+  begge retninger, umulig å forfalske vennskap fra klient). `db/social.js`.
+  Ekte oppdagbare hunder i `DogsView`, forklarbare fellestrekk (ingen
+  matchprosent), følg/hundevenn/blokk på hundeprofil, treffvert åpner ekte
+  hundeprofil.
+
+**Fortsatt lokal/demo (ikke ekte multi-user ennå):** 1:1-meldinger/chat (skjult
+for ekte hunder til Sprint 5), grupper/feed/arrangementer, kart-pins for treff,
+full deltaker-avatarliste i treff (vises som ærlig antall). Disse er markert i
+koden og venter på sine sprinter (4: grupper, 5: chat, 6: feed, 8: kart).

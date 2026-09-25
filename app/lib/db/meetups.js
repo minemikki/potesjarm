@@ -56,6 +56,7 @@ export async function listMeetupsNear(municipalityId, myProfileId = null) {
     return rowToMeetup(row, {
       hostName: nameById.get(row.host_id) || "",
       hostDogName: dog?.name || "",
+      hostDogId: dog?.id || null,
       hostPhoto: dog?.photo_url || null,
       goingCount: goingCountByMeetup.get(row.id) || 0,
       iAmGoing: iAmGoingByMeetup.has(row.id),

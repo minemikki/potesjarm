@@ -8,11 +8,14 @@ import { COLD_START, getContent, getStats, isEarlyArea, leaderboardUnlocked, MOD
 import { GPS_CONFIG, applyGpsSample, createWalkSession, isValidWalk, pawsForWalk } from "../lib/track";
 import { isNewOsloDay, isSameOsloDay, isSameOsloWeek, nextStreak, osloDateKey, osloHour } from "../lib/time";
 import { migrateState as migrateStateLib, pawsTotal, pushLedgerOnce } from "../lib/ledger";
-import { cancelFriendRequest, relationStatus, sendFriendRequest, toggleFollow as toggleFollowLib } from "../lib/friends";
+import { cancelFriendRequest, sendFriendRequest, toggleFollow as toggleFollowLib } from "../lib/friends";
+import { relationStatus } from "../lib/social";
 import * as demo from "../lib/demo";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { loadMyData, persistProfileAndDog } from "../lib/db/sync";
 import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCancelMeetup, joinMeetup, leaveMeetup } from "../lib/db/meetups";
+import { discoverDogs, getDog } from "../lib/db/dogs";
+import * as social from "../lib/db/social";
 import { meetupComposerToRow } from "../lib/mapdb";
 
 const AppCtx = createContext(null);
@@ -63,6 +66,9 @@ const EMPTY = {
   // sendt (pending). friends = BEKREFTEDE venner – settes aldri av et klikk i
   // live-modus (krever at den andre godtar via backend), bare av demo-fixtures.
   friendReqOut: {},
+  // Innkommende hundevenn-forespørsler jeg har mottatt (eier-id -> request-id).
+  // Kun ekte når backend er på; lokalt/demo forblir denne tom.
+  friendReqIn: {},
   friends: {},
   eventGoing: {},
   savedPlaces: {},
@@ -127,6 +133,11 @@ export function AppProvider({ children, authUser = null }) {
   // Ekte treff hentet fra Supabase for kommunen brukeren følger (se
   // refreshMeetups nedenfor). Tom liste = faktisk ingen treff, ikke en feil.
   const [realMeetups, setRealMeetups] = useState([]);
+  // Ekte, oppdagbare hunder i kommunen (discover_dogs). Tom = ingen andre hunder.
+  const [realDogs, setRealDogs] = useState([]);
+  // Enkelt-hunder hentet på forespørsel (f.eks. en treffverts hund) som ikke
+  // ligger i realDogs. Slås sammen i dogById slik at profilen kan åpnes.
+  const [extraDogs, setExtraDogs] = useState({});
   const [tab, setTabState] = useState("For deg");
   const [groupId, setGroupId] = useState(null);
   const [comments, setComments] = useState({});
@@ -166,11 +177,19 @@ export function AppProvider({ children, authUser = null }) {
       const { profile, location, primaryDogId, onboarded } = await loadMyData(authUser.id);
       if (!active) return;
       primaryDogIdRef.current = primaryDogId;
+      // Sosial graf (følge/venner/forespørsler/blokkering) fra Supabase.
+      const graph = await social.loadSocialGraph(authUser.id);
+      if (!active) return;
       setState((s) => ({
         ...s,
         profile: profile ? { ...s.profile, ...profile } : s.profile,
         location: location ? { ...s.location, ...location } : s.location,
         onboarded: onboarded || s.onboarded,
+        followed: graph.followed,
+        friends: graph.friends,
+        friendReqOut: graph.friendReqOut,
+        friendReqIn: graph.friendReqIn,
+        blocked: graph.blocked,
       }));
       if (onboarded) setOverlays((o) => o.filter((x) => x.type !== "onboarding"));
     })();
@@ -178,6 +197,33 @@ export function AppProvider({ children, authUser = null }) {
       active = false;
     };
   }, [backend, authUser?.id]);
+
+  // Sosial graf på nytt etter en mutasjon (server er fasit).
+  const refreshSocial = useCallback(async () => {
+    if (!backend) return;
+    const graph = await social.loadSocialGraph(authUser.id);
+    setState((s) => ({
+      ...s,
+      followed: graph.followed,
+      friends: graph.friends,
+      friendReqOut: graph.friendReqOut,
+      friendReqIn: graph.friendReqIn,
+      blocked: graph.blocked,
+    }));
+  }, [backend, authUser?.id]);
+
+  // Ekte, oppdagbare hunder i kommunen brukeren følger.
+  const refreshDogs = useCallback(async () => {
+    if (!backend) return;
+    const kommuneId = stateRef.current.location.kommuneId;
+    if (!kommuneId) return;
+    const { data } = await discoverDogs(kommuneId, kommuneById[kommuneId]?.name || "");
+    setRealDogs(data);
+  }, [backend, authUser?.id]);
+
+  useEffect(() => {
+    refreshDogs();
+  }, [refreshDogs, state.location.kommuneId]);
 
   // Ekte treff for kommunen brukeren følger. Kalles på nytt etter at man
   // oppretter/melder seg på/av et treff, slik at listen alltid speiler
@@ -273,17 +319,22 @@ export function AppProvider({ children, authUser = null }) {
     const own = state.location.kommuneId;
     const mine = (list) => list.filter((x) => !x.kommuneId || x.kommuneId === own);
     const notBlocked = (list) => list.filter((x) => (!x.author || !state.blocked[x.author]) && !state.hiddenPosts[x.id]);
+    // Med backend er databasen fasit for treff og hunder – ingen lokal
+    // blanding. Blokkerte eiere filtreres bort fra hunde-oppdagelse (A blokkerer
+    // B => B forsvinner). Uten backend beholdes den gamle lokale/demo-oppførselen.
+    const dogs = backend
+      ? realDogs.filter((d) => !(d.ownerId && state.blocked[d.ownerId]))
+      : content.dogs;
     return {
       ...content,
-      // Med backend er databasen fasit for treff – ingen lokal blanding.
-      // Uten backend (prototype/demo) beholdes den gamle, lokale oppførselen.
       meetups: backend ? realMeetups : [...mine(state.myMeetups), ...content.meetups],
+      dogs,
       // Blokkerte forfattere OG skjulte/rapporterte innlegg forsvinner faktisk
       // fra feeden – ikke bare en toast.
       posts: notBlocked([...mine(state.myPosts), ...content.posts]),
       events: [...mine(state.myEvents), ...content.events],
     };
-  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups]);
+  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups, realDogs]);
 
   const stats = useMemo(() => getStats(contentWithMine), [contentWithMine]);
 
@@ -350,13 +401,13 @@ export function AppProvider({ children, authUser = null }) {
     [me]
   );
 
-  /** Slår opp en hund i det innholdet som faktisk finnes. */
+  /** Slår opp en hund i det innholdet som faktisk finnes (+ enkelt-hentede). */
   const dogById = useCallback(
     (id) => {
       if (id === "self") return { id: "self", name: me.dogName, owner: me.ownerName, breed: me.breed, age: me.age, photo: me.photo };
-      return contentWithMine.dogs.find((d) => d.id === id) || null;
+      return contentWithMine.dogs.find((d) => d.id === id) || extraDogs[id] || null;
     },
-    [contentWithMine.dogs, me]
+    [contentWithMine.dogs, extraDogs, me]
   );
 
   /* --------------------------------------------------------------------
@@ -449,25 +500,90 @@ export function AppProvider({ children, authUser = null }) {
       }
     },
     toggleGroup: (id) => toggleIn("joinedGroups", id, "Velkommen i gruppa!", "Du har forlatt gruppa", "users"),
-    // FØLGE (énveis) – ingen bekreftelse fra den andre trengs.
-    toggleFollow: (id) => {
+    // FØLGE (énveis) – ingen bekreftelse fra den andre trengs. Godtar enten en
+    // hunde-id (lokal/demo) eller et hundeobjekt (for ekte hunder trenger vi
+    // også eier-id til vennskaps-/blokk-logikk).
+    toggleFollow: (arg) => {
+      const dogId = typeof arg === "string" ? arg : arg?.id;
+      const isReal = typeof arg === "object" && arg?.real;
       let nowOn;
       setState((s) => {
-        nowOn = !s.followed[id];
-        return { ...s, followed: toggleFollowLib(s.followed, id) };
+        nowOn = !s.followed[dogId];
+        return { ...s, followed: toggleFollowLib(s.followed, dogId) };
       });
       flash(nowOn ? "Du følger nå denne hunden" : "Følger ikke lenger", "heart");
+      if (backend && isReal) {
+        const write = nowOn ? social.followDog(dogId) : social.unfollowDog(dogId);
+        write.then(({ error }) => {
+          if (error) flash("Kunne ikke oppdatere følging – prøv igjen", "alert");
+        }).finally(refreshSocial);
+      }
     },
     // HUNDEVENN (toveis) – vi sender en forespørsel. Den blir aldri "venner"
-    // lokalt; det krever at den andre eieren godtar via backend. Vi later
-    // aldri som om den er godtatt.
-    requestFriend: (id) => {
-      setState((s) => sendFriendRequest(s, id));
+    // lokalt; det krever at den andre eieren godtar (via backend/RPC).
+    requestFriend: (arg) => {
+      const isReal = typeof arg === "object" && arg?.real;
+      const ownerId = isReal ? arg.ownerId : (typeof arg === "string" ? arg : arg?.id);
+      if (backend && isReal) {
+        social.sendFriendRequest(ownerId, primaryDogIdRef.current, null).then(({ data, error }) => {
+          if (error) {
+            flash("Kunne ikke sende forespørsel. Prøv igjen.", "alert");
+            return;
+          }
+          flash("Forespørsel sendt. Dere blir hundevenner når den andre godtar", "userPlus");
+        }).finally(refreshSocial);
+        // Optimistisk: marker som sendt til refresh bekrefter.
+        setState((s) => ({ ...s, friendReqOut: { ...s.friendReqOut, [ownerId]: true } }));
+        return;
+      }
+      setState((s) => sendFriendRequest(s, ownerId));
       flash("Forespørsel sendt. Dere blir hundevenner når den andre godtar", "userPlus");
     },
-    cancelFriend: (id) => {
-      setState((s) => cancelFriendRequest(s, id));
+    cancelFriend: (arg) => {
+      const isReal = typeof arg === "object" && arg?.real;
+      const ownerId = isReal ? arg.ownerId : (typeof arg === "string" ? arg : arg?.id);
+      if (backend && isReal) {
+        const reqId = stateRef.current.friendReqOut[ownerId];
+        setState((s) => { const o = { ...s.friendReqOut }; delete o[ownerId]; return { ...s, friendReqOut: o }; });
+        if (typeof reqId === "string") social.cancelFriendRequest(reqId).finally(refreshSocial);
+        flash("Forespørsel trukket tilbake", "x");
+        return;
+      }
+      setState((s) => cancelFriendRequest(s, ownerId));
       flash("Forespørsel trukket tilbake", "x");
+    },
+    // Mottatt forespørsel: godta (blir venner) eller avslå. Kun ekte/backend.
+    acceptFriend: (arg) => {
+      const ownerId = typeof arg === "object" ? arg.ownerId : arg;
+      const reqId = stateRef.current.friendReqIn[ownerId];
+      if (!backend || typeof reqId !== "string") return;
+      social.acceptFriendRequest(reqId).then(({ error }) => {
+        flash(error ? "Kunne ikke godta – prøv igjen" : "Dere er hundevenner!", error ? "alert" : "check");
+      }).finally(refreshSocial);
+    },
+    declineFriend: (arg) => {
+      const ownerId = typeof arg === "object" ? arg.ownerId : arg;
+      const reqId = stateRef.current.friendReqIn[ownerId];
+      if (!backend || typeof reqId !== "string") return;
+      social.declineFriendRequest(reqId).then(({ error }) => {
+        if (error) flash("Kunne ikke avslå – prøv igjen", "alert");
+      }).finally(refreshSocial);
+    },
+    // Blokkér en eier (via hundeprofil). Kaskaderer i databasen (fjerner
+    // følging/vennskap/ventende forespørsler begge veier).
+    blockOwner: (arg) => {
+      const isReal = typeof arg === "object" && arg?.real;
+      const ownerId = isReal ? arg.ownerId : null;
+      if (!backend || !ownerId) return;
+      setState((s) => ({ ...s, blocked: { ...s.blocked, [ownerId]: true } }));
+      social.blockUser(ownerId).then(({ error }) => {
+        flash(error ? "Kunne ikke blokkere – prøv igjen" : "Eieren er blokkert", error ? "alert" : "ban");
+      }).finally(() => { refreshSocial(); refreshDogs(); });
+    },
+    unblockOwner: (ownerId) => {
+      if (!backend || !ownerId) return;
+      setState((s) => { const b = { ...s.blocked }; delete b[ownerId]; return { ...s, blocked: b }; });
+      social.unblockUser(ownerId).finally(() => { refreshSocial(); refreshDogs(); });
     },
     toggleEvent: (id) => toggleIn("eventGoing", id, "Du er påmeldt!", "Påmelding fjernet", "calendar"),
     togglePlace: (id) => toggleIn("savedPlaces", id, "Sted lagret", "Fjernet fra lagrede", "star"),
@@ -739,7 +855,24 @@ export function AppProvider({ children, authUser = null }) {
     stats,
     kommune: kommuneById[state.location.kommuneId],
     // Relasjonsstatus (følge/hundevenn/blokkert) for en hund – se friends.js.
-    relationTo: (id) => relationStatus(state, id),
+    // Godtar en hunde-id (lokal/demo) eller et hundeobjekt. For ekte hunder
+    // er følge per hund og vennskap/blokkering per eier.
+    relationTo: (arg) => {
+      if (arg && typeof arg === "object") {
+        return relationStatus(state, arg.real ? { dogId: arg.id, ownerId: arg.ownerId } : arg.id);
+      }
+      return relationStatus(state, arg);
+    },
+    // Åpne en hundeprofil. Finnes ikke hunden lokalt (f.eks. en treffverts
+    // hund), hentes den fra Supabase først – aldri en oppdiktet plassholder.
+    openDog: async (dogId) => {
+      if (!dogId) return;
+      const known = contentWithMine.dogs.find((d) => d.id === dogId) || extraDogs[dogId];
+      if (known || !backend) { open("dog", dogId); return; }
+      const { data } = await getDog(dogId, kommuneById[stateRef.current.location.kommuneId]?.name || "", stateRef.current.location.kommuneId);
+      if (data) setExtraDogs((m) => ({ ...m, [dogId]: data }));
+      open("dog", dogId);
+    },
     // Ærlig, utløpsbevisst status – UI skal lese denne, ikke rå lostDogActive.
     lostDogLive: isLostDogLive(state),
     usingMyPosition: typeof state.location.lat === "number",

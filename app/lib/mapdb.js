@@ -110,6 +110,38 @@ export function rowToDog(row = {}, now = new Date()) {
     comfort: cleanArr(row.comfort),
     age: birthDateToAgeText(row.birth_date, now),
     photo: row.photo_url || null,
+    ownerId: row.owner_id || null,
+    discoverable: row.discoverable !== false,
+  };
+}
+
+/**
+ * `dogs`-rad (en annen brukers hund) -> hundekort/profil-form som UI-et bruker
+ * (samme felter som demo-hunder, men kun ekte data). Navn på eier og område
+ * hentes av kalleren og sendes inn – vi gjetter aldri.
+ */
+export function rowToPublicDog(row = {}, ctx = {}, now = new Date()) {
+  const { ownerName = "", kommuneName = "", kommuneId = null } = ctx;
+  return {
+    id: row.id,
+    real: true,
+    ownerId: row.owner_id || null,
+    name: row.name || "",
+    owner: ownerName || "Hundeeier",
+    breed: row.breed || "",
+    age: birthDateToAgeText(row.birth_date, now),
+    size: row.size || "",
+    energy: typeof row.energy === "number" ? row.energy : null,
+    play: cleanArr(row.play_styles),
+    comfort: cleanArr(row.comfort),
+    photo: row.photo_url || null,
+    area: kommuneName || "",
+    // Kommune kommer fra eierens profil (dogs-raden har den ikke); discover_dogs
+    // filtrerer allerede på kommune, så alle treff er i det søkte området.
+    kommuneId,
+    discoverable: row.discoverable !== false,
+    online: false,
+    streak: 0, // annen brukers streak eksponeres ikke ennå
   };
 }
 
@@ -168,7 +200,7 @@ export function meetupComposerToRow(composer = {}, { hostId, municipalityId, now
  * for en oppdiktet avatar-stabel av ukjente hunder).
  */
 export function rowToMeetup(row = {}, ctx = {}) {
-  const { hostName = "", hostDogName = "", hostPhoto = null, goingCount = 0, iAmGoing = false, myProfileId = null, now = new Date() } = ctx;
+  const { hostName = "", hostDogName = "", hostDogId = null, hostPhoto = null, goingCount = 0, iAmGoing = false, myProfileId = null, now = new Date() } = ctx;
   const startsIn = minutesUntil(row.starts_at, now) ?? 0;
   return {
     id: row.id,
@@ -185,6 +217,7 @@ export function rowToMeetup(row = {}, ctx = {}) {
     host: "real:" + row.host_id,
     hostName: hostName || "Hundeeier",
     hostDogName,
+    hostDogId, // primærhunden til verten – lar profilen åpnes
     hostPhoto,
     goingCount,
     iAmGoing,

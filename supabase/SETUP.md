@@ -4,13 +4,17 @@ Sprint 1 kobler appen til Supabase: **auth (magic link) + `profiles` + `dogs`**.
 All databasestruktur ligger i [`schema.sql`](./schema.sql) (38 tabeller med Row
 Level Security). Denne guiden får din instans opp å kjøre.
 
-## 1. Kjør schemaet inn i prosjektet ditt
+## 1. Kjør skjemaet inn i prosjektet ditt
 
 1. Åpne Supabase-dashbordet for prosjektet ditt.
 2. Gå til **SQL Editor** → **New query**.
 3. Lim inn hele innholdet i `supabase/schema.sql` og kjør det.
    - Skriptet er idempotent (`create table if not exists`, `create policy` osv.),
      så det er trygt å kjøre på nytt hvis du har en tidligere versjon.
+4. **Migrasjoner** (kjør i rekkefølge, hver i en ny, tom SQL-fane):
+   - `supabase/migrations/003_sprint3_social_graph.sql` – Sprint 3: hundevenn
+     (forespørsler + vennskap), oppdagbarhet på hunder, og sikre RPC-er for
+     følge/venn/blokk/oppdag. Også idempotent.
 
 ## 2. Hent nøklene
 

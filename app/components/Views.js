@@ -8,6 +8,7 @@ import { Avatar, AvatarStack, Bar, Chips, DogAvatar, Empty, Img, Meter, SectionH
 import { fmtKm, fmtNum, img, meetupTypes, PHOTO } from "../lib/data";
 import { BANDTVANG, inBandtvang, kommuneById, placeShort } from "../lib/geo";
 import { placeTypes, publicInfo } from "../lib/seed";
+import { getDogCommonalities, commonalityHeadline } from "../lib/social";
 
 /* ========================= Nå skjer ========================= */
 export function NowView() {
@@ -289,11 +290,16 @@ export function DogsView() {
     );
   }
 
+  // Fellestrekk med ekte profilfelt (ingen oppdiktet matchprosent). Sortér
+  // etter hvor mye hver hund faktisk har til felles med brukerens hund.
+  const commonFor = (d) => getDogCommonalities(app.me, d, { sameArea: true });
   const list = app.dogs
     .filter((d) => energy === "Alle" || (energy === "Rolig" ? d.energy <= 3 : d.energy >= 4))
     .filter((d) => size === "Alle" || d.size === size)
-    .sort((a, b) => b.match - a.match);
-  const best = list[0];
+    .map((d) => ({ d, common: commonFor(d) }))
+    .sort((a, b) => b.common.length - a.common.length);
+  const best = list[0]?.d;
+  const bestCommon = list[0]?.common || [];
 
   return (
     <div className="view">
@@ -301,11 +307,11 @@ export function DogsView() {
         <section className="matchSpot" onClick={() => app.open("dog", best.id)}>
           <Img id={best.photo} w={900} h={700} className="matchSpotImg" />
           <div className="matchSpotBody">
-            <span className="kicker light">BESTE MATCH I NÆRHETEN</span>
-            <h2>{best.name} <small>{best.breed}, {best.age}</small></h2>
-            <p>Samme energinivå som {app.me.dogName || "hunden din"}, og liker {best.play[0].toLowerCase()}.</p>
+            <span className="kicker light">{bestCommon.length >= 2 ? "GOD TURMATCH I NÆRHETEN" : "HUND I NÆRHETEN"}</span>
+            <h2>{best.name} <small>{best.breed}{best.age ? `, ${best.age}` : ""}</small></h2>
+            <p>{bestCommon.length ? bestCommon.slice(0, 2).join(" · ") : `Ny å bli kjent med i ${app.kommune?.name || "området"}.`}</p>
             <div className="matchSpotFoot">
-              <span className="matchRing" style={{ "--p": best.match }}><b>{best.match}%</b></span>
+              <span className="commonBadge"><Icon name="paw" size={15} /> {bestCommon.length} til felles</span>
               <button className="pillBtn white" onClick={(e) => { e.stopPropagation(); app.open("meetupComposer", { with: best.id }); }}>
                 <Icon name="walk" size={17} /> Foreslå tur
               </button>
@@ -320,24 +326,24 @@ export function DogsView() {
       </div>
 
       <div className="dogGrid">
-        {list.map((d) => (
+        {list.map(({ d, common }) => (
           <article key={d.id} className="dogCard">
             <button className="dogPhoto" onClick={() => app.open("dog", d.id)}>
-              <Img id={d.photo} w={520} h={560} className="dogPhotoImg" />
-              <span className="matchPill"><Icon name="heart" size={13} fill="currentColor" stroke={0} /> {d.match}%</span>
+              <Img id={d.photo} w={520} h={560} className="dogPhotoImg" brand fallbackLabel={d.name?.charAt(0)} />
+              {common.length >= 2 && <span className="commonPill"><Icon name="paw" size={12} /> {common.length} til felles</span>}
               {d.online && <span className="onlinePill"><i /> Ute nå</span>}
             </button>
             <div className="dogBody">
               <div className="dogName">
                 <h3>{d.name}</h3>
-                <button className={"heartBtn" + (app.followed[d.id] ? " on" : "")} onClick={() => app.toggleFollow(d.id)} aria-label="Følg">
+                <button className={"heartBtn" + (app.followed[d.id] ? " on" : "")} onClick={() => app.toggleFollow(d)} aria-label="Følg">
                   <Icon name="heart" size={18} fill={app.followed[d.id] ? "currentColor" : "none"} />
                 </button>
               </div>
-              <p>{d.breed} · {d.age}</p>
+              <p>{d.breed}{d.age ? ` · ${d.age}` : ""}{d.area ? ` · ${d.area}` : ""}</p>
               <div className="dogTraits">
-                <span><Meter value={d.energy} /> Energi</span>
-                <span className="trait">{d.play[0]}</span>
+                {d.energy != null && <span><Meter value={d.energy} /> Energi</span>}
+                {d.play?.[0] && <span className="trait">{d.play[0]}</span>}
               </div>
             </div>
           </article>

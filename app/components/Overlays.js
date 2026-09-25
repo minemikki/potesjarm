@@ -9,6 +9,7 @@ import { kommuneById, omrader, placeLabel, placeShort, radiusOptions, roundCoord
 import { placeTypes } from "../lib/seed";
 import { MODE } from "../lib/content";
 import { paceMinPerKm, pawsForWalk } from "../lib/track";
+import { getDogCommonalities, commonalityHeadline } from "../lib/social";
 
 export default function Overlays() {
   const app = useApp();
@@ -539,7 +540,11 @@ function MeetupDetail({ data: id, onClose }) {
         <h4>Vert</h4>
         <button
           className="memberRow hostRow"
-          onClick={() => !m.real && m.host !== "self" && app.open("dog", m.host)}
+          onClick={() => {
+            if (m.host === "self") return;
+            if (m.real) { if (m.hostDogId) app.openDog(m.hostDogId); }
+            else app.open("dog", m.host);
+          }}
         >
           {m.real ? (
             <Avatar src={m.hostPhoto} name={hostDogName || hostName} size={42} />
@@ -551,7 +556,7 @@ function MeetupDetail({ data: id, onClose }) {
             <small>{m.host === "self" ? "Du er vert" : host?.breed}</small>
           </span>
           <span className="hostBadge">Vert</span>
-          {!m.real && m.host !== "self" && <Icon name="chevronRight" size={18} />}
+          {m.host !== "self" && (!m.real || m.hostDogId) && <Icon name="chevronRight" size={18} />}
         </button>
 
         <h4>Hvem kommer</h4>
@@ -734,25 +739,23 @@ const ENERGY_NUM = { "Rolig": 2, "Middels": 3, "Høy": 4, "Veldig høy": 5 };
  * oppdiktet «92 % match». Vi viser bare det vi faktisk kan utlede fra data
  * begge har fylt ut. Har vi ikke nok, sier vi det.
  */
+// Fellestrekk forklares med ekte profilfelt (app/lib/social.js), aldri en
+// oppdiktet matchprosent. Ekte oppdagede hunder er per definisjon i samme
+// kommune (discover_dogs filtrerer på det), så sameArea er sant der.
 function commonalities(me, d) {
-  const out = [];
-  const myPlay = me.play || [];
-  const shared = (d.play || []).filter((p) => myPlay.includes(p));
-  shared.slice(0, 2).forEach((p) => out.push(`Begge liker ${p.toLowerCase()}`));
-  const myEnergy = ENERGY_NUM[me.energy];
-  if (myEnergy && d.energy && Math.abs(myEnergy - d.energy) <= 1) out.push("Likt energinivå");
-  if (me.size && d.size && me.size === d.size) out.push(`Samme størrelse (${d.size.toLowerCase()})`);
-  out.push("I samme område");
-  return out;
+  // Hunder som vises her er alltid i brukerens område (demo-fixtures i demo-
+  // kommunen, ekte hunder fra discover_dogs som filtrerer på kommune), så
+  // "Samme område" er et sant fellestrekk.
+  return getDogCommonalities(me, d, { sameArea: true });
 }
 
 function DogProfile({ data: id, onClose }) {
   const app = useApp();
   const d = app.dogById(id);
   if (!d) return null;
-  const rel = app.relationTo(d.id);
+  const rel = app.relationTo(d);
   const common = commonalities(app.me, d);
-  const headline = common.length >= 3 ? "God turmatch" : common.length === 2 ? "Noe til felles" : "Ny å bli kjent med";
+  const headline = commonalityHeadline(common.length);
   const [showAll, setShowAll] = useState(false);
   const shownCommon = showAll ? common : common.slice(0, 3);
   return (
@@ -791,18 +794,34 @@ function DogProfile({ data: id, onClose }) {
           </>
         )}
       </div>
+      {/* Blokkering (kun ekte eiere). Kaskaderer i databasen: fjerner følging,
+          vennskap og ventende forespørsler begge veier. */}
+      {d.real && d.ownerId && (
+        <button className="linkish danger blockLink" onClick={() => { app.blockOwner(d); onClose(); }}>
+          <Icon name="ban" size={14} /> Blokkér eier
+        </button>
+      )}
       <div className="detailFoot dogFoot">
-        <button className={"iconAction" + (rel.following ? " on" : "")} onClick={() => app.toggleFollow(d.id)}>
+        <button className={"iconAction" + (rel.following ? " on" : "")} onClick={() => app.toggleFollow(d)}>
           <Icon name="heart" size={18} fill={rel.following ? "currentColor" : "none"} /> {rel.following ? "Følger" : "Følg"}
         </button>
         {rel.friend ? (
-          <button className="iconAction on"><Icon name="check" size={18} /> Hundevenn</button>
+          <button className="iconAction on"><Icon name="check" size={18} /> Hundevenner</button>
+        ) : rel.incoming ? (
+          <>
+            <button className="iconAction primaryText" onClick={() => app.acceptFriend(d)}><Icon name="check" size={18} /> Godta</button>
+            <button className="iconAction" onClick={() => app.declineFriend(d)}><Icon name="x" size={18} /> Avslå</button>
+          </>
         ) : rel.requested ? (
-          <button className="iconAction" onClick={() => app.cancelFriend(d.id)}><Icon name="clock" size={18} /> Sendt</button>
+          <button className="iconAction" onClick={() => app.cancelFriend(d)}><Icon name="clock" size={18} /> Forespørsel sendt</button>
         ) : (
-          <button className="iconAction" onClick={() => app.requestFriend(d.id)}><Icon name="userPlus" size={18} /> Hundevenn</button>
+          <button className="iconAction" onClick={() => app.requestFriend(d)}><Icon name="userPlus" size={18} /> Hundevenn</button>
         )}
-        <button className="iconAction" onClick={() => { onClose(); app.open("chat", d.id); }}><Icon name="comment" size={18} /> Melding</button>
+        {/* Melding vises kun der ekte 1:1-chat finnes (lokal/demo). Ekte chat
+            kommer i neste sprint – vi later aldri som en chat er ekte. */}
+        {!d.real && (
+          <button className="iconAction" onClick={() => { onClose(); app.open("chat", d.id); }}><Icon name="comment" size={18} /> Melding</button>
+        )}
         <button className="pillBtn primary" onClick={() => { onClose(); app.open("meetupComposer", { with: d.id }); }}><Icon name="walk" size={17} /> Foreslå tur</button>
       </div>
     </Layer>
