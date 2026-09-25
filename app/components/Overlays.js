@@ -351,6 +351,46 @@ const WHEN = [
   { id: "I morgen", startsIn: 1200 },
 ];
 
+const GROUP_KINDS = [
+  { id: "lokalt", label: "Lokal" },
+  { id: "rase", label: "Rase" },
+  { id: "aktivitet", label: "Aktivitet" },
+  { id: "valp", label: "Valp" },
+  { id: "annet", label: "Annet" },
+];
+
+/* Opprett en ekte gruppe (du blir admin). Kun tilgjengelig med innlogging. */
+function GroupComposer({ onClose }) {
+  const app = useApp();
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState("lokalt");
+  const [about, setAbout] = useState("");
+  const submit = () => {
+    if (!name.trim()) return;
+    app.createGroup(name.trim(), about.trim(), kind);
+    onClose();
+  };
+  return (
+    <Layer onClose={onClose} className="sheet" label="Lag gruppe">
+      <LayerHead kicker="NY GRUPPE" title={`Start en gruppe i ${app.kommune?.name || "området"}`} onClose={onClose} />
+      <label className="field">
+        <span>Navn</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`f.eks. Valpetreff ${app.kommune?.name || ""}`.trim()} autoFocus maxLength={60} />
+      </label>
+      <div className="field">
+        <span>Type</span>
+        <Chips items={GROUP_KINDS} value={kind} onChange={setKind} />
+      </div>
+      <label className="field">
+        <span>Beskrivelse (valgfritt)</span>
+        <textarea value={about} onChange={(e) => setAbout(e.target.value)} rows={3} placeholder="Hva handler gruppa om?" maxLength={280} />
+      </label>
+      <p className="fineprint"><Icon name="shield" size={14} /> Du blir admin og kan invitere medlemmer og moderere innhold.</p>
+      <button className="pillBtn primary block big" onClick={submit} disabled={!name.trim()}>Opprett gruppe</button>
+    </Layer>
+  );
+}
+
 function MeetupComposer({ data, onClose }) {
   const app = useApp();
   const withDog = data?.with ? app.dogById(data.with) : null;
@@ -374,9 +414,12 @@ function MeetupComposer({ data, onClose }) {
       max,
       pace: "Rolig",
       note: "",
+      // Knytt treffet til en gruppe når komponereren ble åpnet fra en gruppe.
+      groupId: data?.group || null,
     });
     onClose();
-    app.setTab("Nå skjer");
+    // Treff laget i en gruppe: bli i gruppa. Ellers hopp til «Nå skjer».
+    if (!data?.group) app.setTab("Nå skjer");
   };
 
   return (
@@ -1499,6 +1542,7 @@ const MAP = {
   onboarding: Onboarding,
   location: LocationPicker,
   meetupComposer: MeetupComposer,
+  groupComposer: GroupComposer,
   postComposer: PostComposer,
   eventComposer: EventComposer,
   meetup: MeetupDetail,

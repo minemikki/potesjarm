@@ -215,6 +215,7 @@ export function rowToMeetup(row = {}, ctx = {}) {
     pace: "Rolig", // kosmetisk, matcher composer (samler ikke inn tempo ennå)
     hostId: row.host_id,
     host: "real:" + row.host_id,
+    groupId: row.group_id || null, // treffet hører til en gruppe (valgfritt)
     hostName: hostName || "Hundeeier",
     hostDogName,
     hostDogId, // primærhunden til verten – lar profilen åpnes
@@ -223,5 +224,59 @@ export function rowToMeetup(row = {}, ctx = {}) {
     iAmGoing,
     going: [],
     mine: !!myProfileId && row.host_id === myProfileId,
+  };
+}
+
+/* =========================================================================
+   Grupper. Se supabase/schema.sql (groups, group_members, posts) og
+   migrasjon 004. member_count kommer alltid fra ekte rader – aldri oppdiktet.
+   ========================================================================= */
+
+const GROUP_KIND_LABEL = { rase: "Rase", aktivitet: "Aktivitet", valp: "Valp", lokalt: "Lokalt", annet: "Annet" };
+
+/** group_summaries-rad -> app-gruppe (samme felter UI-et bruker for demo). */
+export function rowToGroupSummary(row = {}) {
+  return {
+    id: row.id,
+    real: true,
+    name: row.name || "",
+    about: row.about || "",
+    photo: row.photo_url || null,
+    official: !!row.is_official,
+    kommuneId: row.municipality_id || null,
+    tag: GROUP_KIND_LABEL[row.kind] || "Lokalt",
+    members: typeof row.member_count === "number" ? row.member_count : 0,
+    joined: !!row.my_role,
+    myRole: row.my_role || null,
+    faces: [], // ekte medlemmer vises i Medlemmer-fanen, ikke som oppdiktet stabel
+  };
+}
+
+/** list_group_members-rad -> visningsform (med primærhund). */
+export function rowToGroupMember(row = {}) {
+  return {
+    profileId: row.profile_id,
+    role: row.role || "member",
+    ownerName: row.display_name || "Hundeeier",
+    dogId: row.dog_id || null,
+    dogName: row.dog_name || "",
+    dogPhoto: row.dog_photo || null,
+    dogBreed: row.dog_breed || "",
+  };
+}
+
+/** list_group_posts-rad -> visningsform (PostCard). */
+export function rowToGroupPost(row = {}) {
+  return {
+    id: row.id,
+    real: true,
+    authorId: row.author_id,
+    authorName: row.author_name || "Hundeeier",
+    dogId: row.dog_id || null,
+    dogName: row.dog_name || "",
+    dogPhoto: row.dog_photo || null,
+    body: row.body || "",
+    photo: row.photo_url || null,
+    createdAt: row.created_at || null,
   };
 }

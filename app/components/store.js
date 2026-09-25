@@ -16,6 +16,7 @@ import { loadMyData, persistProfileAndDog } from "../lib/db/sync";
 import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCancelMeetup, joinMeetup, leaveMeetup } from "../lib/db/meetups";
 import { discoverDogs, getDog } from "../lib/db/dogs";
 import * as social from "../lib/db/social";
+import * as groupsDb from "../lib/db/groups";
 import { meetupComposerToRow } from "../lib/mapdb";
 
 const AppCtx = createContext(null);
@@ -138,6 +139,10 @@ export function AppProvider({ children, authUser = null }) {
   // Enkelt-hunder hentet på forespørsel (f.eks. en treffverts hund) som ikke
   // ligger i realDogs. Slås sammen i dogById slik at profilen kan åpnes.
   const [extraDogs, setExtraDogs] = useState({});
+  // Ekte grupper i kommunen + detaljene for den åpne gruppa (medlemmer/innlegg).
+  const [realGroups, setRealGroups] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [groupPosts, setGroupPosts] = useState([]);
   const [tab, setTabState] = useState("For deg");
   const [groupId, setGroupId] = useState(null);
   const [comments, setComments] = useState({});
@@ -224,6 +229,38 @@ export function AppProvider({ children, authUser = null }) {
   useEffect(() => {
     refreshDogs();
   }, [refreshDogs, state.location.kommuneId]);
+
+  // Ekte grupper i kommunen (medlemstall + min rolle). joinedGroups speiler
+  // faktisk medlemskap fra databasen.
+  const refreshGroups = useCallback(async () => {
+    if (!backend) return;
+    const kommuneId = stateRef.current.location.kommuneId;
+    if (!kommuneId) return;
+    const { data } = await groupsDb.listGroups(kommuneId);
+    setRealGroups(data);
+    setState((s) => {
+      const joined = {};
+      for (const g of data) if (g.joined) joined[g.id] = true;
+      return { ...s, joinedGroups: joined };
+    });
+  }, [backend, authUser?.id]);
+
+  useEffect(() => {
+    refreshGroups();
+  }, [refreshGroups, state.location.kommuneId]);
+
+  // Detaljene for den åpne gruppa: medlemmer + innlegg (blokkerte skjult i RPC).
+  const refreshGroupDetail = useCallback(async () => {
+    if (!backend || !groupId) return;
+    const [m, p] = await Promise.all([groupsDb.listMembers(groupId), groupsDb.listPosts(groupId)]);
+    setGroupMembers(m.data);
+    setGroupPosts(p.data);
+  }, [backend, groupId]);
+
+  useEffect(() => {
+    if (backend && groupId) refreshGroupDetail();
+    else { setGroupMembers([]); setGroupPosts([]); }
+  }, [backend, groupId, refreshGroupDetail]);
 
   // Ekte treff for kommunen brukeren følger. Kalles på nytt etter at man
   // oppretter/melder seg på/av et treff, slik at listen alltid speiler
@@ -329,12 +366,13 @@ export function AppProvider({ children, authUser = null }) {
       ...content,
       meetups: backend ? realMeetups : [...mine(state.myMeetups), ...content.meetups],
       dogs,
+      groups: backend ? realGroups : content.groups,
       // Blokkerte forfattere OG skjulte/rapporterte innlegg forsvinner faktisk
       // fra feeden – ikke bare en toast.
       posts: notBlocked([...mine(state.myPosts), ...content.posts]),
       events: [...mine(state.myEvents), ...content.events],
     };
-  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups, realDogs]);
+  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups, realDogs, realGroups]);
 
   const stats = useMemo(() => getStats(contentWithMine), [contentWithMine]);
 
@@ -499,7 +537,66 @@ export function AppProvider({ children, authUser = null }) {
         }).finally(refreshMeetups);
       }
     },
-    toggleGroup: (id) => toggleIn("joinedGroups", id, "Velkommen i gruppa!", "Du har forlatt gruppa", "users"),
+    toggleGroup: (id) => {
+      const wasIn = !!stateRef.current.joinedGroups[id];
+      if (backend) {
+        // Optimistisk, men databasen er fasit (refreshGroups etterpå).
+        setState((s) => ({ ...s, joinedGroups: { ...s.joinedGroups, [id]: !wasIn } }));
+        flash(wasIn ? "Du har forlatt gruppa" : "Velkommen i gruppa!", "users");
+        const write = wasIn ? groupsDb.leaveGroup(id) : groupsDb.joinGroup(id);
+        write.then(({ error }) => {
+          if (error) flash(error.message || "Kunne ikke oppdatere – prøv igjen", "alert");
+        }).finally(() => { refreshGroups(); refreshGroupDetail(); });
+        return;
+      }
+      toggleIn("joinedGroups", id, "Velkommen i gruppa!", "Du har forlatt gruppa", "users");
+    },
+    // Opprett en gruppe (du blir admin). Kun backend.
+    createGroup: (name, about, kind) => {
+      if (!backend) return;
+      groupsDb.createGroup(name, about, kind, stateRef.current.location.kommuneId).then(({ data, error }) => {
+        if (error) { flash(error.message || "Kunne ikke opprette gruppa", "alert"); return; }
+        flash("Gruppa er opprettet!", "users");
+        refreshGroups();
+        if (data?.id) { setTabState("Grupper"); setGroupId(data.id); }
+      });
+    },
+    // Lag innlegg i den åpne gruppa (krever medlemskap – håndheves i RPC).
+    createGroupPost: (groupIdArg, body, photo = null) => {
+      if (!backend) return;
+      groupsDb.createPost(groupIdArg, body, primaryDogIdRef.current, photo).then(({ error }) => {
+        if (error) { flash(error.message || "Kunne ikke publisere – prøv igjen", "alert"); return; }
+        flash("Innlegget er publisert", "check");
+        refreshGroupDetail();
+      });
+    },
+    deleteGroupPost: (postId) => {
+      if (!backend) return;
+      groupsDb.deletePost(postId).then(({ error }) => {
+        flash(error ? "Kunne ikke slette – prøv igjen" : "Innlegget er slettet", error ? "alert" : "check");
+        refreshGroupDetail();
+      });
+    },
+    reportGroupPost: (postId) => {
+      if (!backend) { flash("Takk – vi ser på innlegget", "flag"); return; }
+      groupsDb.reportPost(postId).then(({ error }) => {
+        flash(error ? "Kunne ikke rapportere – prøv igjen" : "Takk – rapporten er sendt", error ? "alert" : "flag");
+      });
+    },
+    removeGroupMember: (groupIdArg, profileId) => {
+      if (!backend) return;
+      groupsDb.removeMember(groupIdArg, profileId).then(({ error }) => {
+        flash(error ? (error.message || "Kunne ikke fjerne medlem") : "Medlem fjernet", error ? "alert" : "check");
+        refreshGroupDetail(); refreshGroups();
+      });
+    },
+    setGroupRole: (groupIdArg, profileId, role) => {
+      if (!backend) return;
+      groupsDb.setMemberRole(groupIdArg, profileId, role).then(({ error }) => {
+        flash(error ? (error.message || "Kunne ikke endre rolle") : "Rolle oppdatert", error ? "alert" : "check");
+        refreshGroupDetail();
+      });
+    },
     // FØLGE (énveis) – ingen bekreftelse fra den andre trengs. Godtar enten en
     // hunde-id (lokal/demo) eller et hundeobjekt (for ekte hunder trenger vi
     // også eier-id til vennskaps-/blokk-logikk).
@@ -622,6 +719,7 @@ export function AppProvider({ children, authUser = null }) {
       // det – et lokalt-bare treff ville vært usynlig for alle andre.
       if (backend) {
         const row = meetupComposerToRow(m, { hostId: authUser.id, municipalityId: stateRef.current.location.kommuneId });
+        if (m.groupId) row.group_id = m.groupId; // treff knyttet til en gruppe
         dbCreateMeetup(row).then(({ error }) => {
           if (error) {
             flash("Kunne ikke publisere treffet – prøv igjen", "alert");
@@ -882,6 +980,16 @@ export function AppProvider({ children, authUser = null }) {
     coldStart: COLD_START,
     demoLeaderboard: demo.leaderboard,
     gpsConfig: GPS_CONFIG,
+    // Er vi koblet til en ekte backend (innlogget + Supabase)? Styrer om
+    // grupper viser ekte medlemmer/innlegg eller den lokale/demo-veien.
+    backend,
+    groupId,
+    myProfileId: authUser?.id || null,
+    // Ekte gruppedata for den åpne gruppa (tom uten backend).
+    groupMembers,
+    groupPosts,
+    // Ekte gruppetreff = delmengden av treffene som hører til denne gruppa.
+    groupMeetupsFor: (gid) => contentWithMine.meetups.filter((m) => m.groupId === gid),
     // meg
     me, level, challengeProgress, badgeProgress, dogById,
     ...actions,

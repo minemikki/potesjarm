@@ -659,7 +659,17 @@ mapping-/regelfunksjoner ligger i `app/lib/mapdb.js` og `app/lib/social.js`
   matchprosent), følg/hundevenn/blokk på hundeprofil, treffvert åpner ekte
   hundeprofil.
 
+- **Sprint 4 – Ekte grupper:** migrasjon `004_sprint4_groups.sql`
+  (`meetups.group_id` + RPC-er). `db/groups.js`. GroupsView viser ekte grupper
+  i kommunen (medlemstall fra rader), lag gruppe (blir admin), bli med/forlat,
+  gruppefeed (ekte innlegg, ingen fake liker/kommentar-tall), gruppetreff
+  (treff med `group_id`), medlemsliste med roller (klikk åpner ekte
+  hundeprofil), moderering (fjern medlem/rolle via RPC), rapporter innlegg
+  (ekte `reports`-rad). Blokkering skjuler medlemmer/innlegg (server-side i
+  RPC). Sist-admin kan ikke forlate uten overføring.
+
 **Fortsatt lokal/demo (ikke ekte multi-user ennå):** 1:1-meldinger/chat (skjult
-for ekte hunder til Sprint 5), grupper/feed/arrangementer, kart-pins for treff,
-full deltaker-avatarliste i treff (vises som ærlig antall). Disse er markert i
-koden og venter på sine sprinter (4: grupper, 5: chat, 6: feed, 8: kart).
+for ekte hunder til Sprint 5), like/kommentarer på innlegg (Sprint 6), generell
+feed og arrangementer, kart-pins for treff, full deltaker-avatarliste i treff
+(vises som ærlig antall). Disse er markert i koden og venter på sine sprinter
+(5: chat, 6: feed/likes/kommentarer, 7: varsler, 8: kart).

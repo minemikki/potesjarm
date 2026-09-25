@@ -1782,3 +1782,26 @@ p { margin: 0; }
   color: var(--red); font-family: var(--body); font-weight: 800; font-size: 13px;
 }
 .iconAction.primaryText { color: var(--blue); }
+
+/* ---- Sprint 4: ekte grupper (feed, komponering, medlemsroller) ---- */
+.gFeed { display: grid; gap: var(--s3); }
+.gPost { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card); padding: 14px 16px; box-shadow: var(--sh-1); }
+.gPostHead { display: flex; align-items: center; gap: 10px; }
+.gPostWho { flex: 1; min-width: 0; }
+.gPostWho b { display: block; font-size: 14px; color: var(--indigo); }
+.gPostWho small { color: var(--muted); font-weight: 700; font-size: 12px; }
+.gPostMenuWrap { position: relative; }
+.gPostMenu { position: absolute; right: 0; top: 100%; z-index: 5; background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--sh-2); overflow: hidden; min-width: 150px; }
+.gPostMenu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 11px 14px; background: none; border: 0; cursor: pointer; font: inherit; font-weight: 700; font-size: 13.5px; color: var(--ink); text-align: left; }
+.gPostMenu button:hover { background: var(--cream-2); }
+.gPostMenu button.danger { color: var(--red); }
+.gPostBody { margin: 10px 0 0; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+.gPostMedia { margin-top: 10px; border-radius: var(--r-md); overflow: hidden; }
+.gPostMedia .postMediaImg { width: 100%; display: block; }
+.gCompose { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card); padding: 12px; box-shadow: var(--sh-1); margin-bottom: var(--s3); }
+.gCompose textarea { width: 100%; border: 0; resize: none; font: inherit; font-size: 15px; color: var(--ink); background: none; outline: none; }
+.gComposeFoot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.memberRow .memberMain { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: 0; cursor: pointer; text-align: left; padding: 0; font: inherit; }
+.roleBadge { flex: none; font-weight: 800; font-size: 11px; padding: 4px 9px; border-radius: 999px; }
+.roleBadge.admin { background: var(--blue-bg); color: var(--blue); }
+.roleBadge.moderator { background: var(--violet-bg); color: var(--violet); }

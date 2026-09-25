@@ -101,12 +101,23 @@ export function GroupsView() {
       )}
 
       <section className="block first">
-        <SectionHead title="Finn flokken din" />
+        <SectionHead title="Finn flokken din" action={app.backend ? "Lag gruppe" : null} onAction={app.backend ? () => app.open("groupComposer") : null} />
         {app.groups.length > 1 && <Chips items={["Alle", "Rase", "Aktivitet", "Valp", "Lokalt"]} value={filter} onChange={setFilter} />}
-        <div className="groupGrid">
-          {list.map((g) => <GroupCard key={g.id} g={g} />)}
-        </div>
-        {app.groups.length <= 1 && (
+        {app.groups.length === 0 ? (
+          <Empty
+            icon="users"
+            tone="violet"
+            title={`Ingen lokale grupper i ${app.kommune?.name || "området"} ennå`}
+            text="Grupper lages av hundeeiere selv. Bli den første som starter en."
+            cta={app.backend ? "Start den første gruppen" : "Foreslå en gruppe"}
+            onCta={app.backend ? () => app.open("groupComposer") : () => app.flash("Gruppeoppretting kommer med innlogging", "users")}
+          />
+        ) : (
+          <div className="groupGrid">
+            {list.map((g) => <GroupCard key={g.id} g={g} />)}
+          </div>
+        )}
+        {app.groups.length === 1 && !app.backend && (
           <Empty
             icon="users"
             tone="violet"
@@ -148,17 +159,93 @@ function GroupCard({ g }) {
   );
 }
 
+/** Kort, relativ "for X siden" for et ISO-tidspunkt. */
+function timeAgo(iso) {
+  if (!iso) return "";
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return "nå nettopp";
+  if (s < 3600) return `for ${Math.floor(s / 60)} min siden`;
+  if (s < 86400) return `for ${Math.floor(s / 3600)} t siden`;
+  return `for ${Math.floor(s / 86400)} d siden`;
+}
+
+/* Ekte gruppeinnlegg. Bevisst UTEN liker/kommentar-tellere – de bygges i
+   feed-sprinten, og vi viser aldri et oppdiktet engasjementstall. Menyen gir
+   ekte handlinger: rapporter, og slett for forfatter/moderator. */
+function GroupPostCard({ post, canModerate }) {
+  const app = useApp();
+  const [menu, setMenu] = useState(false);
+  const mine = post.authorId === app.myProfileId;
+  return (
+    <article className="gPost">
+      <header className="gPostHead">
+        <Avatar src={post.dogPhoto} name={post.dogName || post.authorName} size={38} />
+        <div className="gPostWho">
+          <b>{post.authorName}{post.dogName ? ` & ${post.dogName}` : ""}</b>
+          <small>{timeAgo(post.createdAt)}</small>
+        </div>
+        <div className="gPostMenuWrap">
+          <button className="ghostIcon" onClick={() => setMenu((v) => !v)} aria-label="Mer"><Icon name="more" size={20} /></button>
+          {menu && (
+            <div className="gPostMenu" onMouseLeave={() => setMenu(false)}>
+              <button onClick={() => { setMenu(false); app.reportGroupPost(post.id); }}><Icon name="flag" size={16} /> Rapporter</button>
+              {(mine || canModerate) && (
+                <button className="danger" onClick={() => { setMenu(false); app.deleteGroupPost(post.id); }}><Icon name="ban" size={16} /> Slett</button>
+              )}
+            </div>
+          )}
+        </div>
+      </header>
+      {post.photo && <div className="gPostMedia"><Img id={post.photo} w={700} h={520} className="postMediaImg" /></div>}
+      {post.body && <p className="gPostBody">{post.body}</p>}
+    </article>
+  );
+}
+
+/* Ekte innlegg-komponering i en gruppe (krever medlemskap). */
+function GroupComposeInline({ groupId }) {
+  const app = useApp();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const submit = () => {
+    if (!text.trim()) return;
+    app.createGroupPost(groupId, text.trim());
+    setText(""); setOpen(false);
+  };
+  if (!open) {
+    return (
+      <button className="composeBar" onClick={() => setOpen(true)}>
+        <DogAvatar me size={36} />
+        <span>Skriv noe til gruppen…</span>
+        <Icon name="image" size={20} />
+      </button>
+    );
+  }
+  return (
+    <div className="gCompose">
+      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Skriv noe til gruppen…" autoFocus rows={3} />
+      <div className="gComposeFoot">
+        <button className="pillBtn soft compact" onClick={() => { setOpen(false); setText(""); }}>Avbryt</button>
+        <button className="pillBtn primary compact" onClick={submit} disabled={!text.trim()}>Publiser</button>
+      </div>
+    </div>
+  );
+}
+
 function GroupPage({ id }) {
   const app = useApp();
   const g = app.groups.find((x) => x.id === id);
   const [tab, setTab] = useState("Innlegg");
   if (!g) return null;
   const joined = !!app.joinedGroups[g.id];
-  const members = g.faces || [];
+  const canModerate = g.myRole === "admin" || g.myRole === "moderator";
   // Ekte tall: har gruppa et medlemstall viser vi det, ellers «Ny gruppe».
-  const memberText = g.members ? `${fmtNum(g.members)} medlemmer` : "Ny gruppe";
+  const memberText = g.members ? `${fmtNum(g.members)} ${g.members === 1 ? "medlem" : "medlemmer"}` : "Ny gruppe";
   const kName = kommuneById[g.kommuneId]?.name || app.kommune?.name;
   const tabs = ["Innlegg", "Treff", "Medlemmer", "Om"];
+  // Ekte gruppedata når vi er koblet til backend; ellers lokal/demo-veien.
+  const posts = app.backend ? app.groupPosts : app.posts;
+  const meetups = app.backend ? app.groupMeetupsFor(g.id) : app.meetups;
 
   return (
     <div className="view groupPage">
@@ -198,44 +285,92 @@ function GroupPage({ id }) {
 
       {tab === "Innlegg" && (
         <>
-          <button className="composeBar" onClick={() => app.open("postComposer")}>
-            <DogAvatar me size={36} />
-            <span>Del noe med {g.name}…</span>
-            <Icon name="image" size={20} />
-          </button>
-          {app.posts.length === 0 ? (
-            <Empty icon="camera" title="Ingen innlegg i gruppa ennå" text="Si hei, del en tur eller still et spørsmål." cta="Skriv det første" onCta={() => app.open("postComposer")} />
+          {/* Bare medlemmer kan skrive (håndheves også i RPC). */}
+          {joined && (
+            app.backend
+              ? <GroupComposeInline groupId={g.id} />
+              : (
+                <button className="composeBar" onClick={() => app.open("postComposer")}>
+                  <DogAvatar me size={36} />
+                  <span>Del noe med {g.name}…</span>
+                  <Icon name="image" size={20} />
+                </button>
+              )
+          )}
+          {posts.length === 0 ? (
+            <Empty
+              icon="camera"
+              title="Ingen innlegg ennå"
+              text={joined ? "Start den første samtalen i gruppa." : "Bli med for å skrive det første innlegget."}
+              cta={joined ? (app.backend ? null : "Skriv det første") : "Bli med"}
+              onCta={joined ? () => app.open("postComposer") : () => app.toggleGroup(g.id)}
+            />
+          ) : app.backend ? (
+            <div className="gFeed">{posts.map((p) => <GroupPostCard key={p.id} post={p} canModerate={canModerate} />)}</div>
           ) : (
-            <div className="feedGrid two">{app.posts.slice(0, 4).map((p) => <PostCard key={p.id} post={p} />)}</div>
+            <div className="feedGrid two">{posts.slice(0, 4).map((p) => <PostCard key={p.id} post={p} />)}</div>
           )}
         </>
       )}
 
       {tab === "Treff" && (
-        app.meetups.length === 0 ? (
-          <Empty icon="live" tone="coral" title="Ingen treff i gruppa" text="Lag et treff og inviter medlemmene." cta="Lag treff" onCta={() => app.open("meetupComposer")} />
-        ) : (
-          <div className="meetGrid">{app.meetups.slice(0, 3).map((m) => <MeetupCard key={m.id} m={m} />)}</div>
-        )
+        <>
+          {joined && (
+            <button className="pillBtn primary block" onClick={() => app.open("meetupComposer", { group: g.id, groupName: g.name })}>
+              <Icon name="plus" size={17} /> Lag treff i gruppen
+            </button>
+          )}
+          {meetups.length === 0 ? (
+            <Empty icon="live" tone="coral" title="Ingen treff i gruppen ennå" text={joined ? "Lag det første treffet for medlemmene." : "Bli med for å lage et treff."} cta={joined ? "Lag treff" : "Bli med"} onCta={joined ? () => app.open("meetupComposer", { group: g.id, groupName: g.name }) : () => app.toggleGroup(g.id)} />
+          ) : (
+            <div className="meetGrid">{meetups.map((m) => <MeetupCard key={m.id} m={m} />)}</div>
+          )}
+        </>
       )}
 
       {tab === "Medlemmer" && (
-        members.length === 0 ? (
-          <Empty icon="users" tone="violet" title="Gruppa er helt ny" text="Bli med, så er du blant de første medlemmene." cta={joined ? null : "Bli med"} onCta={() => app.toggleGroup(g.id)} />
+        app.backend ? (
+          app.groupMembers.length === 0 ? (
+            <Empty icon="users" tone="violet" title="Ingen medlemmer ennå" text="Bli med, så er du det første medlemmet." cta={joined ? null : "Bli med"} onCta={() => app.toggleGroup(g.id)} />
+          ) : (
+            <div className="memberList">
+              {app.groupMembers.map((m) => (
+                <div key={m.profileId} className="memberRow">
+                  <button className="memberMain" onClick={() => m.dogId && app.openDog(m.dogId)}>
+                    <Avatar src={m.dogPhoto} name={m.dogName || m.ownerName} size={46} />
+                    <span>
+                      <b>{m.ownerName}{m.dogName ? ` & ${m.dogName}` : ""}</b>
+                      <small>{m.dogBreed || (m.role === "admin" ? "Admin" : m.role === "moderator" ? "Moderator" : "Medlem")}</small>
+                    </span>
+                  </button>
+                  {(m.role === "admin" || m.role === "moderator") && (
+                    <span className={"roleBadge " + m.role}>{m.role === "admin" ? "Admin" : "Moderator"}</span>
+                  )}
+                  {canModerate && m.profileId !== app.myProfileId && m.role !== "admin" && (
+                    <button className="iconBtn ghost" onClick={() => app.removeGroupMember(g.id, m.profileId)} aria-label="Fjern medlem"><Icon name="x" size={18} /></button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
         ) : (
-          <div className="memberList">
-            {members.map((mid) => {
-              const d = app.dogById(mid);
-              if (!d) return null;
-              return (
-                <button key={mid} className="memberRow" onClick={() => app.open("dog", mid)}>
-                  <Avatar src={d.photo} name={d.name} size={46} online={d.online} />
-                  <span><b>{d.owner} & {d.name}</b><small>{d.breed}</small></span>
-                  <Icon name="chevronRight" size={18} />
-                </button>
-              );
-            })}
-          </div>
+          (g.faces || []).length === 0 ? (
+            <Empty icon="users" tone="violet" title="Gruppa er helt ny" text="Bli med, så er du blant de første medlemmene." cta={joined ? null : "Bli med"} onCta={() => app.toggleGroup(g.id)} />
+          ) : (
+            <div className="memberList">
+              {(g.faces || []).map((mid) => {
+                const d = app.dogById(mid);
+                if (!d) return null;
+                return (
+                  <button key={mid} className="memberRow" onClick={() => app.open("dog", mid)}>
+                    <Avatar src={d.photo} name={d.name} size={46} online={d.online} />
+                    <span><b>{d.owner} & {d.name}</b><small>{d.breed}</small></span>
+                    <Icon name="chevronRight" size={18} />
+                  </button>
+                );
+              })}
+            </div>
+          )
         )
       )}
 

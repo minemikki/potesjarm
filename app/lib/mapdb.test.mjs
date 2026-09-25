@@ -173,3 +173,47 @@ test("rowToMeetup: mine=true nar host_id matcher myProfileId, ukjent vertsnavn f
   assert.equal(m.mine, true);
   assert.equal(m.hostName, "Hundeeier");
 });
+
+// ---- Sprint 4: grupper ----
+import { rowToGroupSummary, rowToGroupMember, rowToGroupPost } from "./mapdb.js";
+
+test("rowToGroupSummary: ekte medlemstall + min rolle -> joined", () => {
+  const g = rowToGroupSummary({ id: "g1", name: "Hundeliv Stavanger", about: "Åpen gruppe", kind: "lokalt", is_official: true, municipality_id: "stavanger", member_count: 3, my_role: "member" });
+  assert.equal(g.name, "Hundeliv Stavanger");
+  assert.equal(g.official, true);
+  assert.equal(g.tag, "Lokalt");
+  assert.equal(g.members, 3);
+  assert.equal(g.joined, true);
+  assert.equal(g.myRole, "member");
+  assert.deepEqual(g.faces, []);
+});
+
+test("rowToGroupSummary: ikke medlem, tomt medlemstall -> 0 / joined false", () => {
+  const g = rowToGroupSummary({ id: "g2", name: "Valpetreff", kind: "valp", member_count: 0, my_role: null });
+  assert.equal(g.members, 0);
+  assert.equal(g.joined, false);
+  assert.equal(g.myRole, null);
+  assert.equal(g.tag, "Valp");
+});
+
+test("rowToGroupMember: rolle + primærhund", () => {
+  const m = rowToGroupMember({ profile_id: "p1", role: "admin", display_name: "Kari", dog_id: "d1", dog_name: "Bamse", dog_breed: "Blandingshund" });
+  assert.equal(m.role, "admin");
+  assert.equal(m.ownerName, "Kari");
+  assert.equal(m.dogName, "Bamse");
+  assert.equal(m.dogId, "d1");
+});
+
+test("rowToGroupMember: ukjent eiernavn faller ærlig tilbake", () => {
+  const m = rowToGroupMember({ profile_id: "p2", role: "member" });
+  assert.equal(m.ownerName, "Hundeeier");
+  assert.equal(m.dogName, "");
+});
+
+test("rowToGroupPost: forfatter + hund + tekst", () => {
+  const p = rowToGroupPost({ id: "po1", author_id: "a1", author_name: "Nora", dog_name: "Milo", body: "Hei alle!", created_at: "2026-01-15T10:00:00Z" });
+  assert.equal(p.real, true);
+  assert.equal(p.authorName, "Nora");
+  assert.equal(p.dogName, "Milo");
+  assert.equal(p.body, "Hei alle!");
+});

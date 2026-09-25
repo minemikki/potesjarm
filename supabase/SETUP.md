@@ -15,6 +15,9 @@ Level Security). Denne guiden får din instans opp å kjøre.
    - `supabase/migrations/003_sprint3_social_graph.sql` – Sprint 3: hundevenn
      (forespørsler + vennskap), oppdagbarhet på hunder, og sikre RPC-er for
      følge/venn/blokk/oppdag. Også idempotent.
+   - `supabase/migrations/004_sprint4_groups.sql` – Sprint 4: grupper.
+     `meetups.group_id` + RPC-er for medlemskap, gruppefeed, gruppetreff og
+     moderering (fjern medlem, roller, slett innlegg). Idempotent.
 
 ## 2. Hent nøklene
 
