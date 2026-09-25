@@ -25,6 +25,13 @@ Level Security). Denne guiden får din instans opp å kjøre.
      hent/opprett direkte- og treff-samtale, send melding, samtaleliste,
      meldinger og marker-lest, samt **aktivering av Realtime på `messages`**.
      Idempotent. Se «Realtime» under.
+   - `supabase/migrations/007_sprint7_notifications.sql` – Sprint 7: ekte varsler.
+     `notifications.actor_id` + indekser, en `_notify`-hjelper (blokkering +
+     innstillinger + dedupe) og AFTER-triggere på følge/hundevenn/like/kommentar/
+     melding/treff-påmelding/treff-avlysning som lager varsler **server-side**.
+     RPC-er for liste, ulest-antall, marker lest / alle lest, og innstillinger.
+     `push_subscriptions` (fundament for web-push, RLS på egne rader) og
+     **aktivering av Realtime på `notifications`**. Additiv og idempotent.
    - `supabase/migrations/006_sprint6_feed.sql` – Sprint 6: ekte feed.
      Ingen nye tabeller (`posts`/`post_likes`/`comments`/`saved_posts`/`follows`
      finnes fra før). Legger til feed-indekser, en berikelses-view `post_card`
@@ -72,6 +79,13 @@ hendelsene – derfor retter `005` også den gamle, for vide policyen først.
 Vil du heller slå det på i dashbordet: **Database → Replication →
 `supabase_realtime` → legg til tabellen `messages`**. Kjører du migrasjonen er
 dette allerede gjort.
+
+Migrasjon `007` gjør det samme for `notifications` (varsler i sanntid). Ekte
+web-push (utsending når appen er lukket) er kun forberedt – tabellen
+`push_subscriptions` finnes, men selve utsendingen krever en VAPID-nøkkel
+(`NEXT_PUBLIC_VAPID_PUBLIC_KEY`) + en service worker + en Edge Function, som
+kobles på i et senere steg. Uten det sier appen ærlig «Pushvarsler kommer
+snart»; in-app varsler (Realtime) virker uansett.
 
 ### Magic link – redirect-URL
 

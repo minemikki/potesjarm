@@ -19,9 +19,12 @@ import * as social from "../lib/db/social";
 import * as groupsDb from "../lib/db/groups";
 import * as chatDb from "../lib/db/chat";
 import * as feedDb from "../lib/db/feed";
-import { meetupComposerToRow, rowToConversation, rawMessageToMessage } from "../lib/mapdb";
+import * as notifDb from "../lib/db/notifications";
+import { meetupComposerToRow, rowToConversation, rawMessageToMessage, rowToNotification } from "../lib/mapdb";
 import { canStartDirectChat, mergeMessages, sortConversations } from "../lib/chat";
 import { mergeFeed, toggleLikeOptimistic, toggleSaveOptimistic, applyLikeResult } from "../lib/feed";
+import { mergeNotifications, notificationTarget } from "../lib/notifications";
+import { enablePush as enableBrowserPush, pushStatusText } from "../lib/push";
 
 const FEED_PAGE = 25;
 
@@ -161,6 +164,10 @@ export function AppProvider({ children, authUser = null }) {
   const [feedHasMore, setFeedHasMore] = useState(false);
   const [savedFeed, setSavedFeed] = useState([]);
   const [feedComments, setFeedComments] = useState({});
+  // Ekte varsler + ulest-antall + innstillinger. Tomme uten backend.
+  const [realNotifications, setRealNotifications] = useState([]);
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [notifSettings, setNotifSettings] = useState(null);
   const [tab, setTabState] = useState("For deg");
   const [groupId, setGroupId] = useState(null);
   const [comments, setComments] = useState({});
@@ -393,6 +400,37 @@ export function AppProvider({ children, authUser = null }) {
     const { data } = await feedDb.listComments(postId);
     setFeedComments((m) => ({ ...m, [postId]: data }));
   }, [backend]);
+
+  /* ---- Sprint 7: ekte varsler (notifications) + Realtime ---- */
+
+  const refreshNotifications = useCallback(async () => {
+    if (!backend) return;
+    const [{ data: list }, { data: unread }] = await Promise.all([
+      notifDb.listNotifications({ limit: 40 }),
+      notifDb.unreadCount(),
+    ]);
+    setRealNotifications(list);
+    setNotifUnread(unread);
+  }, [backend, authUser?.id]);
+
+  const refreshNotificationSettings = useCallback(async () => {
+    if (!backend) return;
+    const { data } = await notifDb.getSettings();
+    if (data) setNotifSettings(data);
+  }, [backend, authUser?.id]);
+
+  useEffect(() => {
+    if (!backend) { setRealNotifications([]); setNotifUnread(0); setNotifSettings(null); return; }
+    refreshNotifications();
+    refreshNotificationSettings();
+    // Realtime: nye varsler dukker opp uten refresh (RLS => bare mine).
+    const unsub = notifDb.subscribeNotifications(authUser.id, (row) => {
+      setRealNotifications((cur) => mergeNotifications(cur, [rowToNotification(row)]));
+      // Ulest-teller hentes på nytt (server er fasit; dedupe kan endre den).
+      notifDb.unreadCount().then(({ data }) => setNotifUnread(data));
+    });
+    return unsub;
+  }, [backend, authUser?.id, refreshNotifications, refreshNotificationSettings]);
 
   // Demo-modus laster demo-samtaler slik at chatten har noe å vise.
   useEffect(() => {
@@ -972,6 +1010,77 @@ export function AppProvider({ children, authUser = null }) {
       flash(error ? "Kunne ikke rapportere – prøv igjen" : "Takk – vi ser på innlegget", error ? "alert" : "flag");
     },
 
+    /* ---- Sprint 7: varsler ---- */
+
+    refreshNotifications,
+
+    markNotificationRead: (id) => {
+      if (!backend) return;
+      setRealNotifications((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      setNotifUnread((c) => Math.max(0, c - 1));
+      notifDb.markRead(id);
+    },
+
+    markAllNotificationsRead: () => {
+      if (!backend) return;
+      setRealNotifications((list) => list.map((n) => ({ ...n, read: true })));
+      setNotifUnread(0);
+      notifDb.markAllRead();
+    },
+
+    // Åpne riktig skjerm fra et varsel (marker lest først). Ingen døde knapper:
+    // er referansen slettet, vis en ærlig beskjed i stedet.
+    openNotification: async (n) => {
+      if (!n) return;
+      if (backend && !n.read) {
+        setRealNotifications((list) => list.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+        setNotifUnread((c) => Math.max(0, c - 1));
+        notifDb.markRead(n.id);
+      }
+      const t = notificationTarget(n);
+      close("notifications");
+      if (!t) return;
+      if (t.overlay === "dog") {
+        const known = contentWithMine.dogs.find((d) => d.id === t.id) || extraDogs[t.id];
+        if (!known && backend) {
+          const { data } = await getDog(t.id, kommuneById[stateRef.current.location.kommuneId]?.name || "", stateRef.current.location.kommuneId);
+          if (data) setExtraDogs((m) => ({ ...m, [t.id]: data }));
+        }
+        open("dog", t.id);
+      } else if (t.overlay === "post") {
+        const { data } = await feedDb.getPost(t.id);
+        if (data) open("comments", data);
+        else flash("Innlegget finnes ikke lenger", "alert");
+      } else if (t.overlay === "chat") {
+        open("chat", t.id);
+      } else if (t.overlay === "meetup") {
+        const exists = contentWithMine.meetups.find((m) => m.id === t.id);
+        if (exists) open("meetup", t.id);
+        else flash("Treffet er ikke tilgjengelig lenger", "alert");
+      }
+    },
+
+    updateNotificationSettings: async (patch) => {
+      if (!backend) return;
+      // Optimistisk, server er fasit.
+      setNotifSettings((s) => ({ ...(s || {}), ...patch }));
+      const { data, error } = await notifDb.updateSettings(patch);
+      if (error) { flash("Kunne ikke lagre innstillingen", "alert"); refreshNotificationSettings(); return; }
+      if (data) setNotifSettings(data);
+    },
+
+    // Slå på pushvarsler – men aldri på liksom. Registrerer et ekte abonnement
+    // kun hvis nettleser + server (VAPID) faktisk er klare; ellers ærlig beskjed.
+    enablePush: async () => {
+      const res = await enableBrowserPush();
+      if (res.ok && res.subscription) {
+        await notifDb.registerPushSubscription({ ...res.subscription, userAgent: navigator.userAgent });
+        flash("Pushvarsler er på", "bell");
+      } else {
+        flash(pushStatusText(res.reason), res.reason === "granted" ? "bell" : "alert");
+      }
+    },
+
     // INGEN poter for å opprette et treff. Hvert treff har en unik id, så en
     // opprettelses-belønning kan aldri dedupliseres – den ville vært fritt
     // farmbar (lag treff, få poter, gjenta). Verdien av et treff er at det
@@ -1230,6 +1339,10 @@ export function AppProvider({ children, authUser = null }) {
     feedHasMore,
     savedPosts: savedFeed,
     commentsFor: (postId) => feedComments[postId] || [],
+    // Ekte varsler overstyrer demo-varslene når backend er på.
+    notifications: backend ? realNotifications : contentWithMine.notifications,
+    notifUnread,
+    notifSettings,
     stats,
     kommune: kommuneById[state.location.kommuneId],
     // Relasjonsstatus (følge/hundevenn/blokkert) for en hund – se friends.js.

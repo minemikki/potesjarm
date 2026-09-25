@@ -708,9 +708,32 @@ mapping-/regelfunksjoner ligger i `app/lib/mapdb.js` og `app/lib/social.js`
   (slett egen / rapporter / blokker), PostComposer (kun tekst i live-modus).
   Blokkering håndheves server-side i alle RPC-ene (begge veier).
 
+- **Sprint 7 – Ekte varsler + Realtime + push-fundament:** migrasjon
+  `007_sprint7_notifications.sql` (additiv, ingen nye kjernetabeller – bruker
+  eksisterende `notifications`/`notification_settings`; la til `actor_id` og
+  `push_subscriptions`). Varsler lages **server-side av AFTER-triggere** ved
+  ekte handlinger (følge, hundevenn sendt/godtatt, like, kommentar, melding,
+  treff-påmelding, treff-avlysning) via `_notify` som håndhever egen-handling,
+  blokkering (begge veier) og innstillinger, med dedupe (window for like/følge/
+  join, unread-collapse for meldinger). RPC-er: `list_notifications` (beriket
+  m/ aktør-hund for deep-link + avatar), `unread_notifications`,
+  `mark_notification_read`, `mark_all_notifications_read`,
+  `get_notification_settings`, `update_notification_settings`. Realtime på
+  `notifications`. `lib/notifications.js` (rene regler: mergeNotifications,
+  unreadCount, badgeText, notificationTarget, notificationIcon; testet),
+  `db/notifications.js` (repo + Realtime + push-registrering), `lib/push.js`
+  (ærlig push-statusfundament – later aldri som push virker uten VAPID/SW).
+  Store: `realNotifications` + `notifUnread` + `notifSettings`, Realtime-abonnement,
+  mark read/all, `openNotification` (deep-link + mark read), innstillinger.
+  UI: ekte varselsenter (aktør-avatar, ulest-tilstand, «marker alle lest»,
+  deep-link), header-bjelle med ekte ulest-badge, `NotificationSettings`-skjerm
+  med 6 kategorier + ærlig push-status. Ingen fake varsler / ulest i live-modus.
+
 **Fortsatt lokal/demo (ikke ekte multi-user ennå):** arrangementer, kart-pins
 for treff, full deltaker-avatarliste i treff (vises som ærlig antall). Full
-gruppechat og push/varsler er bevisst utsatt. Bildeopplasting i feeden er
-tekst-først i live-modus (ingen falsk opplasting) – ekte opplasting via Supabase
-Storage er et senere steg. Disse er markert i koden og venter på sine sprinter
-(7: varsler/push, 8: kart, 9: aktivitet/gamification-backend, 10: moderering/GDPR).
+gruppechat er utsatt. **Web-push**: kun fundament (`push_subscriptions` +
+statusdeteksjon) – ekte utsending krever VAPID-nøkkel + service worker + Edge
+Function (senere steg); in-app varsler via Realtime virker. Bildeopplasting i
+feeden er tekst-først i live-modus. Disse er markert i koden og venter på sine
+sprinter (8: kart/places/geo, 9: aktivitet/gamification-backend, 10:
+moderering/GDPR/sikkerhet).

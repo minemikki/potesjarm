@@ -377,3 +377,37 @@ export function rowToPostComment(row = {}) {
     mine: row.is_mine === true,
   };
 }
+
+/* --- Sprint 7: varsler ----------------------------------------------------- */
+
+/** En rad fra list_notifications() -> UI-form. `read` fra read_at. */
+export function rowToNotification(row = {}) {
+  return {
+    id: row.id,
+    kind: row.kind || "",
+    title: row.title || "",
+    body: row.body || "",
+    refTable: row.ref_table || null,
+    refId: row.ref_id || null,
+    read: !!row.read_at,
+    at: row.created_at || null,
+    actorId: row.actor_id || null,
+    actorName: row.actor_name || "",
+    actorDogId: row.actor_dog_id || null,
+    actorDogName: row.actor_dog_name || "",
+    actorPhoto: row.actor_photo || null,
+  };
+}
+
+/** notification_settings-rad -> UI-form. Manglende felt => på (default). */
+export function rowToNotificationSettings(row = {}) {
+  const on = (v) => v !== false; // null/undefined => true
+  return {
+    messages: on(row.messages),
+    meetups: on(row.meetups),
+    community: on(row.community),
+    streak: on(row.streak),
+    events: on(row.events),
+    lostDog: on(row.lost_dog),
+  };
+}

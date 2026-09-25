@@ -1814,3 +1814,14 @@ p { margin: 0; }
 .commentList .comment>div{flex:1;min-width:0}
 .commentList .comment .ghostIcon{flex:0 0 auto;opacity:.5}
 .commentList .comment .ghostIcon:hover{opacity:1}
+
+/* Sprint 7: varsler – ulest-tilstand, bjelle-badge, push-kort */
+.iconBtn{position:relative}
+.iconBtn .countBadge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;background:var(--coral,#f0674a);color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center;box-shadow:0 0 0 2px var(--bg,#fff)}
+.noteRow{position:relative}
+.noteRow.unread{background:color-mix(in srgb,var(--sun,#ffd666) 12%,transparent)}
+.noteRow .unreadDot{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:50%;background:var(--coral,#f0674a)}
+.pushCard{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:14px;margin:4px 0 8px;border-radius:16px;background:color-mix(in srgb,var(--mint,#7ad0b0) 12%,transparent)}
+.pushCard>div{min-width:0}
+.pushCard b{display:flex;align-items:center;gap:6px}
+.pushCard small{display:block;color:var(--muted,#6b7280);margin-top:2px}

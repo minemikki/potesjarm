@@ -6,6 +6,7 @@ import { useApp } from "./store";
 import { Avatar, AvatarStack, DogAvatar } from "./ui";
 import { fmtKm, fmtNum, img, PHOTO } from "../lib/data";
 import { placeLabel, placeShort, radiusLabel } from "../lib/geo";
+import { badgeText } from "../lib/notifications";
 import { MODE } from "../lib/content";
 
 export const NAV = [
@@ -134,7 +135,9 @@ export function TopBar() {
         <button className="iconBtn searchOnly" onClick={() => app.open("search")} aria-label="Søk"><Icon name="search" /></button>
         <button className="iconBtn" onClick={() => app.open("notifications")} aria-label="Varsler">
           <Icon name="bell" />
-          {app.notifications.length > 0 && <i className="redDot" />}
+          {app.backend
+            ? (app.notifUnread > 0 && <i className="countBadge">{badgeText(app.notifUnread)}</i>)
+            : (app.notifications.length > 0 && <i className="redDot" />)}
         </button>
         <button className="iconBtn" onClick={() => app.open("inbox")} aria-label="Meldinger"><Icon name="mail" /></button>
       </div>
@@ -293,7 +296,9 @@ export function MobileHeader() {
         </button>
         <button className="iconBtn" onClick={() => app.open("notifications")} aria-label="Varsler">
           <Icon name="bell" size={19} />
-          {app.notifications.length > 0 && <i className="redDot" />}
+          {app.backend
+            ? (app.notifUnread > 0 && <i className="countBadge">{badgeText(app.notifUnread)}</i>)
+            : (app.notifications.length > 0 && <i className="redDot" />)}
         </button>
         <button className="iconBtn" onClick={() => app.open("inbox")} aria-label="Meldinger"><Icon name="mail" size={19} /></button>
       </div>

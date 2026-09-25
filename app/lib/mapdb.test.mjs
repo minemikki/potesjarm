@@ -16,6 +16,8 @@ import {
   rawMessageToMessage,
   rowToFeedPost,
   rowToPostComment,
+  rowToNotification,
+  rowToNotificationSettings,
 } from "./mapdb.js";
 
 const NOW = new Date(Date.UTC(2026, 0, 15)); // 2026-01-15
@@ -305,4 +307,26 @@ test("rowToPostComment: mine fra serveren, avatar faller tilbake på hundefoto",
   assert.equal(c.avatar, "d.jpg");
   assert.equal(c.mine, true);
   assert.equal(c.body, "Så fin!");
+});
+
+test("rowToNotification: read fra read_at, aktør beriket for deep-link", () => {
+  const n = rowToNotification({
+    id: "n1", kind: "like", title: "Luna likte innlegget ditt",
+    ref_table: "posts", ref_id: "p1", read_at: null, created_at: "2026-01-01T10:00:00Z",
+    actor_id: "u2", actor_name: "Kari", actor_dog_id: "d2", actor_dog_name: "Luna", actor_photo: "l.jpg",
+  });
+  assert.equal(n.read, false);
+  assert.equal(n.refId, "p1");
+  assert.equal(n.actorDogId, "d2");
+  assert.equal(n.title, "Luna likte innlegget ditt");
+  const r = rowToNotification({ id: "n2", kind: "message", read_at: "2026-01-01T12:00:00Z" });
+  assert.equal(r.read, true);
+});
+
+test("rowToNotificationSettings: manglende => på (default), false respekteres", () => {
+  assert.deepEqual(rowToNotificationSettings({}), { messages: true, meetups: true, community: true, streak: true, events: true, lostDog: true });
+  const s = rowToNotificationSettings({ messages: false, lost_dog: false });
+  assert.equal(s.messages, false);
+  assert.equal(s.lostDog, false);
+  assert.equal(s.meetups, true);
 });

@@ -10,6 +10,8 @@ import { placeTypes } from "../lib/seed";
 import { MODE } from "../lib/content";
 import { paceMinPerKm, pawsForWalk } from "../lib/track";
 import { getDogCommonalities, commonalityHeadline } from "../lib/social";
+import { pushStatus, pushStatusText } from "../lib/push";
+import { notificationIcon } from "../lib/notifications";
 
 export default function Overlays() {
   const app = useApp();
@@ -1125,8 +1127,48 @@ function Search({ onClose }) {
   );
 }
 
+function notifTimeAgo(iso) {
+  if (!iso) return "";
+  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return "nå";
+  if (s < 3600) return `${Math.floor(s / 60)} min`;
+  if (s < 86400) return `${Math.floor(s / 3600)} t`;
+  if (s < 604800) return `${Math.floor(s / 86400)} d`;
+  return new Date(iso).toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+}
+
 function Notifications({ onClose }) {
   const app = useApp();
+
+  if (app.backend) {
+    // Ekte varsler: aktør-avatar/ikon, ulest-tilstand, deep-link, marker alle.
+    const list = app.notifications;
+    return (
+      <Layer kind="drawer" onClose={onClose} className="listDrawer" label="Varsler">
+        <LayerHead kicker="AKTIVITET" title="Varsler" onClose={onClose}>
+          {app.notifUnread > 0 && <button className="linkish" onClick={() => app.markAllNotificationsRead()}>Marker alle lest</button>}
+        </LayerHead>
+        {list.length === 0 ? (
+          <Empty icon="bell" title="Ingen varsler ennå" text="Du får beskjed når noen følger hunden din, liker et innlegg, blir med på et treff eller sender en melding." />
+        ) : (
+          list.map((n) => {
+            const ic = notificationIcon(n.kind);
+            return (
+              <button key={n.id} className={"noteRow" + (n.read ? "" : " unread")} onClick={() => app.openNotification(n)}>
+                {n.actorPhoto || n.actorDogName
+                  ? <Avatar src={n.actorPhoto} name={n.actorDogName || n.actorName} size={44} />
+                  : <span className={"noteIcon tint-" + ic.color}><Icon name={ic.icon} size={20} /></span>}
+                <span><b>{n.title}</b><small>{n.body ? `${n.body} · ` : ""}{notifTimeAgo(n.at)}</small></span>
+                {!n.read && <i className="unreadDot" />}
+              </button>
+            );
+          })
+        )}
+      </Layer>
+    );
+  }
+
+  // Lokal/demo-varsler (uendret).
   return (
     <Layer kind="drawer" onClose={onClose} className="listDrawer" label="Varsler">
       <LayerHead kicker="AKTIVITET" title="Varsler" onClose={onClose} />
@@ -1339,7 +1381,11 @@ function Settings({ onClose }) {
 
       <h5>Personvern</h5>
       <Toggle on={app.privacy} set={app.setPrivacy} title="Vis meg i nærområdet" sub={`Andre i ${app.kommune?.name} kan finne ${app.me.dogName || "hunden din"}.`} />
-      <Toggle on={app.push} set={app.setPush} title="Varsler" sub="Treff, meldinger og streak." />
+      {app.backend ? (
+        <button className="rowBtn" onClick={() => app.open("notificationSettings")}><Icon name="bell" size={18} /> Varsler <Icon name="chevronRight" size={17} /></button>
+      ) : (
+        <Toggle on={app.push} set={app.setPush} title="Varsler" sub="Treff, meldinger og streak." />
+      )}
       <p className="fineprint"><Icon name="shield" size={14} /> Vi viser aldri nøyaktig posisjon eller hjemmeadresse – bare omtrentlig område.</p>
 
       <h5>Trygghet</h5>
@@ -1360,6 +1406,44 @@ function Settings({ onClose }) {
       <h5>Konto</h5>
       <button className="rowBtn" onClick={() => app.open("invite")}><Icon name="gift" size={18} /> Inviter hundeeiere <Icon name="chevronRight" size={17} /></button>
       <button className="rowBtn danger" onClick={app.resetAll}><Icon name="logout" size={18} /> Nullstill appen <Icon name="chevronRight" size={17} /></button>
+    </Layer>
+  );
+}
+
+function NotificationSettings({ onClose }) {
+  const app = useApp();
+  const s = app.notifSettings;
+  const push = pushStatus();
+  const Toggle = ({ k, title, sub }) => (
+    <label className="toggleRow">
+      <span><b>{title}</b><small>{sub}</small></span>
+      <input type="checkbox" checked={s ? s[k] !== false : true} onChange={(e) => app.updateNotificationSettings({ [k]: e.target.checked })} />
+      <i className="switch" />
+    </label>
+  );
+  return (
+    <Layer kind="drawer" onClose={onClose} className="listDrawer" label="Varsler">
+      <LayerHead kicker="VARSLER" title="Hva vil du varsles om?" onClose={onClose} />
+
+      {/* In-app varsler (Realtime) er alltid på – vi er ærlige om push. */}
+      <div className="pushCard">
+        <div><b><Icon name="bell" size={16} /> In-app varsler er på</b><small>{pushStatusText(push)}</small></div>
+        {push !== "unsupported" && push !== "granted" && (
+          <button className="pillBtn soft compact" disabled={push === "unconfigured" || push === "denied"} onClick={() => app.enablePush?.()}>
+            Slå på push
+          </button>
+        )}
+      </div>
+
+      <h5>Varseltyper</h5>
+      <Toggle k="messages" title="Meldinger" sub="Nye direktemeldinger og treff-chat." />
+      <Toggle k="meetups" title="Treff" sub="Når noen blir med, eller et treff endres." />
+      <Toggle k="community" title="Fellesskap" sub="Følgere, hundevenner, likes og kommentarer." />
+      <Toggle k="streak" title="Aktivitet og streak" sub="Påminnelser om turer og streak." />
+      <Toggle k="events" title="Arrangementer" sub="Nye og oppdaterte arrangementer i nærheten." />
+      <Toggle k="lostDog" title="Savnet hund" sub="Hastevarsler om savnede hunder i området." />
+
+      <p className="fineprint"><Icon name="shield" size={14} /> Vi varsler aldri om din egen handling, og aldri på tvers av blokkering.</p>
     </Layer>
   );
 }
@@ -1698,6 +1782,7 @@ const MAP = {
   chat: Chat,
   profile: Profile,
   settings: Settings,
+  notificationSettings: NotificationSettings,
   more: More,
   invite: Invite,
   safety: Safety,
