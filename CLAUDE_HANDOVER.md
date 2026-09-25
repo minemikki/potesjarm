@@ -688,9 +688,29 @@ mapping-/regelfunksjoner ligger i `app/lib/mapdb.js` og `app/lib/social.js`
   hundeprofil, «Skriv til verten» + treff-chat fra treff-detalj. Migrasjonen
   aktiverer Realtime på `messages` selv (idempotent).
 
-**Fortsatt lokal/demo (ikke ekte multi-user ennå):** like/kommentarer på innlegg
-(Sprint 6), generell feed og arrangementer, kart-pins for treff, full
-deltaker-avatarliste i treff (vises som ærlig antall). Full gruppechat og
-push/varsler er bevisst utsatt (Sprint 5 dekker 1:1 + treff-chat, ikke
-gruppechat). Disse er markert i koden og venter på sine sprinter
-(6: feed/likes/kommentarer, 7: varsler/push, 8: kart).
+- **Sprint 6 – Ekte feed + likes + kommentarer + saves:** migrasjon
+  `006_sprint6_feed.sql` (ingen nye tabeller). Berikelses-view `post_card`
+  (ekte likes_count/comments_count + liked_by_me/saved_by_me) delt av alle
+  feed-RPC-ene. `list_feed` (relevans: egne + fulgte hunder + medlemsgrupper +
+  lokale innlegg; gruppeinnlegg lekker aldri til ikke-medlemmer; cursor på
+  created_at), `list_saved_posts`, `feed_post`, `create_post`, `delete_post`
+  (forfatter eller gruppeadmin/mod), `like_post`/`unlike_post` (idempotent,
+  returnerer ekte count), `save_post`/`unsave_post`, `list_post_comments`,
+  `create_comment`, `delete_comment`. Sprint 4 sin `list_group_posts` er
+  erstattet med en beriket variant (samme form), så hjem-feed og gruppefeed
+  deler mapper (`rowToFeedPost`) og kort (`FeedPostCard`). `lib/feed.js` (rene
+  regler: mergeFeed-paginering, optimistisk like/lagre + tilbakerulling,
+  filterBlocked; testet), `db/feed.js` (repository). Store: `realFeed` med
+  cursor + «last mer», `savedFeed`, kommentarer per innlegg, optimistiske
+  like/save med rollback, create/delete/report. UI: `FeedPostCard` (avatar →
+  hundeprofil, ekte like/kommentar/lagre/meny), hjem-feed med kald-start («Del
+  den første turen …»), ekte Comments-overlay (egen kan slettes), PostMenu
+  (slett egen / rapporter / blokker), PostComposer (kun tekst i live-modus).
+  Blokkering håndheves server-side i alle RPC-ene (begge veier).
+
+**Fortsatt lokal/demo (ikke ekte multi-user ennå):** arrangementer, kart-pins
+for treff, full deltaker-avatarliste i treff (vises som ærlig antall). Full
+gruppechat og push/varsler er bevisst utsatt. Bildeopplasting i feeden er
+tekst-først i live-modus (ingen falsk opplasting) – ekte opplasting via Supabase
+Storage er et senere steg. Disse er markert i koden og venter på sine sprinter
+(7: varsler/push, 8: kart, 9: aktivitet/gamification-backend, 10: moderering/GDPR).

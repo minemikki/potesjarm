@@ -335,3 +335,45 @@ export function rawMessageToMessage(row = {}, myId = null) {
     senderPhoto: null,
   };
 }
+
+/* --- Sprint 6: feed (innlegg + kommentarer) -------------------------------- */
+
+/** En rad fra post_card (list_feed / list_group_posts / feed_post) -> UI-form.
+ *  Ekte counts og min egen liked/saved-status; ingen fake tall. */
+export function rowToFeedPost(row = {}) {
+  return {
+    id: row.id,
+    real: true,
+    authorId: row.author_id,
+    author: row.author_name || "Hundeeier",
+    avatar: row.author_avatar || null,
+    dogId: row.dog_id || null,
+    dogName: row.dog_name || "",
+    dogPhoto: row.dog_photo || null,
+    groupId: row.group_id || null,
+    groupName: row.group_name || "",
+    municipalityId: row.municipality_id || null,
+    kind: row.kind || "text",
+    body: row.body || "",
+    photo: row.photo_url || null,
+    createdAt: row.created_at || null,
+    likes: typeof row.likes_count === "number" ? row.likes_count : Number(row.likes_count || 0),
+    comments: typeof row.comments_count === "number" ? row.comments_count : Number(row.comments_count || 0),
+    likedByMe: row.liked_by_me === true,
+    savedByMe: row.saved_by_me === true,
+  };
+}
+
+/** En rad fra list_post_comments() -> UI-form. `mine` fra serveren. */
+export function rowToPostComment(row = {}) {
+  return {
+    id: row.id,
+    authorId: row.author_id,
+    author: row.author_name || "Hundeeier",
+    avatar: row.author_avatar || row.dog_photo || null,
+    dogName: row.dog_name || "",
+    body: row.body || "",
+    at: row.created_at || null,
+    mine: row.is_mine === true,
+  };
+}

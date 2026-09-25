@@ -8,7 +8,7 @@
    ========================================================================= */
 
 import { getSupabase } from "../supabaseClient.js";
-import { rowToGroupSummary, rowToGroupMember, rowToGroupPost } from "../mapdb.js";
+import { rowToGroupSummary, rowToGroupMember, rowToFeedPost } from "../mapdb.js";
 
 /** Grupper i en kommune (medlemstall + min rolle), offisielle først. */
 export async function listGroups(municipalityId) {
@@ -49,12 +49,14 @@ export async function listMembers(groupId) {
   return { data: (data || []).map(rowToGroupMember), error };
 }
 
-/** Gruppefeed (nyeste først), blokkerte forfattere skjult. */
+/** Gruppefeed (nyeste først), blokkerte forfattere skjult. Fra Sprint 6 gir
+ *  list_group_posts samme berikede form som hjem-feeden (counts + liked/saved),
+ *  så gruppefeed og hjem-feed deler mapper (rowToFeedPost) og PostCard. */
 export async function listPosts(groupId, limit = 30) {
   const sb = getSupabase();
   if (!sb || !groupId) return { data: [], error: null };
   const { data, error } = await sb.rpc("list_group_posts", { p_group: groupId, p_limit: limit });
-  return { data: (data || []).map(rowToGroupPost), error };
+  return { data: (data || []).map(rowToFeedPost), error };
 }
 
 /** Lag innlegg (krever medlemskap – håndheves i RPC). */
@@ -64,7 +66,7 @@ export async function createPost(groupId, body, dogId = null, photo = null) {
   const { data, error } = await sb.rpc("create_group_post", {
     p_group: groupId, p_body: body, p_dog: dogId, p_photo: photo,
   });
-  return { data: data ? rowToGroupPost(data) : null, error };
+  return { data: data ? rowToFeedPost(data) : null, error };
 }
 
 /** Slett innlegg (forfatter eller admin/moderator). */

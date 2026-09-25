@@ -1805,3 +1805,12 @@ p { margin: 0; }
 .roleBadge { flex: none; font-weight: 800; font-size: 11px; padding: 4px 9px; border-radius: 999px; }
 .roleBadge.admin { background: var(--blue-bg); color: var(--blue); }
 .roleBadge.moderator { background: var(--violet-bg); color: var(--violet); }
+
+/* Sprint 6: ekte feed – klikkbar forfatter i PostCard + slett-knapp i kommentar */
+.postAuthor{display:flex;align-items:center;gap:10px;flex:1;min-width:0;background:none;border:0;padding:0;text-align:left;cursor:pointer;font:inherit;color:inherit}
+.postAuthor>div{min-width:0}
+.postAuthor b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.commentList .comment{display:flex;gap:10px;align-items:flex-start}
+.commentList .comment>div{flex:1;min-width:0}
+.commentList .comment .ghostIcon{flex:0 0 auto;opacity:.5}
+.commentList .comment .ghostIcon:hover{opacity:1}

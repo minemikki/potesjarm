@@ -25,6 +25,14 @@ Level Security). Denne guiden får din instans opp å kjøre.
      hent/opprett direkte- og treff-samtale, send melding, samtaleliste,
      meldinger og marker-lest, samt **aktivering av Realtime på `messages`**.
      Idempotent. Se «Realtime» under.
+   - `supabase/migrations/006_sprint6_feed.sql` – Sprint 6: ekte feed.
+     Ingen nye tabeller (`posts`/`post_likes`/`comments`/`saved_posts`/`follows`
+     finnes fra før). Legger til feed-indekser, en berikelses-view `post_card`
+     (ekte likes/kommentar-tall + min egen liked/saved) og SECURITY DEFINER-
+     RPC-er for feed (relevans + cursor), lagrede, kommentarer, likes, saves og
+     lag/slett innlegg. Blokkering + gruppemedlemskap håndheves i RPC-ene.
+     Erstatter Sprint 4 sin `list_group_posts` med en beriket variant (samme
+     form som hjem-feeden), så gruppefeed og hjem-feed deler kode. Idempotent.
 
 ## 2. Hent nøklene
 

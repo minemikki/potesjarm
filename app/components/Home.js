@@ -97,11 +97,16 @@ export default function Home() {
           <section className="block">
             <SectionHead title="Fra fellesskapet" action={s.posts > 0 ? "Del noe" : null} onAction={() => app.open("postComposer")} />
             {s.posts === 0 ? (
-              <Empty compact icon="camera" title="Ingen innlegg ennå" text="Del en tur, et bilde eller et spørsmål." cta="Del noe" onCta={() => app.open("postComposer")} />
+              <Empty compact icon="camera" title="Ingen innlegg her ennå" text="Del den første turen eller spør nabolaget om noe." cta="Lag innlegg" onCta={() => app.open("postComposer")} />
             ) : (
-              <div className="feedGrid">
-                {app.posts.map((p) => <PostCard key={p.id} post={p} />)}
-              </div>
+              <>
+                <div className="feedGrid">
+                  {app.posts.map((p) => (app.backend ? <FeedPostCard key={p.id} post={p} /> : <PostCard key={p.id} post={p} />))}
+                </div>
+                {app.backend && app.feedHasMore && (
+                  <button className="linkish seeMore" onClick={app.loadMoreFeed}>Last flere innlegg</button>
+                )}
+              </>
             )}
           </section>
         </>
@@ -259,6 +264,72 @@ function PlaceMini({ place }) {
       <b>{place.name}</b>
       <small>{t.label}</small>
     </button>
+  );
+}
+
+/** Kompakt relativ tid ("nå", "5 min", "3 t", "2 d", ellers dato). */
+function timeAgo(iso) {
+  if (!iso) return "";
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return "";
+  const s = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (s < 60) return "nå";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} t`;
+  const d = Math.round(h / 24);
+  if (d < 7) return `${d} d`;
+  return new Date(then).toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+}
+
+/**
+ * Ekte innlegg (backend). Delt av hjem-feeden og gruppefeeden. Ekte counts og
+ * min egen liked/saved-status – ingen fake social proof. `canModerate` gir
+ * slette-tilgang i menyen for gruppeadmin/moderator.
+ */
+export function FeedPostCard({ post, canModerate = false }) {
+  const app = useApp();
+  const [burst, setBurst] = useState(false);
+  const like = () => {
+    if (!post.likedByMe) { setBurst(true); setTimeout(() => setBurst(false), 700); }
+    app.likeRealPost(post);
+  };
+  return (
+    <article className={"post kind-" + post.kind}>
+      <header className="postHead">
+        <button className="postAuthor" onClick={() => post.dogId && app.openDog(post.dogId)}>
+          <Avatar src={post.dogPhoto || post.avatar} name={post.dogName || post.author} size={38} />
+          <div>
+            <b>{post.author}{post.dogName ? ` & ${post.dogName}` : ""}</b>
+            <small>{timeAgo(post.createdAt)}{post.groupName ? ` · ${post.groupName}` : ""}</small>
+          </div>
+        </button>
+        <button className="ghostIcon" onClick={() => app.open("postMenu", { ...post, canMod: canModerate })} aria-label="Mer"><Icon name="more" size={20} /></button>
+      </header>
+
+      {post.photo && (
+        <div className="postMedia" onDoubleClick={like}>
+          <Img id={post.photo} w={700} h={520} className="postMediaImg" />
+          {burst && <span className="heartBurst"><Icon name="heart" size={64} fill="currentColor" stroke={0} /></span>}
+        </div>
+      )}
+
+      {post.body && <div className="postBody"><p>{post.body}</p></div>}
+
+      <footer className="postActions">
+        <button className={"act" + (post.likedByMe ? " liked" : "")} onClick={like} aria-pressed={post.likedByMe}>
+          <Icon name="heart" size={20} fill={post.likedByMe ? "currentColor" : "none"} /> {post.likes || 0}
+        </button>
+        <button className="act" onClick={() => app.open("comments", post)}>
+          <Icon name="comment" size={20} /> {post.comments || 0}
+        </button>
+        <button className="act" onClick={() => app.shareLink(`/innlegg/${post.id}`)} aria-label="Del"><Icon name="share" size={19} /></button>
+        <button className={"act save" + (post.savedByMe ? " saved" : "")} onClick={() => app.saveRealPost(post)} aria-label="Lagre">
+          <Icon name="bookmark" size={19} fill={post.savedByMe ? "currentColor" : "none"} />
+        </button>
+      </footer>
+    </article>
   );
 }
 

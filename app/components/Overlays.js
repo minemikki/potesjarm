@@ -496,9 +496,20 @@ function PostComposer({ onClose }) {
         <button className={place ? "active" : ""} onClick={() => setPlace(place ? "" : app.places[0]?.name || app.kommune?.name)}>
           <Icon name="pin" size={14} /> {place || "Legg til sted"}
         </button>
-        <button onClick={() => app.flash("Bildeopplasting kommer med innlogging", "camera")}><Icon name="camera" size={14} /> Bilde</button>
+        <button onClick={() => app.flash("Bildeopplasting kommer snart", "camera")}><Icon name="camera" size={14} /> Bilde</button>
       </div>
-      <button className="pillBtn primary block big" disabled={!text.trim()} onClick={() => { app.addPost(text.trim(), place); onClose(); app.setTab("For deg"); }}>
+      <button
+        className="pillBtn primary block big"
+        disabled={!text.trim()}
+        onClick={() => {
+          // Backend: ekte innlegg (kun tekst i live-modus – ingen falsk
+          // bildeopplasting). Uten backend: den lokale/demo-veien.
+          if (app.backend) app.createRealPost({ body: text.trim() });
+          else app.addPost(text.trim(), place);
+          onClose();
+          app.setTab("For deg");
+        }}
+      >
         Publiser
       </button>
     </Layer>
@@ -941,6 +952,41 @@ function StoryViewer({ data: start, onClose }) {
 function Comments({ data: post, onClose }) {
   const app = useApp();
   const [text, setText] = useState("");
+  const real = app.backend && post.real;
+
+  // Ekte kommentarer (backend): last fra Supabase (blokkerte skjult i RPC).
+  useEffect(() => { if (real) app.loadComments(post.id); }, [real, post.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (real) {
+    const list = app.commentsFor(post.id);
+    return (
+      <Layer kind="drawer" onClose={onClose} className="commentsBox" label="Kommentarer">
+        <LayerHead kicker={(post.author || "").toUpperCase()} title="Kommentarer" onClose={onClose} />
+        <div className="commentList">
+          {list.length === 0 && <p className="muted">Ingen kommentarer ennå. Si hei!</p>}
+          {list.map((c) => (
+            <div className="comment" key={c.id}>
+              <Avatar src={c.avatar} name={c.author} size={36} />
+              <div>
+                <b>{c.author}{c.dogName ? ` & ${c.dogName}` : ""}</b>
+                <p>{c.body}</p>
+              </div>
+              {c.mine && (
+                <button className="ghostIcon" onClick={() => app.deleteRealComment(post.id, c.id)} aria-label="Slett kommentar"><Icon name="x" size={17} /></button>
+              )}
+            </div>
+          ))}
+        </div>
+        <form className="inputRow" onSubmit={(e) => { e.preventDefault(); if (!text.trim()) return; app.createRealComment(post.id, text.trim()); setText(""); }}>
+          <DogAvatar me size={34} />
+          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Skriv en kommentar…" autoFocus />
+          <button className="sendBtn" aria-label="Send"><Icon name="send" size={18} /></button>
+        </form>
+      </Layer>
+    );
+  }
+
+  // Lokal/demo-kommentarer (uendret).
   const list = (app.comments[post.id] || []).filter((c) => !app.blocked[c.name]);
   return (
     <Layer kind="drawer" onClose={onClose} className="commentsBox" label="Kommentarer">
@@ -965,6 +1011,30 @@ function Comments({ data: post, onClose }) {
 
 function PostMenu({ data: post, onClose }) {
   const app = useApp();
+  if (app.backend && post.real) {
+    // Ekte innlegg: slett (egen, eller gruppeadmin/moderator), rapporter,
+    // blokker eier. Alt håndheves også server-side i RPC-ene.
+    const canDelete = post.authorId === app.myProfileId || post.canMod;
+    return (
+      <Layer kind="sheet" onClose={onClose} className="actionSheet" label="Valg">
+        <span className="sheetHandle" />
+        <b className="sheetTitle">{post.author}</b>
+        <button onClick={() => { app.saveRealPost(post); onClose(); }}><Icon name="bookmark" size={19} /> {post.savedByMe ? "Fjern fra lagret" : "Lagre innlegg"}</button>
+        {canDelete ? (
+          <button className="danger" onClick={() => { onClose(); app.deleteRealPost(post.id); }}><Icon name="ban" size={19} /> Slett innlegg</button>
+        ) : (
+          <>
+            <button onClick={() => { onClose(); app.reportRealPost(post.id); }}><Icon name="flag" size={19} /> Rapporter innlegg</button>
+            {post.authorId && (
+              <button className="danger" onClick={() => { onClose(); app.blockOwner({ real: true, ownerId: post.authorId }); }}><Icon name="ban" size={19} /> Blokker {post.author}</button>
+            )}
+          </>
+        )}
+        <button className="cancel" onClick={onClose}>Avbryt</button>
+      </Layer>
+    );
+  }
+
   return (
     <Layer kind="sheet" onClose={onClose} className="actionSheet" label="Valg">
       <span className="sheetHandle" />

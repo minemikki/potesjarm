@@ -14,6 +14,8 @@ import {
   rowToConversation,
   rowToMessage,
   rawMessageToMessage,
+  rowToFeedPost,
+  rowToPostComment,
 } from "./mapdb.js";
 
 const NOW = new Date(Date.UTC(2026, 0, 15)); // 2026-01-15
@@ -262,4 +264,45 @@ test("rawMessageToMessage: mine avgjøres av myId", () => {
   assert.equal(mine.mine, true);
   const theirs = rawMessageToMessage({ id: "2", sender_id: "you", body: "b" }, "me");
   assert.equal(theirs.mine, false);
+});
+
+test("rowToFeedPost: ekte counts + liked/saved, aldri fake tall", () => {
+  const p = rowToFeedPost({
+    id: "p1", author_id: "u1", author_name: "Kari", author_avatar: "a.jpg",
+    dog_id: "d1", dog_name: "Luna", dog_photo: "l.jpg",
+    group_id: "g1", group_name: "Turgjengen", municipality_id: "stavanger",
+    kind: "photo", body: "Fin tur!", photo_url: "p.jpg", created_at: "2026-01-01T10:00:00Z",
+    likes_count: 4, comments_count: 2, liked_by_me: true, saved_by_me: false,
+  });
+  assert.equal(p.author, "Kari");
+  assert.equal(p.dogName, "Luna");
+  assert.equal(p.groupName, "Turgjengen");
+  assert.equal(p.likes, 4);
+  assert.equal(p.comments, 2);
+  assert.equal(p.likedByMe, true);
+  assert.equal(p.savedByMe, false);
+  assert.equal(p.real, true);
+});
+
+test("rowToFeedPost: manglende felt -> 0/false/Hundeeier, ikke gjettet", () => {
+  const p = rowToFeedPost({ id: "p2", author_id: "u2" });
+  assert.equal(p.author, "Hundeeier");
+  assert.equal(p.likes, 0);
+  assert.equal(p.comments, 0);
+  assert.equal(p.likedByMe, false);
+  assert.equal(p.savedByMe, false);
+});
+
+test("rowToFeedPost: counts som tekst (Supabase kan gi bigint som string)", () => {
+  const p = rowToFeedPost({ id: "p3", author_id: "u3", likes_count: "7", comments_count: "3" });
+  assert.equal(p.likes, 7);
+  assert.equal(p.comments, 3);
+});
+
+test("rowToPostComment: mine fra serveren, avatar faller tilbake på hundefoto", () => {
+  const c = rowToPostComment({ id: "c1", author_id: "u1", author_name: "Per", dog_photo: "d.jpg", body: "Så fin!", created_at: "t", is_mine: true });
+  assert.equal(c.author, "Per");
+  assert.equal(c.avatar, "d.jpg");
+  assert.equal(c.mine, true);
+  assert.equal(c.body, "Så fin!");
 });

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Icon from "./Icon";
 import { useApp } from "./store";
-import { MeetupCard, PostCard } from "./Home";
+import { MeetupCard, PostCard, FeedPostCard } from "./Home";
 import { Avatar, AvatarStack, Bar, Chips, DogAvatar, Empty, Img, Meter, SectionHead, SourceTag } from "./ui";
 import { fmtKm, fmtNum, img, meetupTypes, PHOTO } from "../lib/data";
 import { BANDTVANG, inBandtvang, kommuneById, placeShort } from "../lib/geo";
@@ -160,48 +160,6 @@ function GroupCard({ g }) {
 }
 
 /** Kort, relativ "for X siden" for et ISO-tidspunkt. */
-function timeAgo(iso) {
-  if (!iso) return "";
-  const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-  if (s < 60) return "nå nettopp";
-  if (s < 3600) return `for ${Math.floor(s / 60)} min siden`;
-  if (s < 86400) return `for ${Math.floor(s / 3600)} t siden`;
-  return `for ${Math.floor(s / 86400)} d siden`;
-}
-
-/* Ekte gruppeinnlegg. Bevisst UTEN liker/kommentar-tellere – de bygges i
-   feed-sprinten, og vi viser aldri et oppdiktet engasjementstall. Menyen gir
-   ekte handlinger: rapporter, og slett for forfatter/moderator. */
-function GroupPostCard({ post, canModerate }) {
-  const app = useApp();
-  const [menu, setMenu] = useState(false);
-  const mine = post.authorId === app.myProfileId;
-  return (
-    <article className="gPost">
-      <header className="gPostHead">
-        <Avatar src={post.dogPhoto} name={post.dogName || post.authorName} size={38} />
-        <div className="gPostWho">
-          <b>{post.authorName}{post.dogName ? ` & ${post.dogName}` : ""}</b>
-          <small>{timeAgo(post.createdAt)}</small>
-        </div>
-        <div className="gPostMenuWrap">
-          <button className="ghostIcon" onClick={() => setMenu((v) => !v)} aria-label="Mer"><Icon name="more" size={20} /></button>
-          {menu && (
-            <div className="gPostMenu" onMouseLeave={() => setMenu(false)}>
-              <button onClick={() => { setMenu(false); app.reportGroupPost(post.id); }}><Icon name="flag" size={16} /> Rapporter</button>
-              {(mine || canModerate) && (
-                <button className="danger" onClick={() => { setMenu(false); app.deleteGroupPost(post.id); }}><Icon name="ban" size={16} /> Slett</button>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-      {post.photo && <div className="gPostMedia"><Img id={post.photo} w={700} h={520} className="postMediaImg" /></div>}
-      {post.body && <p className="gPostBody">{post.body}</p>}
-    </article>
-  );
-}
-
 /* Ekte innlegg-komponering i en gruppe (krever medlemskap). */
 function GroupComposeInline({ groupId }) {
   const app = useApp();
@@ -306,7 +264,7 @@ function GroupPage({ id }) {
               onCta={joined ? () => app.open("postComposer") : () => app.toggleGroup(g.id)}
             />
           ) : app.backend ? (
-            <div className="gFeed">{posts.map((p) => <GroupPostCard key={p.id} post={p} canModerate={canModerate} />)}</div>
+            <div className="feedGrid">{posts.map((p) => <FeedPostCard key={p.id} post={p} canModerate={canModerate} />)}</div>
           ) : (
             <div className="feedGrid two">{posts.slice(0, 4).map((p) => <PostCard key={p.id} post={p} />)}</div>
           )}

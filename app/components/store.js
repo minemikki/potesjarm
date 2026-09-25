@@ -18,8 +18,12 @@ import { discoverDogs, getDog } from "../lib/db/dogs";
 import * as social from "../lib/db/social";
 import * as groupsDb from "../lib/db/groups";
 import * as chatDb from "../lib/db/chat";
+import * as feedDb from "../lib/db/feed";
 import { meetupComposerToRow, rowToConversation, rawMessageToMessage } from "../lib/mapdb";
 import { canStartDirectChat, mergeMessages, sortConversations } from "../lib/chat";
+import { mergeFeed, toggleLikeOptimistic, toggleSaveOptimistic, applyLikeResult } from "../lib/feed";
+
+const FEED_PAGE = 25;
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -150,6 +154,13 @@ export function AppProvider({ children, authUser = null }) {
   const [realConversations, setRealConversations] = useState([]);
   const [extraConvs, setExtraConvs] = useState({});
   const [chatMsgs, setChatMsgs] = useState({});
+  // Ekte feed (hjem) med cursor-paginering, lagrede innlegg, og kommentarer
+  // per innlegg. Tomme uten backend.
+  const [realFeed, setRealFeed] = useState([]);
+  const [feedCursor, setFeedCursor] = useState(null);
+  const [feedHasMore, setFeedHasMore] = useState(false);
+  const [savedFeed, setSavedFeed] = useState([]);
+  const [feedComments, setFeedComments] = useState({});
   const [tab, setTabState] = useState("For deg");
   const [groupId, setGroupId] = useState(null);
   const [comments, setComments] = useState({});
@@ -333,6 +344,56 @@ export function AppProvider({ children, authUser = null }) {
     return () => { alive = false; unsub(); };
   }, [activeChatConvId, refreshMessages, refreshConversations]);
 
+  /* ---- Sprint 6: ekte feed (innlegg + likes + kommentarer + saves) ---- */
+
+  // Hjem-feeden for kommunen: egne + fulgte + grupper + lokale (relevans i RPC).
+  const refreshFeed = useCallback(async () => {
+    if (!backend) return;
+    const kommuneId = stateRef.current.location.kommuneId;
+    const { data } = await feedDb.listFeed(kommuneId, { limit: FEED_PAGE });
+    setRealFeed(data);
+    setFeedHasMore(data.length === FEED_PAGE);
+    setFeedCursor(data.length ? data[data.length - 1].createdAt : null);
+  }, [backend, authUser?.id]);
+
+  useEffect(() => {
+    if (backend) refreshFeed();
+    else { setRealFeed([]); setSavedFeed([]); setFeedComments({}); setFeedCursor(null); setFeedHasMore(false); }
+  }, [backend, refreshFeed, state.location.kommuneId]);
+
+  // «Last mer»: hent neste side med created_at-cursor og slå sammen (dedupe).
+  const loadMoreFeed = useCallback(async () => {
+    if (!backend || !feedCursor) return;
+    const kommuneId = stateRef.current.location.kommuneId;
+    const { data } = await feedDb.listFeed(kommuneId, { limit: FEED_PAGE, before: feedCursor });
+    setRealFeed((cur) => mergeFeed(cur, data));
+    setFeedHasMore(data.length === FEED_PAGE);
+    setFeedCursor(data.length ? data[data.length - 1].createdAt : feedCursor);
+    if (!data.length) setFeedHasMore(false);
+  }, [backend, feedCursor, authUser?.id]);
+
+  // Lagrede innlegg (egen liste).
+  const refreshSaved = useCallback(async () => {
+    if (!backend) return;
+    const { data } = await feedDb.listSavedPosts({ limit: 50 });
+    setSavedFeed(data);
+  }, [backend, authUser?.id]);
+
+  // Oppdater ett innlegg på tvers av alle lister det kan ligge i.
+  const patchPost = useCallback((postId, fn) => {
+    const map = (list) => list.map((p) => (p.id === postId ? fn(p) : p));
+    setRealFeed(map);
+    setSavedFeed(map);
+    setGroupPosts(map);
+  }, []);
+
+  // Kommentarer for ett innlegg (blokkerte skjult i RPC).
+  const loadComments = useCallback(async (postId) => {
+    if (!backend || !postId) return;
+    const { data } = await feedDb.listComments(postId);
+    setFeedComments((m) => ({ ...m, [postId]: data }));
+  }, [backend]);
+
   // Demo-modus laster demo-samtaler slik at chatten har noe å vise.
   useEffect(() => {
     if (state.mode === MODE.DEMO) {
@@ -418,12 +479,13 @@ export function AppProvider({ children, authUser = null }) {
       meetups: backend ? realMeetups : [...mine(state.myMeetups), ...content.meetups],
       dogs,
       groups: backend ? realGroups : content.groups,
-      // Blokkerte forfattere OG skjulte/rapporterte innlegg forsvinner faktisk
-      // fra feeden – ikke bare en toast.
-      posts: notBlocked([...mine(state.myPosts), ...content.posts]),
+      // Med backend er hjem-feeden ekte (relevans + blokkering i RPC).
+      // Uten backend: blokkerte forfattere OG skjulte/rapporterte innlegg
+      // forsvinner faktisk fra feeden – ikke bare en toast.
+      posts: backend ? realFeed : notBlocked([...mine(state.myPosts), ...content.posts]),
       events: [...mine(state.myEvents), ...content.events],
     };
-  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups, realDogs, realGroups]);
+  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups, realDogs, realGroups, realFeed]);
 
   const stats = useMemo(() => getStats(contentWithMine), [contentWithMine]);
 
@@ -726,7 +788,7 @@ export function AppProvider({ children, authUser = null }) {
       setState((s) => ({ ...s, blocked: { ...s.blocked, [ownerId]: true } }));
       social.blockUser(ownerId).then(({ error }) => {
         flash(error ? "Kunne ikke blokkere – prøv igjen" : "Eieren er blokkert", error ? "alert" : "ban");
-      }).finally(() => { refreshSocial(); refreshDogs(); });
+      }).finally(() => { refreshSocial(); refreshDogs(); refreshFeed(); refreshGroupDetail(); });
     },
     unblockOwner: (ownerId) => {
       if (!backend || !ownerId) return;
@@ -833,6 +895,81 @@ export function AppProvider({ children, authUser = null }) {
     markConversationRead: (convId) => {
       if (!backend || !convId) return;
       chatDb.markRead(convId).then(() => refreshConversations());
+    },
+
+    /* ---- Sprint 6: ekte feed ---- */
+
+    loadMoreFeed,
+    refreshFeed,
+    refreshSaved,
+    loadComments,
+
+    // Lag et ekte innlegg (hjem eller gruppe). Kommune settes server-side.
+    createRealPost: async ({ body = null, dogId = null, groupId = null, photo = null, kind = null } = {}) => {
+      if (!backend) return null;
+      const { data: id, error } = await feedDb.createPost({
+        body, dogId: dogId ?? primaryDogIdRef.current, groupId, photo, kind,
+        municipalityId: stateRef.current.location.kommuneId,
+      });
+      if (error || !id) { flash("Kunne ikke publisere – prøv igjen", "alert"); return null; }
+      if (groupId) { refreshGroupDetail(); refreshGroups(); }
+      else refreshFeed();
+      flash("Innlegget er publisert", "check");
+      return id;
+    },
+
+    // Slett eget innlegg (eller som gruppeadmin/moderator).
+    deleteRealPost: async (postId) => {
+      if (!backend) return;
+      const { error } = await feedDb.deletePost(postId);
+      if (error) { flash("Kunne ikke slette innlegget", "alert"); return; }
+      const drop = (list) => list.filter((p) => p.id !== postId);
+      setRealFeed(drop); setSavedFeed(drop); setGroupPosts(drop);
+      flash("Innlegget er slettet", "x");
+    },
+
+    // Like/unlike med optimistisk oppdatering + tilbakerulling ved feil.
+    likeRealPost: async (post) => {
+      if (!backend || !post) return;
+      const wasLiked = post.likedByMe;
+      patchPost(post.id, toggleLikeOptimistic);
+      const res = wasLiked ? await feedDb.unlikePost(post.id) : await feedDb.likePost(post.id);
+      if (res.error) { patchPost(post.id, toggleLikeOptimistic); flash("Kunne ikke oppdatere", "alert"); return; }
+      if (typeof res.data === "number") patchPost(post.id, (p) => applyLikeResult(p, { likes: res.data, liked: !wasLiked }));
+    },
+
+    // Lagre/fjern lagring med optimistisk oppdatering + tilbakerulling.
+    saveRealPost: async (post) => {
+      if (!backend || !post) return;
+      const wasSaved = post.savedByMe;
+      patchPost(post.id, toggleSaveOptimistic);
+      const res = wasSaved ? await feedDb.unsavePost(post.id) : await feedDb.savePost(post.id);
+      if (res.error) { patchPost(post.id, toggleSaveOptimistic); flash("Kunne ikke lagre", "alert"); return; }
+      refreshSaved();
+      flash(wasSaved ? "Fjernet fra lagret" : "Lagret", "bookmark");
+    },
+
+    // Kommenter (optimistisk +1 på telleren, sannheten hentes etterpå).
+    createRealComment: async (postId, body) => {
+      if (!backend) return;
+      const { error } = await feedDb.createComment(postId, body);
+      if (error) { flash("Kunne ikke kommentere", "alert"); return; }
+      patchPost(postId, (p) => ({ ...p, comments: (p.comments || 0) + 1 }));
+      loadComments(postId);
+    },
+    deleteRealComment: async (postId, commentId) => {
+      if (!backend) return;
+      const { error } = await feedDb.deleteComment(commentId);
+      if (error) { flash("Kunne ikke slette kommentaren", "alert"); return; }
+      patchPost(postId, (p) => ({ ...p, comments: Math.max(0, (p.comments || 0) - 1) }));
+      loadComments(postId);
+    },
+
+    // Rapporter et innlegg (ekte rad i reports).
+    reportRealPost: async (postId) => {
+      if (!backend) { flash("Takk – vi ser på innlegget", "flag"); return; }
+      const { error } = await feedDb.reportPost(postId);
+      flash(error ? "Kunne ikke rapportere – prøv igjen" : "Takk – vi ser på innlegget", error ? "alert" : "flag");
     },
 
     // INGEN poter for å opprette et treff. Hvert treff har en unik id, så en
@@ -1089,6 +1226,10 @@ export function AppProvider({ children, authUser = null }) {
     conversations: backend ? realConversationsMerged : contentWithMine.conversations,
     conversationById: (id) => realConversations.find((c) => c.id === id) || extraConvs[id] || null,
     chatMessagesFor: (convId) => chatMsgs[convId] || [],
+    // Ekte feed-tilstand (backend). commentsFor gir kommentarene for ett innlegg.
+    feedHasMore,
+    savedPosts: savedFeed,
+    commentsFor: (postId) => feedComments[postId] || [],
     stats,
     kommune: kommuneById[state.location.kommuneId],
     // Relasjonsstatus (følge/hundevenn/blokkert) for en hund – se friends.js.
