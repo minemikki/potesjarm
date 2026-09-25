@@ -1640,13 +1640,6 @@ p { margin: 0; }
 .lpPhoneC { right: 2%; top: 10%; transform: rotate(9deg); z-index: 2; animation: lpBob 8s ease-in-out infinite 0.8s; }
 @keyframes lpBob { 0%,100% { translate: 0 0; } 50% { translate: 0 -12px; } }
 @media (prefers-reduced-motion: reduce) { .lpPhone { animation: none !important; } }
-.lpScribble {
-  z-index: 4; align-self: flex-end;
-  margin: 0 4% 12px 0;
-  color: var(--mint); font-size: clamp(22px, 3vw, 30px); transform: rotate(-5deg);
-  text-shadow: 0 2px 10px rgba(251,248,241,0.9);
-  pointer-events: none;
-}
 
 /* ---- Seksjoner generelt ---- */
 .lpSection { padding: clamp(48px, 8vw, 96px) var(--gutter); }
