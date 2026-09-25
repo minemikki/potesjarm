@@ -1,8 +1,23 @@
 import "./globals.css";
 
 export const metadata = {
+  metadataBase: new URL("https://potesjarm.no"),
   title: "Potesjarm – hundeliv er bedre sammen",
   description: "Lokalt hundefellesskap: finn turvenner, bli med på treff, bygg streaks og bli kjent med hundefolka i byen din.",
+  applicationName: "Potesjarm",
+  openGraph: {
+    title: "Potesjarm – hundeliv er bedre sammen",
+    description: "Lokalt hundefellesskap: finn turvenner, bli med på treff, bygg streaks og bli kjent med hundefolka i byen din.",
+    url: "https://potesjarm.no",
+    siteName: "Potesjarm",
+    locale: "nb_NO",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Potesjarm – hundeliv er bedre sammen",
+    description: "Lokalt hundefellesskap: finn turvenner, bli med på treff og bli kjent med hundefolka i byen din.",
+  },
 };
 
 export const viewport = {
