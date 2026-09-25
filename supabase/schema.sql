@@ -97,8 +97,7 @@ create table if not exists follows (
   follower_id uuid not null references profiles(id) on delete cascade,
   dog_id      uuid not null references dogs(id) on delete cascade,
   created_at  timestamptz not null default now(),
-  primary key (follower_id, dog_id)
-);
+  primary key (follower_id, dog_id));
 
 -- =============================================================================
 -- 3. STEDER (redaksjonelt seed + brukerbidrag)
@@ -128,8 +127,7 @@ create table if not exists place_verifications (
   place_id   uuid not null references places(id) on delete cascade,
   profile_id uuid not null references profiles(id) on delete cascade,
   created_at timestamptz not null default now(),
-  primary key (place_id, profile_id)
-);
+  primary key (place_id, profile_id));
 
 -- Vurderinger finnes bare når ekte brukere har skrevet dem.
 create table if not exists place_reviews (
@@ -178,8 +176,7 @@ create table if not exists group_members (
   profile_id uuid not null references profiles(id) on delete cascade,
   role       text not null default 'member' check (role in ('member','moderator','admin')),
   joined_at  timestamptz not null default now(),
-  primary key (group_id, profile_id)
-);
+  primary key (group_id, profile_id));
 
 create table if not exists posts (
   id              uuid primary key default gen_random_uuid(),
@@ -203,8 +200,7 @@ create table if not exists post_likes (
   post_id    uuid not null references posts(id) on delete cascade,
   profile_id uuid not null references profiles(id) on delete cascade,
   created_at timestamptz not null default now(),
-  primary key (post_id, profile_id)
-);
+  primary key (post_id, profile_id));
 
 create table if not exists comments (
   id         uuid primary key default gen_random_uuid(),
@@ -219,8 +215,7 @@ create table if not exists saved_posts (
   profile_id uuid not null references profiles(id) on delete cascade,
   post_id    uuid not null references posts(id) on delete cascade,
   created_at timestamptz not null default now(),
-  primary key (profile_id, post_id)
-);
+  primary key (profile_id, post_id));
 
 -- =============================================================================
 -- 5. NÅ SKJER (meetups) OG ARRANGEMENTER
@@ -254,8 +249,7 @@ create table if not exists meetup_participants (
   profile_id uuid not null references profiles(id) on delete cascade,
   dog_id     uuid references dogs(id) on delete set null,
   joined_at  timestamptz not null default now(),
-  primary key (meetup_id, profile_id)
-);
+  primary key (meetup_id, profile_id));
 
 create table if not exists events (
   id              uuid primary key default gen_random_uuid(),
@@ -282,8 +276,7 @@ create table if not exists event_participants (
   event_id   uuid not null references events(id) on delete cascade,
   profile_id uuid not null references profiles(id) on delete cascade,
   joined_at  timestamptz not null default now(),
-  primary key (event_id, profile_id)
-);
+  primary key (event_id, profile_id));
 
 -- =============================================================================
 -- 6. AKTIVITET OG GAMIFICATION
@@ -391,16 +384,14 @@ create table if not exists badge_awards (
   profile_id uuid not null references profiles(id) on delete cascade,
   badge_id   text not null references badges(id) on delete cascade,
   awarded_at timestamptz not null default now(),
-  primary key (profile_id, badge_id)
-);
+  primary key (profile_id, badge_id));
 
 create table if not exists challenge_progress (
   profile_id   uuid not null references profiles(id) on delete cascade,
   challenge_id text not null references challenges(id) on delete cascade,
   value        numeric not null default 0,
   completed_at timestamptz,
-  primary key (profile_id, challenge_id)
-);
+  primary key (profile_id, challenge_id));
 
 -- =============================================================================
 -- 7. MELDINGER OG VARSLER
@@ -415,8 +406,7 @@ create table if not exists conversation_members (
   conversation_id uuid not null references conversations(id) on delete cascade,
   profile_id      uuid not null references profiles(id) on delete cascade,
   last_read_at    timestamptz,
-  primary key (conversation_id, profile_id)
-);
+  primary key (conversation_id, profile_id));
 
 create table if not exists messages (
   id              uuid primary key default gen_random_uuid(),
@@ -469,8 +459,7 @@ create table if not exists blocks (
   blocker_id uuid not null references profiles(id) on delete cascade,
   blocked_id uuid not null references profiles(id) on delete cascade,
   created_at timestamptz not null default now(),
-  primary key (blocker_id, blocked_id)
-);
+  primary key (blocker_id, blocked_id));
 
 create table if not exists lost_dog_alerts (
   id              uuid primary key default gen_random_uuid(),
