@@ -107,9 +107,9 @@ function WaitlistHeader() {
    skjermbilder av ekte, levende data (appen har ingen brukere ennå). */
 function PhoneMockupCluster() {
   const phones = [
-    { src: "/mockups/grupper.png", cls: "lpPhoneA", alt: "Eksempel på Grupper-skjermen i Potesjarm" },
-    { src: "/mockups/hjem.png", cls: "lpPhoneB", alt: "Eksempel på Hjem-skjermen i Potesjarm" },
-    { src: "/mockups/naaskjer.png", cls: "lpPhoneC", alt: "Eksempel på Nå skjer-skjermen i Potesjarm" },
+    { src: "/mockups/grupper.webp", cls: "lpPhoneA", alt: "Eksempel på Grupper-skjermen i Potesjarm" },
+    { src: "/mockups/hundeprofil.webp", cls: "lpPhoneB", alt: "Eksempel på en hundeprofil i Potesjarm" },
+    { src: "/mockups/naaskjer.webp", cls: "lpPhoneC", alt: "Eksempel på Nå skjer-skjermen i Potesjarm" },
   ];
   return (
     <div className="lpPhones" aria-hidden={false}>
