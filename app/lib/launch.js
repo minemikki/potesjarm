@@ -7,8 +7,12 @@
    en bryter for hva rot-siden viser til besøkende.
 
    Sett WAITLIST_MODE = false for å vise den ekte appen igjen.
+
+   Kan også overstyres ved bygging med miljøvariabelen
+   NEXT_PUBLIC_WAITLIST_MODE = "off" – det bruker e2e-testene for å nå selve
+   appen uten å måtte endre kode. Uten variabelen står ventelisten på.
    ========================================================================= */
-export const WAITLIST_MODE = true;
+export const WAITLIST_MODE = process.env.NEXT_PUBLIC_WAITLIST_MODE === "off" ? false : true;
 
 /**
  * Formspree-endepunkt for ventelisten (https://formspree.io – gratis,

@@ -16,11 +16,13 @@ export const useApp = () => useContext(AppCtx);
 
 /**
  * Under bygging/testing/visning før ekte lansering: ikke tving nye besøkende
- * gjennom onboarding ved hvert besøk. Sett tilbake til `true` når appen er
- * klar for at ekte kunder skal registrere hund og komme i gang – onboarding-
- * flyten er uendret, bare den automatiske åpningen er skrudd av her.
+ * gjennom onboarding ved hvert besøk. Sett tilbake til `true` (eller bygg med
+ * NEXT_PUBLIC_FORCE_ONBOARDING = "on") når appen er klar for at ekte kunder
+ * skal registrere hund og komme i gang – onboarding-flyten er uendret, bare
+ * den automatiske åpningen er skrudd av her. E2e-testene bygger med "on" så
+ * de kan teste selve onboarding-flyten.
  */
-const FORCE_ONBOARDING = false;
+const FORCE_ONBOARDING = process.env.NEXT_PUBLIC_FORCE_ONBOARDING === "on";
 
 const STORAGE_KEY = "potesjarm-v3";
 

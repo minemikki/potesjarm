@@ -5,7 +5,7 @@ import { BottomNav, DemoBanner, MobileHeader, RightRail, Sidebar, TopBar } from 
 import Home from "./components/Home";
 import { ActivityView, DogsView, EventsView, ExploreView, GroupsView, MapView, NowView } from "./components/Views";
 import Overlays from "./components/Overlays";
-import Waitlist from "./components/Waitlist";
+import Landing from "./components/Landing";
 import { WAITLIST_MODE } from "./lib/launch";
 
 const VIEWS = {
@@ -43,7 +43,7 @@ function App() {
 export default function Page() {
   // Under bygging (ingen backend ennå): vis en ærlig venteliste i stedet for
   // den fungerende, men local-only prototypen. Se app/lib/launch.js.
-  if (WAITLIST_MODE) return <Waitlist />;
+  if (WAITLIST_MODE) return <Landing />;
   return (
     <AppProvider>
       <App />
