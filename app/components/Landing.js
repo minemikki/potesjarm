@@ -120,7 +120,6 @@ function PhoneMockupCluster() {
           </div>
         </div>
       ))}
-      <span className="lpScribble hand" aria-hidden="true">Bedre turer sammen ♡</span>
     </div>
   );
 }
@@ -151,6 +150,7 @@ function WaitlistHero() {
           </div>
         </div>
         <div className="lpHeroArt reveal">
+          <span className="lpScribble hand" aria-hidden="true">Bedre turer sammen ♡</span>
           <PhoneMockupCluster />
         </div>
       </div>
