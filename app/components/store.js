@@ -10,6 +10,8 @@ import { isNewOsloDay, isSameOsloDay, isSameOsloWeek, nextStreak, osloDateKey, o
 import { migrateState as migrateStateLib, pawsTotal, pushLedgerOnce } from "../lib/ledger";
 import { cancelFriendRequest, relationStatus, sendFriendRequest, toggleFollow as toggleFollowLib } from "../lib/friends";
 import * as demo from "../lib/demo";
+import { isSupabaseConfigured } from "../lib/supabaseClient";
+import { loadMyData, persistProfileAndDog } from "../lib/db/sync";
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -110,9 +112,16 @@ function migrateState(raw) {
   return migrateStateLib(raw, EMPTY);
 }
 
-export function AppProvider({ children }) {
+export function AppProvider({ children, authUser = null }) {
   const [state, setState] = useState(EMPTY);
   const [hydrated, setHydrated] = useState(false);
+  // Siste state, lest synkront av persist() (unngår utdaterte closures).
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  // Brukerens primærhund i Supabase (id), så profil-lagring oppdaterer samme
+  // rad i stedet for å lage duplikater.
+  const primaryDogIdRef = useRef(null);
+  const backend = !!(authUser?.id && isSupabaseConfigured);
   const [tab, setTabState] = useState("For deg");
   const [groupId, setGroupId] = useState(null);
   const [comments, setComments] = useState({});
@@ -141,6 +150,29 @@ export function AppProvider({ children }) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {}
   }, [hydrated, state]);
+
+  // Når en ekte bruker er logget inn og Supabase er satt opp, er skyen
+  // fasit: last profil + primærhund derfra og flett inn. Finnes en hund,
+  // er brukeren onboardet (ekte tegn, ikke gjettet).
+  useEffect(() => {
+    if (!backend) return;
+    let active = true;
+    (async () => {
+      const { profile, location, primaryDogId, onboarded } = await loadMyData(authUser.id);
+      if (!active) return;
+      primaryDogIdRef.current = primaryDogId;
+      setState((s) => ({
+        ...s,
+        profile: profile ? { ...s.profile, ...profile } : s.profile,
+        location: location ? { ...s.location, ...location } : s.location,
+        onboarded: onboarded || s.onboarded,
+      }));
+      if (onboarded) setOverlays((o) => o.filter((x) => x.type !== "onboarding"));
+    })();
+    return () => {
+      active = false;
+    };
+  }, [backend, authUser?.id]);
 
   // Demo-modus laster demo-samtaler slik at chatten har noe å vise.
   useEffect(() => {
@@ -309,6 +341,30 @@ export function AppProvider({ children }) {
     toastTimer.current = setTimeout(() => setToast(null), 2600);
   }, []);
 
+  // Skriver profil + primærhund til Supabase når en ekte bruker er innlogget.
+  // Uten backend er dette en no-op (prototypen lever kun i localStorage).
+  // Feiler skrivingen, sier vi det ærlig – vi later aldri som den lyktes.
+  const persist = useCallback(
+    async (profileOverride, locationOverride) => {
+      if (!backend) return;
+      const s = stateRef.current;
+      const profile = profileOverride || s.profile;
+      const location = locationOverride || s.location;
+      const { primaryDogId, error } = await persistProfileAndDog(
+        authUser.id,
+        profile,
+        location,
+        primaryDogIdRef.current
+      );
+      if (error) {
+        flash("Kunne ikke lagre til skyen – prøv igjen", "alert");
+        return;
+      }
+      if (primaryDogId) primaryDogIdRef.current = primaryDogId;
+    },
+    [backend, authUser?.id, flash]
+  );
+
   const open = useCallback((type, data) => setOverlays((o) => [...o.filter((x) => x.type !== type), { type, data }]), []);
   const close = useCallback((type) => setOverlays((o) => (type ? o.filter((x) => x.type !== type) : o.slice(0, -1))), []);
   const closeAll = useCallback(() => setOverlays([]), []);
@@ -335,6 +391,7 @@ export function AppProvider({ children }) {
       patch({ location });
       const k = kommuneById[location.kommuneId];
       flash("Du følger nå " + (location.omrade || k?.name || ""), "pin");
+      persist(undefined, location);
     },
     openGroup: (id) => { setTabState("Grupper"); setGroupId(id); setOverlays([]); window.scrollTo({ top: 0 }); },
     closeGroup: () => setGroupId(null),
@@ -519,8 +576,13 @@ export function AppProvider({ children }) {
       patch({ ...data, onboarded: true });
       close("onboarding");
       flash("Velkommen til Potesjarm!", "paw");
+      // Lagre til Supabase med de nettopp innsamlede verdiene (ikke stale state).
+      persist(data.profile, data.location);
     },
-    setProfile: (p) => patch((s) => ({ profile: { ...s.profile, ...p } })),
+    setProfile: (p) => {
+      patch((s) => ({ profile: { ...s.profile, ...p } }));
+      persist({ ...stateRef.current.profile, ...p });
+    },
     setVerified: (v) => patch({ verified: v }),
     // Hastevarsel: lagrer «sist sett»-teksten og et starttidspunkt som gir
     // varselet en levetid (app/lib/lostdog.js). Et nytt varsel nullstiller
