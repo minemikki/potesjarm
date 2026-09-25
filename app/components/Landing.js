@@ -102,12 +102,14 @@ function WaitlistHeader() {
   );
 }
 
-/* ---- Telefon-klynge (ekte app-skjermbilder) ---------------------------- */
+/* ---- Telefon-klynge --------------------------------------------------
+   Illustrerer hvordan appen er tenkt å se ut, med eksempeltekst – ikke
+   skjermbilder av ekte, levende data (appen har ingen brukere ennå). */
 function PhoneMockupCluster() {
   const phones = [
-    { src: "/mockups/grupper.png", cls: "lpPhoneA", alt: "Grupper i Potesjarm-appen" },
-    { src: "/mockups/hjem.png", cls: "lpPhoneB", alt: "Hjem-skjermen i Potesjarm-appen" },
-    { src: "/mockups/naaskjer.png", cls: "lpPhoneC", alt: "Nå skjer i Potesjarm-appen" },
+    { src: "/mockups/grupper.png", cls: "lpPhoneA", alt: "Eksempel på Grupper-skjermen i Potesjarm" },
+    { src: "/mockups/hjem.png", cls: "lpPhoneB", alt: "Eksempel på Hjem-skjermen i Potesjarm" },
+    { src: "/mockups/naaskjer.png", cls: "lpPhoneC", alt: "Eksempel på Nå skjer-skjermen i Potesjarm" },
   ];
   return (
     <div className="lpPhones" aria-hidden={false}>
