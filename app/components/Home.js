@@ -329,10 +329,14 @@ export function PostCard({ post }) {
 export function MeetupCard({ m, compact }) {
   const app = useApp();
   const t = meetupTypes.find((x) => x.id === m.type) || meetupTypes[0];
-  const host = m.host === "self" ? null : app.dogById(m.host);
   const isGoing = !!app.going[m.id];
-  const people = isGoing && !m.going.includes("self") ? [...m.going, "self"] : m.going;
   const live = m.startsIn <= 0;
+  // Ekte treff (fra Supabase) kjenner ikke deltakernes hunde-id-er lokalt –
+  // vi viser da et ærlig antall i stedet for en oppdiktet avatar-stabel av
+  // hunder vi ikke faktisk har data om.
+  const goingCount = m.real ? m.goingCount + (isGoing && !m.iAmGoing ? 1 : 0) : (isGoing && !m.going.includes("self") ? m.going.length + 1 : m.going.length);
+  const host = m.real || m.host === "self" ? null : app.dogById(m.host);
+  const hostLabel = m.real ? `${m.hostName}${m.hostDogName ? " & " + m.hostDogName : ""}` : `${host?.owner} & ${host?.name}`;
   return (
     <article className={"meetup tint-" + t.color + (compact ? " compact" : "") + (isGoing ? " isGoing" : "")}>
       <button className="meetupMain" onClick={() => app.open("meetup", m.id)}>
@@ -344,14 +348,18 @@ export function MeetupCard({ m, compact }) {
         <p className="meetupPlace"><Icon name="pin" size={14} /> {m.place}</p>
         {!compact && m.note && <p className="meetupNote">{m.note}</p>}
         <div className="meetupHost">
-          <DogAvatar id={m.host} me={m.host === "self"} size={26} />
-          <small>{m.host === "self" ? "Du er vert" : `${host?.owner} & ${host?.name}`}</small>
+          {m.real ? (
+            <Avatar src={m.hostPhoto} name={m.hostDogName || m.hostName} size={26} />
+          ) : (
+            <DogAvatar id={m.host} me={m.host === "self"} size={26} />
+          )}
+          <small>{m.host === "self" ? "Du er vert" : hostLabel}</small>
         </div>
       </button>
       <div className="meetupFoot">
         <span className="going">
-          <AvatarStack ids={people} size={24} />
-          <small>{people.length}/{m.max}</small>
+          {!m.real && <AvatarStack ids={isGoing && !m.going.includes("self") ? [...m.going, "self"] : m.going} size={24} />}
+          <small>{goingCount}/{m.max}</small>
         </span>
         {m.mine ? (
           <span className="hostTag">Ditt treff</span>

@@ -506,9 +506,15 @@ function MeetupDetail({ data: id, onClose }) {
   const m = app.meetups.find((x) => x.id === id);
   if (!m) return null;
   const t = meetupTypes.find((x) => x.id === m.type) || meetupTypes[0];
-  const host = m.host === "self" ? null : app.dogById(m.host);
+  const host = m.real || m.host === "self" ? null : app.dogById(m.host);
   const isGoing = !!app.going[m.id];
-  const people = isGoing && !m.going.includes("self") ? [...m.going, "self"] : m.going;
+  const people = m.real ? [] : (isGoing && !m.going.includes("self") ? [...m.going, "self"] : m.going);
+  // Ekte treff (fra Supabase) kjenner ikke navnene på deltakerne lokalt –
+  // vi teller ærlig (goingCount + din egen status) i stedet for å late
+  // som vi vet hvem "hvem kommer"-seksjonen faktisk skal vise.
+  const peopleCount = m.real ? m.goingCount + (isGoing && !m.iAmGoing ? 1 : 0) : people.length;
+  const hostName = m.real ? m.hostName : host?.owner;
+  const hostDogName = m.real ? m.hostDogName : host?.name;
 
   return (
     <Layer kind="drawer" onClose={onClose} className="detail" label={m.title}>
@@ -526,30 +532,46 @@ function MeetupDetail({ data: id, onClose }) {
         <div className="facts">
           <span><Icon name="pin" size={17} /><b>{m.place}</b><small>Møtested</small></span>
           <span><Icon name="bolt" size={17} /><b>{m.pace}</b><small>Tempo</small></span>
-          <span><Icon name="users" size={17} /><b>{people.length} av {m.max}</b><small>hunder</small></span>
+          <span><Icon name="users" size={17} /><b>{peopleCount} av {m.max}</b><small>hunder</small></span>
         </div>
         {m.note && <p className="detailText">{m.note}</p>}
 
         <h4>Vert</h4>
-        <button className="memberRow hostRow" onClick={() => m.host !== "self" && app.open("dog", m.host)}>
-          <DogAvatar id={m.host} me={m.host === "self"} size={42} />
-          <span><b>{m.host === "self" ? "Deg" : `${host?.owner} & ${host?.name}`}</b><small>{m.host === "self" ? "Du er vert" : host?.breed}</small></span>
+        <button
+          className="memberRow hostRow"
+          onClick={() => !m.real && m.host !== "self" && app.open("dog", m.host)}
+        >
+          {m.real ? (
+            <Avatar src={m.hostPhoto} name={hostDogName || hostName} size={42} />
+          ) : (
+            <DogAvatar id={m.host} me={m.host === "self"} size={42} />
+          )}
+          <span>
+            <b>{m.host === "self" ? "Deg" : hostDogName ? `${hostName} & ${hostDogName}` : hostName}</b>
+            <small>{m.host === "self" ? "Du er vert" : host?.breed}</small>
+          </span>
           <span className="hostBadge">Vert</span>
-          {m.host !== "self" && <Icon name="chevronRight" size={18} />}
+          {!m.real && m.host !== "self" && <Icon name="chevronRight" size={18} />}
         </button>
 
         <h4>Hvem kommer</h4>
-        <div className="whoGoing">
-          {people.map((pid) => (
-            <span key={pid}>
-              <DogAvatar id={pid} me={pid === "self"} size={48} />
-              <small>{pid === "self" ? app.me.dogName || "Deg" : app.dogById(pid)?.name}</small>
-            </span>
-          ))}
-          {Array.from({ length: Math.max(0, Math.min(3, m.max - people.length)) }).map((_, i) => (
-            <span key={"e" + i} className="openSpot"><i><Icon name="plus" size={18} /></i><small>Ledig</small></span>
-          ))}
-        </div>
+        {m.real ? (
+          <p className="detailText">
+            {peopleCount > 0 ? `${peopleCount} av ${m.max} hunder er med.` : "Ingen har meldt seg på ennå – bli den første."}
+          </p>
+        ) : (
+          <div className="whoGoing">
+            {people.map((pid) => (
+              <span key={pid}>
+                <DogAvatar id={pid} me={pid === "self"} size={48} />
+                <small>{pid === "self" ? app.me.dogName || "Deg" : app.dogById(pid)?.name}</small>
+              </span>
+            ))}
+            {Array.from({ length: Math.max(0, Math.min(3, m.max - people.length)) }).map((_, i) => (
+              <span key={"e" + i} className="openSpot"><i><Icon name="plus" size={18} /></i><small>Ledig</small></span>
+            ))}
+          </div>
+        )}
 
         {/* Treff-chat er åpen for verten og alle som er med. */}
         {(isGoing || m.mine) && (
@@ -583,9 +605,13 @@ function MeetupDetail({ data: id, onClose }) {
           </button>
         ) : (
           <>
-            <button className="pillBtn soft" onClick={() => { app.close("meetup"); app.open("chat", m.host); }}>
-              <Icon name="comment" size={17} /> Skriv til verten
-            </button>
+            {/* 1:1-melding til vert krever en ekte hundeprofil å åpne – kommer
+                med Sprint 3 (sosial graf). Vises kun for lokale/demo-treff. */}
+            {!m.real && (
+              <button className="pillBtn soft" onClick={() => { app.close("meetup"); app.open("chat", m.host); }}>
+                <Icon name="comment" size={17} /> Skriv til verten
+              </button>
+            )}
             <button className={"pillBtn " + (isGoing ? "done" : "primary")} onClick={() => app.toggleGoing(m.id)}>
               {isGoing ? <><Icon name="check" size={16} stroke={2.6} /> Du er med</> : "Bli med"}
             </button>

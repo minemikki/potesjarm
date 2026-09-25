@@ -1,6 +1,6 @@
 /* =========================================================================
    Oversettelse mellom appens klient-form og Supabase-radene
-   (profiles / dogs i supabase/schema.sql).
+   (profiles / dogs / meetups i supabase/schema.sql).
 
    Rene, testbare funksjoner uten nettverk eller React – slik at selve
    feltmappingen (som er lett å ta feil av) har enhetstester, mens den tynne
@@ -10,6 +10,8 @@
    gjettet. Onboarding samler `age` som fritekst ("2 år", "10 mnd"); DB lagrer
    en omtrentlig `birth_date`. Vi tar vare på det vi vet og markerer resten tomt.
    ========================================================================= */
+
+import { expiryOptions } from "./data.js";
 
 const SIZES = ["liten", "medium", "stor"];
 // Onboarding kan gi energi som tall (1–5) eller som ord. Vi normaliserer til
@@ -108,5 +110,85 @@ export function rowToDog(row = {}, now = new Date()) {
     comfort: cleanArr(row.comfort),
     age: birthDateToAgeText(row.birth_date, now),
     photo: row.photo_url || null,
+  };
+}
+
+/* =========================================================================
+   Treff (meetups). Se supabase/schema.sql: meetups + meetup_participants.
+
+   Et treff har ingen "poter for å bli med"-mekanikk (se PAWS-kommentaren i
+   data.js) – disse funksjonene oversetter kun felt, aldri belønninger.
+   ========================================================================= */
+
+/** Minutter fra `now` til et ISO-tidspunkt. Negativt = allerede i gang. */
+export function minutesUntil(iso, now = new Date()) {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return null;
+  return Math.round((t - now.getTime()) / 60000);
+}
+
+/** Menneskelesbar "når", uten å late som vi vet mer enn vi gjør. */
+export function relativeWhen(minutes) {
+  if (minutes == null) return "";
+  if (minutes <= 0) return "Nå";
+  if (minutes < 60) return `Om ${minutes} min`;
+  if (minutes < 24 * 60) return `Om ${Math.round(minutes / 60)} t`;
+  return `Om ${Math.round(minutes / 60 / 24)} d`;
+}
+
+/**
+ * Skjema-data fra MeetupComposer -> rad for `meetups`. `startsIn` og
+ * `expiry` er UI-valg (minutter fra nå / en expiryOptions-id) – her blir de
+ * til faktiske tidspunkt. Ukjent expiry-id faller ærlig tilbake på den
+ * korteste levetiden (2 t) fremfor å gjette en lengre.
+ */
+export function meetupComposerToRow(composer = {}, { hostId, municipalityId, now = new Date() } = {}) {
+  const startsIn = Number.isFinite(composer.startsIn) ? composer.startsIn : 0;
+  const startsAt = new Date(now.getTime() + startsIn * 60000);
+  const exp = expiryOptions.find((e) => e.id === composer.expiry) || expiryOptions[0];
+  const expiresAt = new Date(now.getTime() + exp.minutes * 60000);
+  return {
+    host_id: hostId,
+    municipality_id: municipalityId,
+    kind: composer.type || "tur",
+    title: composer.title?.trim() || null,
+    note: composer.note?.trim() || null,
+    place_text: composer.place?.trim() || null,
+    starts_at: startsAt.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    max_dogs: Number.isInteger(composer.max) && composer.max >= 2 && composer.max <= 50 ? composer.max : 8,
+  };
+}
+
+/**
+ * `meetups`-rad (+ hentet vert/deltaker-info) -> appens visningsform
+ * (samme felter som Home.js/Overlays.js allerede leser fra lokale/demo-treff,
+ * pluss `real: true` som UI-et bruker til å vise ekte deltakertall i stedet
+ * for en oppdiktet avatar-stabel av ukjente hunder).
+ */
+export function rowToMeetup(row = {}, ctx = {}) {
+  const { hostName = "", hostDogName = "", hostPhoto = null, goingCount = 0, iAmGoing = false, myProfileId = null, now = new Date() } = ctx;
+  const startsIn = minutesUntil(row.starts_at, now) ?? 0;
+  return {
+    id: row.id,
+    real: true,
+    type: row.kind || "tur",
+    title: row.title || "",
+    note: row.note || "",
+    place: row.place_text || "",
+    when: relativeWhen(startsIn),
+    startsIn,
+    max: row.max_dogs ?? 8,
+    pace: "Rolig", // kosmetisk, matcher composer (samler ikke inn tempo ennå)
+    hostId: row.host_id,
+    host: "real:" + row.host_id,
+    hostName: hostName || "Hundeeier",
+    hostDogName,
+    hostPhoto,
+    goingCount,
+    iAmGoing,
+    going: [],
+    mine: !!myProfileId && row.host_id === myProfileId,
   };
 }

@@ -12,6 +12,8 @@ import { cancelFriendRequest, relationStatus, sendFriendRequest, toggleFollow as
 import * as demo from "../lib/demo";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { loadMyData, persistProfileAndDog } from "../lib/db/sync";
+import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCancelMeetup, joinMeetup, leaveMeetup } from "../lib/db/meetups";
+import { meetupComposerToRow } from "../lib/mapdb";
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -122,6 +124,9 @@ export function AppProvider({ children, authUser = null }) {
   // rad i stedet for å lage duplikater.
   const primaryDogIdRef = useRef(null);
   const backend = !!(authUser?.id && isSupabaseConfigured);
+  // Ekte treff hentet fra Supabase for kommunen brukeren følger (se
+  // refreshMeetups nedenfor). Tom liste = faktisk ingen treff, ikke en feil.
+  const [realMeetups, setRealMeetups] = useState([]);
   const [tab, setTabState] = useState("For deg");
   const [groupId, setGroupId] = useState(null);
   const [comments, setComments] = useState({});
@@ -173,6 +178,26 @@ export function AppProvider({ children, authUser = null }) {
       active = false;
     };
   }, [backend, authUser?.id]);
+
+  // Ekte treff for kommunen brukeren følger. Kalles på nytt etter at man
+  // oppretter/melder seg på/av et treff, slik at listen alltid speiler
+  // databasen (server-fasit vinner over en optimistisk lokal toggle).
+  const refreshMeetups = useCallback(async () => {
+    if (!backend) return;
+    const kommuneId = stateRef.current.location.kommuneId;
+    if (!kommuneId) return;
+    const { data } = await listMeetupsNear(kommuneId, authUser.id);
+    setRealMeetups(data);
+    setState((s) => {
+      const going = { ...s.going };
+      for (const m of data) going[m.id] = m.iAmGoing;
+      return { ...s, going };
+    });
+  }, [backend, authUser?.id]);
+
+  useEffect(() => {
+    refreshMeetups();
+  }, [refreshMeetups, state.location.kommuneId]);
 
   // Demo-modus laster demo-samtaler slik at chatten har noe å vise.
   useEffect(() => {
@@ -250,13 +275,15 @@ export function AppProvider({ children, authUser = null }) {
     const notBlocked = (list) => list.filter((x) => (!x.author || !state.blocked[x.author]) && !state.hiddenPosts[x.id]);
     return {
       ...content,
-      meetups: [...mine(state.myMeetups), ...content.meetups],
+      // Med backend er databasen fasit for treff – ingen lokal blanding.
+      // Uten backend (prototype/demo) beholdes den gamle, lokale oppførselen.
+      meetups: backend ? realMeetups : [...mine(state.myMeetups), ...content.meetups],
       // Blokkerte forfattere OG skjulte/rapporterte innlegg forsvinner faktisk
       // fra feeden – ikke bare en toast.
       posts: notBlocked([...mine(state.myPosts), ...content.posts]),
       events: [...mine(state.myEvents), ...content.events],
     };
-  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked]);
+  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups]);
 
   const stats = useMemo(() => getStats(contentWithMine), [contentWithMine]);
 
@@ -411,6 +438,15 @@ export function AppProvider({ children, authUser = null }) {
         return { ...s, going: { ...s.going, [id]: !wasOn } };
       });
       flash(wasOn ? "Du er meldt av treffet" : "Du er med! Verten har fått beskjed", wasOn ? "x" : "check");
+      // Ekte treff: skriv til meetup_participants, og la databasen ha siste
+      // ord (refreshMeetups henter faktisk tilstand etterpå).
+      const m = contentWithMine.meetups.find((x) => x.id === id);
+      if (backend && m?.real) {
+        const write = wasOn ? leaveMeetup(id, authUser.id) : joinMeetup(id, authUser.id, primaryDogIdRef.current);
+        write.then(({ error }) => {
+          if (error) flash("Kunne ikke oppdatere – prøv igjen", "alert");
+        }).finally(refreshMeetups);
+      }
     },
     toggleGroup: (id) => toggleIn("joinedGroups", id, "Velkommen i gruppa!", "Du har forlatt gruppa", "users"),
     // FØLGE (énveis) – ingen bekreftelse fra den andre trengs.
@@ -466,6 +502,20 @@ export function AppProvider({ children, authUser = null }) {
     // faktisk skjer; den belønningen hører til en server-bekreftet
     // fullføringsflyt, ikke til selve opprettelsen.
     addMeetup: (m) => {
+      // Ekte treff: skriv til Supabase slik at andre hundeeiere faktisk ser
+      // det – et lokalt-bare treff ville vært usynlig for alle andre.
+      if (backend) {
+        const row = meetupComposerToRow(m, { hostId: authUser.id, municipalityId: stateRef.current.location.kommuneId });
+        dbCreateMeetup(row).then(({ error }) => {
+          if (error) {
+            flash("Kunne ikke publisere treffet – prøv igjen", "alert");
+            return;
+          }
+          flash("Treffet er ute! Hundeeiere i nærheten får beskjed", "live");
+          refreshMeetups();
+        });
+        return null;
+      }
       const id = "u" + Date.now();
       setState((s) => ({
         ...s,
@@ -477,6 +527,15 @@ export function AppProvider({ children, authUser = null }) {
     },
     // Vert avlyser sitt eget treff – ekte konsekvens: det fjernes fra lista.
     cancelMeetup: (id) => {
+      const m = contentWithMine.meetups.find((x) => x.id === id);
+      if (backend && m?.real) {
+        dbCancelMeetup(id, authUser.id).then(({ error }) => {
+          if (error) flash("Kunne ikke avlyse – prøv igjen", "alert");
+          else flash("Treffet er avlyst. Deltakere får beskjed", "x");
+          refreshMeetups();
+        });
+        return;
+      }
       setState((s) => {
         const going = { ...s.going };
         delete going[id];

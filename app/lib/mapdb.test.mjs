@@ -7,6 +7,10 @@ import {
   rowToProfile,
   dogToRow,
   rowToDog,
+  minutesUntil,
+  relativeWhen,
+  meetupComposerToRow,
+  rowToMeetup,
 } from "./mapdb.js";
 
 const NOW = new Date(Date.UTC(2026, 0, 15)); // 2026-01-15
@@ -101,4 +105,71 @@ test("rowToDog: mapper tilbake til app-form", () => {
   assert.equal(dog.energy, 4);
   assert.equal(dog.age, "2 år");
   assert.deepEqual(dog.play, ["apportering"]);
+});
+
+test("minutesUntil: fremtid, fortid, ugyldig", () => {
+  assert.equal(minutesUntil(new Date(NOW.getTime() + 30 * 60000).toISOString(), NOW), 30);
+  assert.equal(minutesUntil(new Date(NOW.getTime() - 30 * 60000).toISOString(), NOW), -30);
+  assert.equal(minutesUntil(null, NOW), null);
+  assert.equal(minutesUntil("ikke en dato", NOW), null);
+});
+
+test("relativeWhen: naturlige terskler", () => {
+  assert.equal(relativeWhen(0), "Nå");
+  assert.equal(relativeWhen(-5), "Nå");
+  assert.equal(relativeWhen(30), "Om 30 min");
+  assert.equal(relativeWhen(90), "Om 2 t");
+  assert.equal(relativeWhen(60 * 30), "Om 1 d");
+  assert.equal(relativeWhen(null), "");
+});
+
+test("meetupComposerToRow: regner ut starts_at/expires_at fra minutter", () => {
+  const row = meetupComposerToRow(
+    { type: "tur", title: " Tur ved vannet ", place: "Mosvatnet", max: 6, startsIn: 30, expiry: "ikveld" },
+    { hostId: "host-1", municipalityId: "stavanger", now: NOW }
+  );
+  assert.equal(row.host_id, "host-1");
+  assert.equal(row.municipality_id, "stavanger");
+  assert.equal(row.kind, "tur");
+  assert.equal(row.title, "Tur ved vannet");
+  assert.equal(row.place_text, "Mosvatnet");
+  assert.equal(row.max_dogs, 6);
+  assert.equal(row.starts_at, new Date(NOW.getTime() + 30 * 60000).toISOString());
+  assert.equal(row.expires_at, new Date(NOW.getTime() + 360 * 60000).toISOString());
+});
+
+test("meetupComposerToRow: ukjent expiry faller tilbake pa korteste, ugyldig max -> default 8", () => {
+  const row = meetupComposerToRow({ type: "lek", expiry: "ikke-en-id", max: 999 }, { hostId: "h", municipalityId: "m", now: NOW });
+  assert.equal(row.expires_at, new Date(NOW.getTime() + 120 * 60000).toISOString());
+  assert.equal(row.max_dogs, 8);
+});
+
+test("rowToMeetup: mapper rad + kontekst til visningsform", () => {
+  const row = {
+    id: "m1",
+    host_id: "host-1",
+    kind: "tur",
+    title: "Tur rundt Mosvatnet",
+    note: "Rolig runde",
+    place_text: "Mosvatnet",
+    starts_at: new Date(NOW.getTime() + 10 * 60000).toISOString(),
+    max_dogs: 8,
+  };
+  const m = rowToMeetup(row, { hostName: "Anders", hostDogName: "Balto", goingCount: 3, myProfileId: "someone-else", now: NOW });
+  assert.equal(m.real, true);
+  assert.equal(m.title, "Tur rundt Mosvatnet");
+  assert.equal(m.when, "Om 10 min");
+  assert.equal(m.startsIn, 10);
+  assert.equal(m.host, "real:host-1");
+  assert.equal(m.hostName, "Anders");
+  assert.equal(m.hostDogName, "Balto");
+  assert.equal(m.goingCount, 3);
+  assert.equal(m.mine, false);
+});
+
+test("rowToMeetup: mine=true nar host_id matcher myProfileId, ukjent vertsnavn faller aerlig tilbake", () => {
+  const row = { id: "m2", host_id: "me", kind: "lek", starts_at: NOW.toISOString(), max_dogs: 8 };
+  const m = rowToMeetup(row, { myProfileId: "me", now: NOW });
+  assert.equal(m.mine, true);
+  assert.equal(m.hostName, "Hundeeier");
 });
