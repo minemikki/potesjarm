@@ -150,7 +150,6 @@ function WaitlistHero() {
           </div>
         </div>
         <div className="lpHeroArt reveal">
-          <span className="lpScribble hand" aria-hidden="true">Bedre turer sammen ♡</span>
           <PhoneMockupCluster />
         </div>
       </div>
