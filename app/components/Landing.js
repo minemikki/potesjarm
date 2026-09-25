@@ -207,7 +207,7 @@ function Hero() {
     <section className="wlHero" id="topp">
       <div className="wlWrap wlHeroGrid">
         <div className="wlHeroCopy">
-          <span className="wlKicker">{city ? city.toUpperCase() : "BY FOR BY"} · FØRSTE 100 HUNDER</span>
+          <span className="wlKicker">{city ? city.toUpperCase() + " · FØRSTE 100 HUNDER" : "ROGALAND · BLI MED FRA STARTEN"}</span>
           <h1>Hundelivet starter&nbsp;her.</h1>
           <p className="wlLead">Se hvem som skal ut i nærheten, finn spontane treff og bli kjent med hundene og menneskene rundt deg.</p>
           <div id="bli-med" className="wlHeroForm">
