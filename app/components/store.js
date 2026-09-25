@@ -58,6 +58,11 @@ const EMPTY = {
   // backend (samme person på tvers av flater); lokalt blokkerer vi på det
   // eneste identitetssignalet vi har i klienten – forfatternavnet.
   blocked: {},
+  // Innlegg brukeren har skjult ("ikke interessert") eller rapportert – begge
+  // fjerner innlegget fra feeden med en gang (ekte konsekvens, ikke bare en
+  // toast). reports lagrer at noe er meldt; en ekte modereringskø krever backend.
+  hiddenPosts: {},
+  reports: {},
   myMeetups: [],
   myPosts: [],
   myEvents: [],
@@ -200,11 +205,12 @@ export function AppProvider({ children }) {
   const contentWithMine = useMemo(() => {
     const own = state.location.kommuneId;
     const mine = (list) => list.filter((x) => !x.kommuneId || x.kommuneId === own);
-    const notBlocked = (list) => list.filter((x) => !x.author || !state.blocked[x.author]);
+    const notBlocked = (list) => list.filter((x) => (!x.author || !state.blocked[x.author]) && !state.hiddenPosts[x.id]);
     return {
       ...content,
       meetups: [...mine(state.myMeetups), ...content.meetups],
-      // Blokkerte forfattere forsvinner faktisk fra feeden – ikke bare en toast.
+      // Blokkerte forfattere OG skjulte/rapporterte innlegg forsvinner faktisk
+      // fra feeden – ikke bare en toast.
       posts: notBlocked([...mine(state.myPosts), ...content.posts]),
       events: [...mine(state.myEvents), ...content.events],
     };
@@ -458,7 +464,7 @@ export function AppProvider({ children }) {
         flash(
           session.pointsAccepted === 0
             ? "Fikk ikke et brukbart GPS-signal. Gå ut i åpent terreng og prøv igjen."
-            : `Turen var for kort til å telle (minst ${GPS_CONFIG.MIN_VALID_WALK_M} m kreves).`,
+            : `Turen ble for kort til å telle – du må gå minst ${GPS_CONFIG.MIN_VALID_WALK_M} m.`,
           "alert"
         );
         return;
@@ -529,6 +535,27 @@ export function AppProvider({ children }) {
       delete b[author];
       return { blocked: b };
     }),
+    // «Ikke interessert» skjuler innlegget fra feeden (ekte konsekvens).
+    hidePost: (id) => {
+      patch((s) => ({ hiddenPosts: { ...s.hiddenPosts, [id]: true } }));
+      flash("Du ser færre slike innlegg", "eyeOff");
+    },
+    // Rapporter: skjuler innlegget nå og noterer meldingen. En ekte
+    // modereringskø med oppfølging krever backend.
+    reportPost: (id) => {
+      patch((s) => ({ hiddenPosts: { ...s.hiddenPosts, [id]: true }, reports: { ...s.reports, [id]: Date.now() } }));
+      flash("Takk. Innlegget er skjult og meldt", "flag");
+    },
+    // Kopierer en delelenke til utklippstavlen. Ingen falsk «kopiert» – vi sier
+    // det bare når det faktisk lot seg gjøre.
+    shareLink: (path, label = "Lenke kopiert") => {
+      const url = (typeof location !== "undefined" ? location.origin : "https://potesjarm.no") + path;
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(url).then(() => flash(label, "check")).catch(() => flash("Kunne ikke kopiere lenken", "alert"));
+      } else {
+        flash("Deling krever en nettleser med utklippstavle", "alert");
+      }
+    },
     // Deler brukerens EGEN, personvern-avrundede posisjon, som radiusen da
     // måles fra i stedet for kommunesentroiden. Opt-in, engangsavlesning –
     // vi abonnerer ikke på og lagrer aldri en rå posisjon. Se radiusCenter().

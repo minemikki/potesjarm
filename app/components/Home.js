@@ -200,13 +200,19 @@ function GettingStarted() {
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null;
 
+  // Uferdige steg først, så de handlingsrettede kortene alltid er øverst.
+  // Viser to av gangen så skjermen ikke blir tung; resten bak «Se flere».
+  const ordered = [...steps].sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? ordered : ordered.slice(0, 2);
+
   return (
     <section className="block getStarted">
       <SectionHead title="Kom i gang">
         <span className="progressPill">{doneCount} av {steps.length}</span>
       </SectionHead>
       <div className="stepGrid">
-        {steps.map((s) => (
+        {shown.map((s) => (
           <button key={s.id} className={"stepCard tint-" + s.color + (s.done ? " done" : "")} onClick={s.action}>
             <span className="stepIcon">
               <Icon name={s.done ? "check" : s.icon} size={20} stroke={s.done ? 2.8 : 2} />
@@ -216,6 +222,11 @@ function GettingStarted() {
           </button>
         ))}
       </div>
+      {ordered.length > 2 && (
+        <button className="linkish seeMore" onClick={() => setShowAll(!showAll)}>
+          {showAll ? "Vis færre" : `Se flere (${ordered.length - 2})`}
+        </button>
+      )}
     </section>
   );
 }
@@ -306,7 +317,7 @@ export function PostCard({ post }) {
         <button className="act" onClick={() => app.open("comments", post)}>
           <Icon name="comment" size={20} /> {commentCount}
         </button>
-        <button className="act" onClick={() => app.flash("Lenke kopiert", "share")} aria-label="Del"><Icon name="share" size={19} /></button>
+        <button className="act" onClick={() => app.shareLink(`/innlegg/${post.id}`)} aria-label="Del"><Icon name="share" size={19} /></button>
         <button className={"act save" + (saved ? " saved" : "")} onClick={() => app.toggleSave(post.id)} aria-label="Lagre">
           <Icon name="bookmark" size={19} fill={saved ? "currentColor" : "none"} />
         </button>

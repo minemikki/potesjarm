@@ -138,7 +138,7 @@ function GroupCard({ g }) {
             {g.faces?.length > 0 && <AvatarStack ids={g.faces} size={22} />}
             {g.official && !g.members ? "Ny gruppe" : `${fmtNum(g.members)} medlemmer`}
           </span>
-          <button className={"pillBtn small " + (joined ? "done" : "soft")} onClick={() => app.toggleGroup(g.id)}>
+          <button className={"pillBtn small " + (joined ? "done" : "primary")} onClick={() => app.toggleGroup(g.id)}>
             {joined ? <><Icon name="check" size={14} stroke={2.6} /> Medlem</> : "Bli med"}
           </button>
         </div>
@@ -587,7 +587,7 @@ function Leaderboard({ records }) {
           <span><b>{records.walks}</b><small>Turer totalt</small></span>
           <span><b>{fmtKm(records.total)} km</b><small>Totalt gått</small></span>
         </div>
-        {records.walks === 0 && <p className="muted">Gå din første tur, så begynner rekordene å fylle seg.</p>}
+        {records.walks === 0 && <p className="muted">Gå din første tur, så begynner rekordene å samle seg.</p>}
       </div>
     );
   }
@@ -642,7 +642,7 @@ export function EventsView() {
           title={app.events.length === 0 ? `Ingen arrangementer i ${app.kommune?.name} ennå` : "Ingen treff på dette filteret"}
           text={
             app.events.length === 0
-              ? "Et arrangement er noe som skjer på et fast tidspunkt – en fellestur, et valpetreff eller en ryddedugnad. Lag det første."
+              ? "En fellestur, et valpetreff eller en dugnad. Lag det første."
               : "Prøv et annet filter."
           }
           cta="Lag arrangement"
@@ -681,7 +681,7 @@ export function EventsView() {
                 <p><Icon name="clock" size={14} /> {e.weekday} {e.time} · {e.place}</p>
                 <div className="eventFoot">
                   <span>{e.faces?.length > 0 && <AvatarStack ids={e.faces} size={22} />} {e.going + (app.eventGoing[e.id] && !e.mine ? 1 : 0)} påmeldt</span>
-                  <button className={"pillBtn small " + (app.eventGoing[e.id] ? "done" : "soft")} onClick={(ev) => { ev.stopPropagation(); app.toggleEvent(e.id); }}>
+                  <button className={"pillBtn small " + (app.eventGoing[e.id] ? "done" : "primary")} onClick={(ev) => { ev.stopPropagation(); app.toggleEvent(e.id); }}>
                     {app.eventGoing[e.id] ? "Påmeldt" : "Meld på"}
                   </button>
                 </div>

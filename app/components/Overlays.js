@@ -531,9 +531,10 @@ function MeetupDetail({ data: id, onClose }) {
         {m.note && <p className="detailText">{m.note}</p>}
 
         <h4>Vert</h4>
-        <button className="memberRow" onClick={() => m.host !== "self" && app.open("dog", m.host)}>
-          <DogAvatar id={m.host} me={m.host === "self"} size={44} />
-          <span><b>{m.host === "self" ? "Deg" : `${host?.owner} & ${host?.name}`}</b><small>{m.host === "self" ? "Du er vert for dette treffet" : host?.breed}</small></span>
+        <button className="memberRow hostRow" onClick={() => m.host !== "self" && app.open("dog", m.host)}>
+          <DogAvatar id={m.host} me={m.host === "self"} size={42} />
+          <span><b>{m.host === "self" ? "Deg" : `${host?.owner} & ${host?.name}`}</b><small>{m.host === "self" ? "Du er vert" : host?.breed}</small></span>
+          <span className="hostBadge">Vert</span>
           {m.host !== "self" && <Icon name="chevronRight" size={18} />}
         </button>
 
@@ -571,7 +572,7 @@ function MeetupDetail({ data: id, onClose }) {
             </div>
           </div>
         )}
-        {app.meetupConfirms[m.id] === "yes" && <p className="fineprint"><Icon name="check" size={14} /> Registrert som gjennomført.</p>}
+        {app.meetupConfirms[m.id] === "yes" && <p className="fineprint"><Icon name="check" size={14} /> Notert – dere var ute sammen.</p>}
 
         <p className="fineprint"><Icon name="shield" size={14} /> Møt på et offentlig sted. Del aldri hjemmeadressen din i et treff.</p>
       </div>
@@ -661,7 +662,7 @@ function EventDetail({ data: id, onClose }) {
         </div>
       </div>
       <div className="detailFoot">
-        <button className="pillBtn soft" onClick={() => app.flash("Lagt til i kalenderen", "calendar")}><Icon name="calendar" size={17} /> Kalender</button>
+        <button className="pillBtn soft" onClick={() => app.shareLink(`/arrangement/${e.id}`, "Lenke til arrangementet er kopiert")}><Icon name="share" size={17} /> Del</button>
         <button className={"pillBtn " + (on ? "done" : "primary")} onClick={() => app.toggleEvent(e.id)}>
           {on ? <><Icon name="check" size={16} stroke={2.6} /> Påmeldt</> : "Meld på"}
         </button>
@@ -852,14 +853,13 @@ function Comments({ data: post, onClose }) {
 
 function PostMenu({ data: post, onClose }) {
   const app = useApp();
-  const act = (msg, icon) => { onClose(); app.flash(msg, icon); };
   return (
     <Layer kind="sheet" onClose={onClose} className="actionSheet" label="Valg">
       <span className="sheetHandle" />
       <b className="sheetTitle">{post.author}</b>
       <button onClick={() => { app.toggleSave(post.id); onClose(); }}><Icon name="bookmark" size={19} /> {app.saved[post.id] ? "Fjern fra lagret" : "Lagre innlegg"}</button>
-      <button onClick={() => act("Du ser færre slike innlegg", "eyeOff")}><Icon name="eyeOff" size={19} /> Ikke interessert</button>
-      <button onClick={() => act("Takk. Innlegget er sendt til moderering", "flag")}><Icon name="flag" size={19} /> Rapporter innlegg</button>
+      <button onClick={() => { onClose(); app.hidePost(post.id); }}><Icon name="eyeOff" size={19} /> Ikke interessert</button>
+      <button onClick={() => { onClose(); app.reportPost(post.id); }}><Icon name="flag" size={19} /> Rapporter innlegg</button>
       <button className="danger" onClick={() => { onClose(); app.blockAuthor(post.author); }}><Icon name="ban" size={19} /> Blokker {post.author}</button>
       <button className="cancel" onClick={onClose}>Avbryt</button>
     </Layer>
@@ -1096,7 +1096,7 @@ function Settings({ onClose }) {
       </button>
 
       <h5>Personvern</h5>
-      <Toggle on={app.privacy} set={app.setPrivacy} title="Vis oss i nærmiljøet" sub={`Andre i ${app.kommune?.name} kan finne ${app.me.dogName || "hunden din"}.`} />
+      <Toggle on={app.privacy} set={app.setPrivacy} title="Vis meg i nærområdet" sub={`Andre i ${app.kommune?.name} kan finne ${app.me.dogName || "hunden din"}.`} />
       <Toggle on={app.push} set={app.setPush} title="Varsler" sub="Treff, meldinger og streak." />
       <p className="fineprint"><Icon name="shield" size={14} /> Vi viser aldri nøyaktig posisjon eller hjemmeadresse – bare omtrentlig område.</p>
 
@@ -1307,7 +1307,7 @@ function Recap({ onClose }) {
             <span><b>{me.streak}</b>streak</span>
             <span><b>{fmtNum(me.paws)}</b>poter</span>
           </div>
-          <button className="pillBtn white" onClick={() => app.flash("Delingskort lagret", "share")}><Icon name="share" size={17} /> Del ukekort</button>
+          <button className="pillBtn white" onClick={() => app.shareLink(`/uke/${me.dogName || "hund"}`, "Lenke til ukekortet er kopiert")}><Icon name="share" size={17} /> Del ukekort</button>
         </>
       )}
     </Layer>

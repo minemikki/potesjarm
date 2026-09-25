@@ -397,6 +397,40 @@ tom-tilstand-teksten. **89 enhetstester + 24 e2e grønne.**
 
 ---
 
+# 3g. Product-polish + interaksjonsaudit (runde 5)
+
+Siste frontend-finpuss før backend. Testet 390×844 og 430×932.
+
+**Mindre vertikal tyngde**
+- Cold-start-hero ytterligere ~12 % lavere (padding 88→74, h2 26→24).
+- «Kom i gang» viser nå 2 kort (uferdige først) + «Se flere (N)» i stedet for 4.
+- Nå skjer-toppblokk strammet inn så treff-lista vises tidligere.
+- Gruppe-cover senket (clamp 84–120) så tabs kommer raskere.
+- Treff-detalj: mindre tomrom (gap 12→10), tydelig blå «Vert»-badge som
+  skiller vert fra deltakere.
+- Hundeprofil: sekundærknapper (Følg/Hundevenn/Melding) mindre; «Foreslå tur»
+  er den ene primære.
+
+**Ekte handlinger (fra interaksjonsaudit)** – erstattet flash-only-knapper:
+- Del (innlegg/ukekort/arrangement) kopierer nå en ekte lenke til
+  utklippstavlen (`app.shareLink`), og sier bare «kopiert» når det faktisk skjer.
+- «Ikke interessert» og «Rapporter» skjuler nå innlegget fra feeden på ekte
+  (`hiddenPosts`/`reports`), ikke bare en toast.
+- Fjernet falsk «Lagt til i kalenderen» (ingen ekte kalenderkobling) →
+  erstattet med ekte del-lenke.
+
+**Naturligere norsk**: «Vis meg i nærområdet», «du må gå minst X m», «Notert –
+dere var ute sammen», kortere arrangement-tomtilstand, «rekordene å samle seg».
+
+**Konsistens**: bli med / meld på / bli medlem bruker nå samme primære stil på
+tvers av treff-, gruppe- og arrangementskort. Fikset en latent feil der
+compose-bar-avataren ble strukket til en ellipse (`.composeBar span` traff
+avataren).
+
+Ingen logikkendringer i tester. **89 enhetstester + 24 e2e grønne.**
+
+---
+
 # 4. Designretning (godkjent)
 
 Identitet:
