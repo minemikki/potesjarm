@@ -14,6 +14,14 @@ import * as demo from "../lib/demo";
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
 
+/**
+ * Under bygging/testing/visning før ekte lansering: ikke tving nye besøkende
+ * gjennom onboarding ved hvert besøk. Sett tilbake til `true` når appen er
+ * klar for at ekte kunder skal registrere hund og komme i gang – onboarding-
+ * flyten er uendret, bare den automatiske åpningen er skrudd av her.
+ */
+const FORCE_ONBOARDING = false;
+
 const STORAGE_KEY = "potesjarm-v3";
 
 /**
@@ -118,9 +126,9 @@ export function AppProvider({ children }) {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
       if (raw) setState(migrateState(raw));
-      if (!raw?.onboarded) setOverlays([{ type: "onboarding" }]);
+      if (!raw?.onboarded && FORCE_ONBOARDING) setOverlays([{ type: "onboarding" }]);
     } catch {
-      setOverlays([{ type: "onboarding" }]);
+      if (FORCE_ONBOARDING) setOverlays([{ type: "onboarding" }]);
     }
     setHydrated(true);
   }, []);
