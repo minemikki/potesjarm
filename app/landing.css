@@ -1,0 +1,205 @@
+/* =========================================================================
+   Potesjarm – ventelisten («det lokale hundelivet»). Mobil først.
+   Lyst og norsk: krem, dyp indigo, blå CTA, mint/korall/sol som signaler,
+   høydekurver fra turkart som eneste dekor.
+   ========================================================================= */
+.wl {
+  --topoInk: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='220' viewBox='0 0 320 220'%3E%3Cg fill='none' stroke='%231c1f66' stroke-width='1' opacity='.09'%3E%3Cpath d='M-10 170c40-24 70-10 102-30s46-58 94-54 74 40 146 14'/%3E%3Cpath d='M-10 194c46-22 78-6 112-28s52-62 100-54 78 46 144 22'/%3E%3Cpath d='M-10 146c38-26 64-16 94-34s40-54 88-48 70 34 148 6'/%3E%3Cpath d='M170 30c24-10 52-8 68 10s10 46-14 54-58 6-68-16 0-40 14-48z'/%3E%3Cpath d='M180 44c16-6 34-4 42 8s6 28-10 32-38 2-42-10 0-24 10-30z'/%3E%3C/g%3E%3C/svg%3E");
+  min-height: 100vh; background: var(--cream); color: var(--ink); font-family: var(--body); overflow-x: clip;
+}
+.wl :where(h1, h2, h3) { font-family: var(--display); color: var(--indigo); margin: 0; letter-spacing: -0.015em; }
+.wl a { color: inherit; }
+.wlWrap { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+.wlNarrow { max-width: 760px; }
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s var(--ease, ease), transform 0.5s var(--ease, ease); }
+.reveal.in { opacity: 1; transform: none; }
+
+/* Header */
+.wlHeader { position: sticky; top: 0; z-index: 20; background: rgba(251, 248, 241, 0.88); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(21, 25, 76, 0.05); }
+.wlHeaderInner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.wlBrand { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-family: var(--display); font-weight: 800; font-size: 21px; color: var(--indigo) !important; }
+.wlBrand.small { font-size: 17px; }
+.wlHeaderCta { display: inline-flex; align-items: center; height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14.5px; font-weight: 900; text-decoration: none; color: #fff !important; background: var(--indigo); }
+
+/* Hero */
+.wlHero { position: relative; padding: 22px 0 40px; background: var(--topoInk) right -80px top 30px / 520px auto no-repeat, var(--cream); }
+.wlHeroGrid { display: grid; gap: 28px; }
+.wlKicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 900; letter-spacing: 0.12em; color: #0b7a57; background: var(--mint-bg); }
+.wlKicker::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--mint); }
+.wlHero h1 { margin-top: 14px; font-size: clamp(44px, 11vw, 78px); line-height: 0.98; font-weight: 800; }
+.wlLead { margin: 14px 0 0; font-size: 17.5px; line-height: 1.45; font-weight: 600; color: var(--ink-2); max-width: 520px; }
+.wlHeroForm { margin-top: 20px; max-width: 520px; scroll-margin-top: 80px; }
+
+/* Skjema */
+.wlForm { display: grid; gap: 10px; }
+.wlRow.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wlField { display: grid; gap: 5px; min-width: 0; }
+.wlField > span { font-size: 12.5px; font-weight: 900; letter-spacing: 0.02em; color: var(--ink-2); }
+.wlField input {
+  width: 100%; height: 52px; padding: 0 14px; border-radius: 14px; border: 1.5px solid #e2dccd; background: #fff;
+  font: inherit; font-size: 16px; font-weight: 700; color: var(--indigo); outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.wlField input::placeholder { color: #b5b1a6; font-weight: 600; }
+.wlField input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(47, 107, 255, 0.14); }
+.wlField.bad input { border-color: var(--coral); }
+.wlField small { font-size: 12.5px; font-weight: 800; color: #d8452b; }
+.wlSubmit {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 56px; margin-top: 2px; border-radius: 16px;
+  font-family: var(--display); font-weight: 800; font-size: 19px; color: #fff; background: var(--blue); box-shadow: 0 12px 26px rgba(47, 107, 255, 0.32);
+  transition: transform 0.15s, background 0.15s;
+}
+.wlSubmit:hover { background: var(--blue-2); transform: translateY(-1px); }
+.wlSubmit:disabled { opacity: 0.7; }
+.wlNote { margin: 2px 0 0; font-size: 13px; font-weight: 800; color: var(--muted); text-align: center; }
+.wlNote.warn { display: flex; align-items: flex-start; gap: 6px; text-align: left; color: #b8391f; }
+.wlNote a { text-decoration: underline; }
+.wlForm.tone-dark .wlField > span { color: rgba(255, 255, 255, 0.8); }
+.wlForm.tone-dark .wlField input { border-color: transparent; }
+.wlForm.tone-dark .wlNote { color: rgba(255, 255, 255, 0.65); }
+.wlForm.tone-dark .wlNote.warn { color: #ffc4b6; }
+
+/* Etter påmelding */
+.wlDone { display: grid; gap: 10px; padding: 18px; border-radius: 20px; background: #fff; box-shadow: 0 14px 34px rgba(21, 25, 76, 0.1); animation: wlPop 0.35s var(--ease, ease) both; }
+@keyframes wlPop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+.wlDoneTitle { margin: 0; font-family: var(--display); font-weight: 800; font-size: 28px; color: var(--indigo); line-height: 1.1; }
+.wlDonePos { margin: 0; font-size: 16px; font-weight: 600; color: var(--ink-2); line-height: 1.45; }
+.wlDonePos b { color: var(--indigo); }
+.wlInvite { display: grid; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.wlInvite > b { font-size: 16px; color: var(--indigo); }
+.wlShare { display: flex; flex-wrap: wrap; gap: 8px; }
+.wlShareBtn { display: inline-flex; align-items: center; gap: 7px; height: 46px; padding: 0 16px; border-radius: 14px; font-size: 15px; font-weight: 900; text-decoration: none; color: var(--indigo) !important; background: var(--cream-2); }
+.wlShareBtn.primary { color: #fff !important; background: var(--blue); flex: 1 1 100%; justify-content: center; }
+.wlShareBtn.wa { color: #0b6b3a !important; background: #dff7e7; }
+
+/* Telefon-forhåndsvisning (HTML, ingen bilder) */
+.pvPhone { position: relative; width: 300px; max-width: 100%; margin: 0 auto; padding: 10px; border-radius: 46px; background: var(--indigo-2); box-shadow: 0 30px 60px rgba(21, 25, 76, 0.28), inset 0 0 0 2px rgba(255, 255, 255, 0.08); }
+.pvPhone.big { width: 330px; }
+.pvBadge { position: absolute; top: 22px; left: -10px; z-index: 2; padding: 5px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 900; letter-spacing: 0.04em; color: var(--indigo); background: var(--sun-bg); box-shadow: 0 6px 14px rgba(21, 25, 76, 0.14); }
+.pvScreen { display: grid; gap: 9px; padding: 10px 12px 16px; border-radius: 37px; background: var(--cream); min-height: 520px; align-content: start; overflow: hidden; }
+.pvStatus { display: flex; justify-content: space-between; padding: 2px 14px 0; font-size: 12px; font-weight: 900; color: var(--indigo); }
+.pvDots { width: 44px; height: 12px; border-radius: 6px; background: var(--indigo-2); }
+.pvHead { display: flex; align-items: center; gap: 7px; padding: 2px 4px; }
+.pvHead b { font-family: var(--display); font-size: 20px; color: var(--indigo); }
+.pvHead small { margin-left: auto; font-size: 11.5px; font-weight: 800; color: var(--muted); }
+.pvAsk { display: grid; gap: 7px; padding: 11px; border-radius: 16px; color: #fff; background: var(--indigo); }
+.pvAsk b { font-family: var(--display); font-size: 16px; }
+.pvChips { display: flex; gap: 5px; overflow: hidden; }
+.pvChips span { display: inline-flex; align-items: center; gap: 4px; flex: none; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; color: var(--indigo); background: #fff; }
+.pvChips .icon { color: var(--blue); }
+.pvBucket { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; font-family: var(--display); font-weight: 800; font-size: 14.5px; color: var(--indigo); }
+.pvBucket i, .pvWhen.live i, .wlLiveDot { width: 7px; height: 7px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 3px rgba(34, 185, 138, 0.2); display: inline-block; }
+.pvInvite { display: grid; gap: 5px; padding: 11px; border-radius: 16px; background: #fff; box-shadow: 0 4px 14px rgba(21, 25, 76, 0.07); text-align: left; }
+.pvTop { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.pvAvatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 13px; color: var(--t); background: var(--tb); }
+.pvWho { display: grid; line-height: 1.15; min-width: 0; }
+.pvWho b { font-size: 12.5px; color: var(--indigo); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pvWho small { font-size: 10.5px; font-weight: 700; color: var(--muted); }
+.pvWhen { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 900; color: var(--indigo); background: var(--cream-2); white-space: nowrap; }
+.pvWhen.live { color: #0b7a57; background: var(--mint-bg); }
+.pvTitle { font-family: var(--display); font-size: 15px; color: var(--indigo); line-height: 1.2; }
+.pvPlace { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; color: var(--t); }
+.pvFoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 7px; border-top: 1px dashed var(--line); }
+.pvFoot small { font-size: 11px; font-weight: 800; color: var(--ink-2); }
+.pvJoin { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 11px; border-radius: 999px; font-size: 11.5px; font-weight: 900; color: #fff; background: var(--blue); transition: transform 0.15s; }
+.pvJoin:active { transform: scale(0.95); }
+.pvJoin.done { color: #0b7a57; background: var(--mint-bg); }
+.pvInvite.compact .pvTitle { font-size: 13.5px; }
+
+/* Seksjoner */
+.wlSection { padding: 56px 0; }
+.wlSection h2 { font-size: clamp(30px, 6.4vw, 46px); line-height: 1.06; font-weight: 800; text-wrap: balance; }
+.wlEyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 12.5px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: var(--blue-2); }
+
+.wlProblem { text-align: center; }
+.wlProblem .wlNarrow { margin: 0 auto; }
+.wlLines { display: grid; gap: 4px; margin: 18px 0 0; font-size: 19px; font-weight: 700; color: var(--ink-2); }
+.wlPunch { margin: 16px 0 0; font-family: var(--display); font-weight: 800; font-size: 24px; color: var(--coral); }
+
+.wlNow { color: #fff; background: var(--topo, none) right -60px bottom -40px / 520px auto no-repeat, var(--indigo); }
+.wlNow h2 { color: #fff; font-size: clamp(38px, 9vw, 64px); }
+.wlNow .wlEyebrow { color: #a8f0d6; }
+.wlNowGrid { display: grid; gap: 30px; align-items: center; }
+.wlNowCopy p { margin: 14px 0 0; font-size: 18px; line-height: 1.5; font-weight: 600; color: rgba(255, 255, 255, 0.86); max-width: 480px; }
+.wlNowCopy .wlSmall { font-size: 15px; color: rgba(255, 255, 255, 0.66); }
+
+.wlReasons .wlWrap { display: grid; gap: 34px; }
+.wlReason { display: grid; gap: 16px; align-items: center; }
+.wlNum { display: block; font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--coral); letter-spacing: 0.08em; }
+.wlReason h3 { margin-top: 4px; font-size: clamp(26px, 5.6vw, 36px); line-height: 1.08; font-weight: 800; }
+.wlReason p { margin: 8px 0 0; font-size: 17px; line-height: 1.5; font-weight: 600; color: var(--ink-2); max-width: 440px; }
+.wlReasonArt { display: grid; place-items: center; padding: 26px 18px; border-radius: 26px; background: var(--topoInk) center / 420px auto no-repeat, var(--cream-2); }
+.wlReasonArt > * { width: 100%; max-width: 330px; }
+.wlExample { margin: -10px 0 0; font-size: 12.5px; font-weight: 700; color: var(--muted); text-align: center; }
+.pvDog { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 8px 22px rgba(21, 25, 76, 0.08); }
+.pvDogImg { width: 76px; height: 92px; border-radius: 16px; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 34px; color: #b98a1f; background: linear-gradient(160deg, #fff3d6, #ffe2a3); }
+.pvDog b { display: block; font-family: var(--display); font-size: 20px; color: var(--indigo); }
+.pvDog small { display: block; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.pvTraits { display: flex; flex-wrap: wrap; gap: 4px; margin: 7px 0; }
+.pvTraits span { padding: 3px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 800; color: #b3462c; background: var(--coral-bg); }
+.pvAskBtn { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 900; color: #fff; background: var(--blue); }
+.pvMoment { display: grid; gap: 4px; padding: 18px; border-radius: 22px; color: #fff; background: var(--topo, none) right -40px top -20px / 300px auto no-repeat, var(--indigo); box-shadow: 0 14px 30px rgba(28, 31, 102, 0.25); }
+.pvMoment small { font-size: 11.5px; font-weight: 900; letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.75); }
+.pvMoment b { font-family: var(--display); font-size: 46px; line-height: 1; }
+.pvMoment span { font-size: 14px; font-weight: 700; color: rgba(255, 255, 255, 0.8); }
+.pvWeek { display: flex; gap: 5px; margin-top: 8px; }
+.pvWeek i { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 900; color: rgba(255, 255, 255, 0.55); background: rgba(255, 255, 255, 0.1); }
+.pvWeek i.on { color: var(--indigo); background: #a8f0d6; }
+
+.wlHow h2 { text-align: center; }
+.wlSteps { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 12px; }
+.wlSteps li { display: grid; grid-template-columns: 52px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 14px; align-items: center; padding: 16px; border-radius: 20px; background: #fff; box-shadow: 0 6px 18px rgba(21, 25, 76, 0.06); }
+.wlStepIcon { position: relative; grid-row: 1 / span 2; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; color: var(--blue-2); background: var(--blue-bg); }
+.wlStepIcon i { position: absolute; top: -6px; left: -6px; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 900; color: #fff; background: var(--indigo); }
+.wlSteps b { font-family: var(--display); font-size: 19px; color: var(--indigo); line-height: 1.2; }
+.wlSteps small { font-size: 14.5px; font-weight: 600; color: var(--ink-2); }
+
+.wlLocal { text-align: center; background: var(--topoInk) center / 640px auto no-repeat; }
+.wlLocal .wlNarrow { margin: 0 auto; }
+.wlLocal p { margin: 14px auto 0; font-size: 18px; line-height: 1.5; font-weight: 600; color: var(--ink-2); max-width: 560px; }
+.wlCityPill { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px !important; padding: 10px 16px; border-radius: 999px; font-size: 15px !important; font-weight: 800 !important; color: var(--indigo) !important; background: #fff; box-shadow: 0 6px 16px rgba(21, 25, 76, 0.08); text-decoration: none; }
+.wlCityPill .icon { color: var(--coral); flex: none; }
+
+.wlFounder .wlNarrow { margin: 0 auto; padding: 30px 24px; border-radius: 28px; background: var(--sun-bg); }
+.wlFounder .wlEyebrow { color: #a86b00; }
+.wlPerks { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 12px; }
+.wlPerks li { display: flex; align-items: flex-start; gap: 10px; font-size: 17px; font-weight: 700; color: var(--indigo); line-height: 1.4; }
+.wlPerks .icon { flex: none; margin-top: 3px; color: #d48c00; }
+
+.wlFinal { color: #fff; background: var(--topo, none) left -60px bottom -40px / 520px auto no-repeat, var(--indigo); }
+.wlFinal .wlNarrow { margin: 0 auto; max-width: 520px; display: grid; gap: 18px; justify-items: center; text-align: center; }
+.wlFinal h2 { color: #fff; }
+.wlFinal .wlForm, .wlFinal .wlDone { width: 100%; text-align: left; }
+
+.wlFooter { padding: 22px 0 30px; background: var(--indigo-2); color: rgba(255, 255, 255, 0.6); font-size: 13.5px; font-weight: 700; }
+.wlFooterInner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+.wlFooter .wlBrand { color: #fff !important; }
+.wlFooter a { color: var(--cyan); text-decoration: none; }
+
+/* Desktop */
+@media (min-width: 900px) {
+  .wlHero { padding: 56px 0 72px; }
+  .wlHeroGrid { grid-template-columns: 1.08fr 0.92fr; align-items: center; gap: 48px; }
+  .wlHeroArt .pvPhone { transform: rotate(-3deg); }
+  .wlSection { padding: 92px 0; }
+  .wlNowGrid { grid-template-columns: 1fr 1fr; gap: 60px; }
+  .wlReason { grid-template-columns: 1fr 1fr; gap: 48px; }
+  .wlReason:nth-child(even) .wlReasonText { order: 2; }
+  .wlSteps { grid-template-columns: repeat(3, 1fr); }
+  .wlSteps li { grid-template-columns: 1fr; grid-template-rows: auto; row-gap: 8px; align-content: start; padding: 22px; }
+  .wlStepIcon { grid-row: auto; margin-bottom: 6px; }
+}
+
+/* Små mobiler: alt innenfor kanten, skjemaet over bretten */
+@media (max-width: 400px) {
+  .wlWrap { padding: 0 16px; }
+  .wlHero { padding-top: 16px; }
+  .wlLead { font-size: 16.5px; margin-top: 10px; }
+  .wlHeroForm { margin-top: 16px; }
+  .wlField input { height: 50px; }
+  .pvPhone.big { width: 300px; }
+  .pvBadge { left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}

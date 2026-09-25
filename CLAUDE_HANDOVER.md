@@ -631,3 +631,109 @@ testbare regler i `app/lib/`, og `store.js` er bare limet rundt dem.
 Skjermbilder/manuell visuell QA: kjør appen med
 `npm run build && npx next start -p 3100` og sjekk alltid 1366×768 og 390×844,
 og at ingen visning scroller sidelengs.
+
+---
+
+# Backend-status (Supabase) — Sprint 1–3
+
+Appen er koblet til en ekte Supabase-backend (bygget på `supabase/schema.sql`
++ migrasjoner i `supabase/migrations/`). Alt ligger bak `WAITLIST_MODE` og er
+kun aktivt for innloggede brukere; uten Supabase-nøkler kjører appen uendret
+som lokal prototype/demo. Se `supabase/SETUP.md`.
+
+**Datalag-seam:** `backend = authUser?.id && isSupabaseConfigured` i `store.js`.
+Er den sann er databasen fasit; ellers brukes den gamle lokale/demo-veien. Rene
+mapping-/regelfunksjoner ligger i `app/lib/mapdb.js` og `app/lib/social.js`
+(enhetstestet), Supabase-spørringer i `app/lib/db/*`.
+
+- **Sprint 1 – Auth + profiler + hunder:** magic link (`app/components/auth.js`),
+  `profiles`/`dogs` skrives fra onboarding/profilendring (`db/profiles.js`,
+  `db/dogs.js`, `db/sync.js`).
+- **Sprint 2 – Ekte treff:** `meetups`/`meetup_participants` (`db/meetups.js`),
+  lag/bli med/avlys, per kommune.
+- **Sprint 3 – Sosial graf:** migrasjon `003_sprint3_social_graph.sql` la til
+  hundevenn (`friend_requests` + `friendships`), `dogs.discoverable`, og
+  SECURITY DEFINER-RPC-er for følge/venn/blokk/oppdag (håndhever blokkering i
+  begge retninger, umulig å forfalske vennskap fra klient). `db/social.js`.
+  Ekte oppdagbare hunder i `DogsView`, forklarbare fellestrekk (ingen
+  matchprosent), følg/hundevenn/blokk på hundeprofil, treffvert åpner ekte
+  hundeprofil.
+
+- **Sprint 4 – Ekte grupper:** migrasjon `004_sprint4_groups.sql`
+  (`meetups.group_id` + RPC-er). `db/groups.js`. GroupsView viser ekte grupper
+  i kommunen (medlemstall fra rader), lag gruppe (blir admin), bli med/forlat,
+  gruppefeed (ekte innlegg, ingen fake liker/kommentar-tall), gruppetreff
+  (treff med `group_id`), medlemsliste med roller (klikk åpner ekte
+  hundeprofil), moderering (fjern medlem/rolle via RPC), rapporter innlegg
+  (ekte `reports`-rad). Blokkering skjuler medlemmer/innlegg (server-side i
+  RPC). Sist-admin kan ikke forlate uten overføring.
+
+- **Sprint 5 – Ekte chat + Realtime:** migrasjon `005_sprint5_chat_realtime.sql`.
+  Bygger på de eksisterende `conversations`/`conversation_members`/`messages`:
+  legger til `kind` ('direct'|'meetup'), `meetup_id`, `dm_key` med unike
+  indekser (ingen duplikate direkte-samtaler, én samtale per treff). **Retter en
+  RLS-bug** på `messages` (den gamle policyen `m.conversation_id = conversation_id`
+  bandt til seg selv → enhver deltaker kunne lese ALLE samtaler; kritisk siden
+  Realtime håndhever nettopp den policyen). SECURITY DEFINER-RPC-er:
+  `get_or_create_direct_conversation` (nekter self-chat + blokkering, dedupe via
+  `dm_key`), `get_or_create_meetup_conversation` (kun vert/deltaker),
+  `send_message` (medlemskap + blokk-sjekk, returnerer rå rad for dedupe),
+  `list_conversations` (innboks m/ siste melding + ulest, blokkerte skjult),
+  `list_messages` (kun medlem, blokkert = tom), `mark_conversation_read`.
+  `db/chat.js` (repo + Realtime-abonnement), `lib/chat.js` (rene regler:
+  dedupe/unread/sort/self+blokk-speil, testet). Store: `realConversations`,
+  `chatMsgs`, `startDirectChat`/`startMeetupChat`/`sendChatMessage`/
+  `markConversationRead`, Realtime-effekt på åpen samtale. UI: ekte innboks,
+  Chat/MeetupChat mot ekte samtaler (ingen fake online-status), «Melding» fra
+  hundeprofil, «Skriv til verten» + treff-chat fra treff-detalj. Migrasjonen
+  aktiverer Realtime på `messages` selv (idempotent).
+
+- **Sprint 6 – Ekte feed + likes + kommentarer + saves:** migrasjon
+  `006_sprint6_feed.sql` (ingen nye tabeller). Berikelses-view `post_card`
+  (ekte likes_count/comments_count + liked_by_me/saved_by_me) delt av alle
+  feed-RPC-ene. `list_feed` (relevans: egne + fulgte hunder + medlemsgrupper +
+  lokale innlegg; gruppeinnlegg lekker aldri til ikke-medlemmer; cursor på
+  created_at), `list_saved_posts`, `feed_post`, `create_post`, `delete_post`
+  (forfatter eller gruppeadmin/mod), `like_post`/`unlike_post` (idempotent,
+  returnerer ekte count), `save_post`/`unsave_post`, `list_post_comments`,
+  `create_comment`, `delete_comment`. Sprint 4 sin `list_group_posts` er
+  erstattet med en beriket variant (samme form), så hjem-feed og gruppefeed
+  deler mapper (`rowToFeedPost`) og kort (`FeedPostCard`). `lib/feed.js` (rene
+  regler: mergeFeed-paginering, optimistisk like/lagre + tilbakerulling,
+  filterBlocked; testet), `db/feed.js` (repository). Store: `realFeed` med
+  cursor + «last mer», `savedFeed`, kommentarer per innlegg, optimistiske
+  like/save med rollback, create/delete/report. UI: `FeedPostCard` (avatar →
+  hundeprofil, ekte like/kommentar/lagre/meny), hjem-feed med kald-start («Del
+  den første turen …»), ekte Comments-overlay (egen kan slettes), PostMenu
+  (slett egen / rapporter / blokker), PostComposer (kun tekst i live-modus).
+  Blokkering håndheves server-side i alle RPC-ene (begge veier).
+
+- **Sprint 7 – Ekte varsler + Realtime + push-fundament:** migrasjon
+  `007_sprint7_notifications.sql` (additiv, ingen nye kjernetabeller – bruker
+  eksisterende `notifications`/`notification_settings`; la til `actor_id` og
+  `push_subscriptions`). Varsler lages **server-side av AFTER-triggere** ved
+  ekte handlinger (følge, hundevenn sendt/godtatt, like, kommentar, melding,
+  treff-påmelding, treff-avlysning) via `_notify` som håndhever egen-handling,
+  blokkering (begge veier) og innstillinger, med dedupe (window for like/følge/
+  join, unread-collapse for meldinger). RPC-er: `list_notifications` (beriket
+  m/ aktør-hund for deep-link + avatar), `unread_notifications`,
+  `mark_notification_read`, `mark_all_notifications_read`,
+  `get_notification_settings`, `update_notification_settings`. Realtime på
+  `notifications`. `lib/notifications.js` (rene regler: mergeNotifications,
+  unreadCount, badgeText, notificationTarget, notificationIcon; testet),
+  `db/notifications.js` (repo + Realtime + push-registrering), `lib/push.js`
+  (ærlig push-statusfundament – later aldri som push virker uten VAPID/SW).
+  Store: `realNotifications` + `notifUnread` + `notifSettings`, Realtime-abonnement,
+  mark read/all, `openNotification` (deep-link + mark read), innstillinger.
+  UI: ekte varselsenter (aktør-avatar, ulest-tilstand, «marker alle lest»,
+  deep-link), header-bjelle med ekte ulest-badge, `NotificationSettings`-skjerm
+  med 6 kategorier + ærlig push-status. Ingen fake varsler / ulest i live-modus.
+
+**Fortsatt lokal/demo (ikke ekte multi-user ennå):** arrangementer, kart-pins
+for treff, full deltaker-avatarliste i treff (vises som ærlig antall). Full
+gruppechat er utsatt. **Web-push**: kun fundament (`push_subscriptions` +
+statusdeteksjon) – ekte utsending krever VAPID-nøkkel + service worker + Edge
+Function (senere steg); in-app varsler via Realtime virker. Bildeopplasting i
+feeden er tekst-først i live-modus. Disse er markert i koden og venter på sine
+sprinter (8: kart/places/geo, 9: aktivitet/gamification-backend, 10:
+moderering/GDPR/sikkerhet).

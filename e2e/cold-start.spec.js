@@ -10,15 +10,15 @@ test.describe("Cold start – tom kommune (live-modus)", () => {
   test("forsiden viser ekte 0-tall, ingen oppdiktet aktivitet", async ({ page }) => {
     await gotoSeeded(page, { location: EMPTY_KOMMUNE });
     const main = page.locator(".main");
-    await expect(main).toContainText("0 hunder");
+    // Ærlig kald start: ingen oppdiktede tall, én rolig statuslinje.
+    await expect(page.locator(".liveLine.cold")).toContainText("Hundelivet her starter med dere");
     await expect(main).not.toContainText("1 248");
     await expect(main).not.toContainText("18 dager");
   });
 
-  test("én samlet ærlig blokk i stedet for tre tomme kort", async ({ page }) => {
+  test("tomme tilstander er rolige linjer, ikke store tomme kort", async ({ page }) => {
     await gotoSeeded(page, { location: EMPTY_KOMMUNE });
-    await expect(page.locator(".coldBlock")).toBeVisible();
-    await expect(page.locator(".coldBlock")).toContainText("Ingen andre hundeeiere");
+    await expect(page.locator(".inlineEmpty", { hasText: "Ingen andre hunder" })).toBeVisible();
     await expect(page.locator(".empty")).toHaveCount(0);
   });
 
@@ -26,20 +26,22 @@ test.describe("Cold start – tom kommune (live-modus)", () => {
     await gotoSeeded(page, { location: EMPTY_KOMMUNE });
 
     await page.locator('.navItem[title="Nå skjer"]').click();
-    await expect(page.locator(".empty")).toContainText("Ingen treff");
+    await expect(page.locator(".nowCold")).toContainText("ingen treff");
+    // Intensjonene er CTA-en: lav terskel for å starte selv.
+    await expect(page.locator(".intent")).toHaveCount(6);
 
     await page.locator('.navItem[title="Hunder"]').click();
-    await expect(page.locator(".empty")).toContainText("Ingen hunder");
+    await expect(page.locator(".inlineEmpty")).toContainText("Ingen andre hunder");
 
     await page.locator('.navItem[title="Grupper"]').click();
-    await expect(page.locator(".myGroups, .groupGrid")).toContainText("Hundeliv Tromsø");
-    await expect(page.locator(".groupGrid")).toContainText(/^(?!.*medlemmer).*$|Ny gruppe/);
+    await expect(page.locator(".groupList")).toContainText("Hundeliv Tromsø");
+    // Ingen oppdiktet medlemstall på en helt ny gruppe.
+    await expect(page.locator(".groupList")).not.toContainText("medlemmer");
   });
 
   test("lokal toppliste er låst under terskelen, viser egne (nullstilte) rekorder", async ({ page }) => {
     await gotoSeeded(page, { location: EMPTY_KOMMUNE });
     await page.locator('.navItem[title="Aktivitet"]').click();
-    await page.locator(".chips button", { hasText: "Toppliste" }).click();
 
     await expect(page.locator(".lockedBoard")).toBeVisible();
     await expect(page.locator(".lockedBoard")).toContainText("10 aktive");
@@ -57,7 +59,7 @@ test.describe("Cold start – tom kommune (live-modus)", () => {
   test("bytter man til demo-kommunen i demo-modus, vises fixtures – ellers alltid ekte tomt", async ({ page }) => {
     await gotoSeeded(page, { mode: "demo", location: { kommuneId: "stavanger", omrade: null, radiusKm: 25 } });
     await expect(page.locator(".demoBanner")).toBeVisible();
-    await expect(page.locator(".stories")).toBeVisible();
+    await expect(page.locator(".strip.dogs")).toBeVisible();
 
     // Bytt til en kommune uten demo-fixtures, fortsatt i demo-modus.
     await page.locator(".sideNav .cityChip, .cityChip").first().click();
@@ -65,7 +67,7 @@ test.describe("Cold start – tom kommune (live-modus)", () => {
     await page.locator(".locResult", { hasText: "Bergen" }).first().click();
     await page.locator(".sheet .pillBtn.primary").click();
 
-    await expect(page.locator(".coldBlock")).toBeVisible();
+    await expect(page.locator(".liveLine.cold")).toBeVisible();
     await expect(page.locator(".demoBanner")).toHaveCount(0);
   });
 });

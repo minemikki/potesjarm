@@ -1,35 +1,57 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Icon, { DogDoodle, PawLogo } from "./Icon";
+import Icon, { PawLogo } from "./Icon";
 import { useApp } from "./store";
-import { Avatar, AvatarStack, DogAvatar } from "./ui";
-import { fmtKm, fmtNum, img, PHOTO } from "../lib/data";
-import { placeLabel, placeShort, radiusLabel } from "../lib/geo";
+import { Avatar, DogAvatar } from "./ui";
+import { fmtKm } from "../lib/data";
+import { placeShort } from "../lib/geo";
+import { badgeText } from "../lib/notifications";
 import { MODE } from "../lib/content";
+import { goingCount, meetupBucket, startLabel } from "../lib/today";
 
+/*
+ * Navigasjon. Ikke alle funksjoner er like viktige:
+ *  - PRIMÆR: det man gjør ofte (hjem, hva skjer, hunder, grupper, kart, aktivitet)
+ *  - SEKUNDÆR: planlagt/oppslag (arrangementer, utforsk)
+ * «For deg» er fortsatt fane-id-en internt; brukeren ser «Hjem».
+ */
 export const NAV = [
-  { id: "For deg", icon: "home", color: "blue" },
-  { id: "Nå skjer", icon: "live", color: "coral", live: true },
-  { id: "Grupper", icon: "users", color: "violet" },
-  { id: "Hunder", icon: "dog", color: "sun" },
-  { id: "divider" },
-  { id: "Kart", icon: "pin", color: "mint" },
-  { id: "Aktivitet", icon: "flame", color: "coral" },
-  { id: "Arrangementer", icon: "calendar", color: "blue" },
-  { id: "Utforsk", icon: "compass", color: "mint" },
+  { id: "For deg", label: "Hjem", icon: "home" },
+  { id: "Nå skjer", label: "Nå skjer", icon: "live", live: true },
+  { id: "Hunder", label: "Hunder", icon: "dog" },
+  { id: "Grupper", label: "Grupper", icon: "users" },
+  { id: "Kart", label: "Kart", icon: "pin" },
+  { id: "Aktivitet", label: "Aktivitet", icon: "flame" },
 ];
+export const NAV_SECONDARY = [
+  { id: "Arrangementer", label: "Arrangementer", icon: "calendar" },
+  { id: "Utforsk", label: "Utforsk", icon: "compass" },
+];
+
+const unreadMessages = (app) => (app.conversations || []).reduce((n, c) => n + (c.unread || 0), 0);
 
 export function Sidebar() {
   const app = useApp();
+  const item = (n, secondary) => (
+    <button
+      key={n.id}
+      className={"navItem" + (secondary ? " secondary" : "") + (app.tab === n.id ? " active" : "")}
+      onClick={() => app.setTab(n.id)}
+      aria-current={app.tab === n.id ? "page" : undefined}
+      title={n.id}
+    >
+      <span className="navIcon"><Icon name={n.icon} size={secondary ? 19 : 22} /></span>
+      <b>{n.label}</b>
+      {n.live && app.stats.meetupsNow > 0 && <i className="navCount">{app.stats.meetupsNow}</i>}
+    </button>
+  );
   return (
-    <aside className="sideNav" aria-label="Hovedmeny">
+    <aside className="sideNav v2" aria-label="Hovedmeny">
       <div className="navTop">
         <a className="brand" href="#" onClick={(e) => { e.preventDefault(); app.setTab("For deg"); }}>
-          <PawLogo size={44} />
+          <PawLogo size={40} />
           <span>Potesjarm</span>
         </a>
-        <p className="brandNote hand">Flere poter, flere venner</p>
         <button className="cityChip" onClick={() => app.open("location")} title="Bytt sted">
           <Icon name="pin" size={16} />
           <span>{placeShort(app.location)}</span>
@@ -38,107 +60,92 @@ export function Sidebar() {
       </div>
 
       <nav className="navList">
-        {NAV.map((n, i) =>
-          n.id === "divider" ? (
-            <hr key={i} />
-          ) : (
-            <button
-              key={n.id}
-              className={"navItem tint-" + n.color + (app.tab === n.id ? " active" : "")}
-              onClick={() => app.setTab(n.id)}
-              aria-current={app.tab === n.id ? "page" : undefined}
-              title={n.id}
-            >
-              <span className="navIcon"><Icon name={n.icon} size={22} /></span>
-              <b>{n.id}</b>
-              {n.live && app.stats.meetupsNow > 0 && <i className="navCount">{app.stats.meetupsNow}</i>}
-            </button>
-          )
-        )}
+        {NAV.map((n) => item(n))}
+        <hr />
+        {NAV_SECONDARY.map((n) => item(n, true))}
       </nav>
 
       <div className="navBottom">
         <button className="navCta" onClick={() => app.open("meetupComposer")}>
-          <Icon name="plus" size={22} stroke={2.6} />
+          <Icon name="plus" size={20} stroke={2.6} />
           <span>Lag treff</span>
         </button>
-        <div className="navUtility">
-          <button onClick={() => app.open("invite")} title="Inviter hundeeiere"><Icon name="gift" size={17} /><span>Inviter</span></button>
-          <button onClick={() => app.open("safety")} title="Trygghet"><Icon name="shield" size={17} /><span>Trygghet</span></button>
-        </div>
         <div className="navProfile">
           <button className="navProfileMain" onClick={() => app.open("profile")}>
-            <DogAvatar me size={42} ring="mint" />
+            <DogAvatar me size={40} ring="mint" />
             <span>
               <b>{app.me.dogName || "Din hund"}</b>
-              <small>Min profil <Icon name="arrowRight" size={12} /></small>
+              <small>Min profil</small>
             </span>
           </button>
-          <button className="navGear" onClick={() => app.open("settings")} title="Innstillinger"><Icon name="settings" size={19} /></button>
-        </div>
-        <div className="navDoodle">
-          <DogDoodle />
-          <p className="hand">Hundeliv er bedre sammen ♡</p>
+          <button className="navGear" onClick={() => app.open("settings")} title="Innstillinger" aria-label="Innstillinger"><Icon name="settings" size={19} /></button>
         </div>
       </div>
     </aside>
   );
 }
 
-function greeting(h) {
-  if (h < 5) return "God natt";
-  if (h < 10) return "God morgen";
-  if (h < 17) return "God dag";
-  return "God kveld";
-}
-
+/* Sidetitler: korte og menneskelige. Hjem og Kart eier sin egen topp. */
 const TITLES = {
-  "Nå skjer": ["NÅ SKJER", "Skjer rundt deg nå", "Spontane turer og treff som utløper av seg selv."],
-  Grupper: ["FELLESSKAP", "Grupper", "Finn flokken din – rase, aktivitet eller nabolag."],
-  Hunder: ["HUNDEVENNER", "Hunder i nærheten", "Finn turvenner med samme tempo, energi og lekestil."],
-  Kart: ["RUNDT DEG", "Kart", "Turområder, treff og steder i nærheten."],
-  Aktivitet: ["DIN FREMGANG", "Aktivitet", "Streak, utfordringer og merker – hver tur teller."],
-  Arrangementer: ["SKJER SNART", "Arrangementer", "Fellesturer, valpetreff og sosiale samlinger."],
-  Utforsk: ["OPPDAG LOKALT", "Utforsk", "Turområder og nyttig info for hundeeiere."],
+  "Nå skjer": ["Nå skjer", "Spontane treff i dag – de forsvinner av seg selv når de er over."],
+  Grupper: ["Grupper", "Små lokale miljøer: nabolag, rase og aktivitet."],
+  Hunder: ["Hunder i nærheten", "Hunder dere kan møte på tur, rett rundt hjørnet."],
+  Kart: ["Kart", ""],
+  Aktivitet: ["Aktivitet", "Historien om dere – turer, streak og milepæler."],
+  Arrangementer: ["Arrangementer", "Planlagt og litt større: fellesturer, kurs og samlinger du melder deg på i forkant."],
+  Utforsk: ["Utforsk", "Nye ting å gjøre med hunden din i nærheten."],
 };
 
 export function TopBar() {
   const app = useApp();
-  const [hello, setHello] = useState("God dag");
-  useEffect(() => setHello(greeting(new Date().getHours())), []);
-  const home = app.tab === "For deg";
-  const [kicker, title, sub] = home
-    ? ["LOKALT HUNDEFELLESSKAP", `${hello}, ${placeShort(app.location)}`, null]
-    : TITLES[app.tab] || ["", app.tab, ""];
+  // Hjem eier sin egen hilsen – her viser vi bare handlingene (søk/varsler/meldinger).
+  if (app.tab === "For deg") {
+    return (
+      <header className="topBar home">
+        <TopActions />
+      </header>
+    );
+  }
+  const [title, sub] = TITLES[app.tab] || [app.tab, ""];
   return (
     <header className="topBar">
       <div className="topTitle">
-        <span className="kicker">{kicker}</span>
-        <h1>
-          {title}
-          {home && <SunDoodle />}
-        </h1>
-        {/* På hjem bærer hero-kortet budskapet – vi gjentar det ikke her.
-            For andre faner viser vi den korte underteksten. */}
-        {home ? (
-          <p className="topSub home"><b>{radiusLabel(app.location)}</b></p>
-        ) : (
-          sub && <p className="topSub">{sub}</p>
-        )}
+        <h1>{title}</h1>
+        {sub && <p className="topSub">{sub}</p>}
       </div>
-      <div className="topActions">
-        <button className="searchBar" onClick={() => app.open("search")}>
-          <Icon name="search" size={19} />
-          <span>Søk etter steder, hunder eller treff…</span>
-        </button>
-        <button className="iconBtn searchOnly" onClick={() => app.open("search")} aria-label="Søk"><Icon name="search" /></button>
-        <button className="iconBtn" onClick={() => app.open("notifications")} aria-label="Varsler">
-          <Icon name="bell" />
-          {app.notifications.length > 0 && <i className="redDot" />}
-        </button>
-        <button className="iconBtn" onClick={() => app.open("inbox")} aria-label="Meldinger"><Icon name="mail" /></button>
-      </div>
+      <TopActions />
     </header>
+  );
+}
+
+function TopActions() {
+  const app = useApp();
+  const msgs = unreadMessages(app);
+  return (
+    <div className="topActions">
+      <button className="searchBar" onClick={() => app.open("search")}>
+        <Icon name="search" size={19} />
+        <span>Søk etter steder, hunder eller treff…</span>
+      </button>
+      <button className="iconBtn searchOnly" onClick={() => app.open("search")} aria-label="Søk"><Icon name="search" /></button>
+      <BellButton />
+      <button className="iconBtn" onClick={() => app.open("inbox")} aria-label="Meldinger">
+        <Icon name="mail" />
+        {msgs > 0 && <i className="countBadge">{badgeText(msgs)}</i>}
+      </button>
+    </div>
+  );
+}
+
+function BellButton({ size }) {
+  const app = useApp();
+  return (
+    <button className="iconBtn" onClick={() => app.open("notifications")} aria-label="Varsler">
+      <Icon name="bell" size={size} />
+      {app.backend
+        ? (app.notifUnread > 0 && <i className="countBadge">{badgeText(app.notifUnread)}</i>)
+        : (app.notifications.length > 0 && <i className="redDot" />)}
+    </button>
   );
 }
 
@@ -167,135 +174,189 @@ export function DemoBanner() {
   );
 }
 
+/* =========================================================================
+   Høyre-rail på desktop: hver side har sin egen, eller ingen.
+   ========================================================================= */
 const WEEK = ["M", "T", "O", "T", "F", "L", "S"];
+const RAIL_TABS = new Set(["For deg", "Nå skjer", "Grupper", "Aktivitet", "Hunder", "Arrangementer"]);
+export const hasRail = (tab) => RAIL_TABS.has(tab);
 
 export function RightRail() {
   const app = useApp();
-  const me = app.me;
-  const todayIdx = (new Date().getDay() + 6) % 7;
-  const ch = app.challengeProgress.find((c) => !c.done) || app.challengeProgress[0];
-  const nextEvents = app.events.slice(0, 3);
-
+  if (!hasRail(app.tab) || app.groupId) return null;
   return (
-    <aside className="rightRail">
-      {/* Streak – alltid brukerens egne, faktiske tall. */}
-      <section className="railCard streakCard">
-        <div className="railHead">
-          <h3>Din turstreak <Icon name="paw" size={18} className="paw" /></h3>
-          <b className="streakCount">
-            <Icon name="flame" size={20} className="flame" fill={me.streak > 0 ? "currentColor" : "none"} stroke={1.5} /> {me.streak} {me.streak === 1 ? "dag" : "dager"}
-          </b>
-        </div>
-        <div className="weekPaws">
-          {WEEK.map((d, i) => {
-            const done = i < todayIdx && me.streak > todayIdx - i;
-            const isToday = i === todayIdx;
-            const todayDone = isToday && me.todayMinutes > 0;
-            return (
-              <span key={i} className={done || todayDone ? "done" : isToday ? "today" : ""}>
-                <i><Icon name="paw" size={17} fill={done || todayDone ? "currentColor" : "none"} stroke={done || todayDone ? 1.2 : 1.8} /></i>
-                <small>{d}</small>
-              </span>
-            );
-          })}
-        </div>
-        <div className="streakFoot">
-          <p>
-            {me.todayMinutes > 0
-              ? "Dagens tur er registrert. Bra jobba!"
-              : me.streak > 0
-                ? <>Én tur i dag holder streaken på {me.streak} dager i live.</>
-                : "Start din første tur, så begynner streaken."}
-          </p>
-          <button className="pillBtn primary small" onClick={app.startWalk}><Icon name="play" size={14} fill="currentColor" stroke={0} /> Start tur</button>
-        </div>
-      </section>
-
-      {/* Ukens utfordring – fremgang regnet ut fra egne turer. */}
-      {ch && (
-        <section className="railCard challengeCard" onClick={() => app.setTab("Aktivitet")} role="button" tabIndex={0}>
-          <div className="railHead">
-            <h3>Din utfordring</h3>
-            <span className="linkish">Se alle <Icon name="arrowRight" size={14} /></span>
-          </div>
-          <div className="challengeBody">
-            <div className="challengeText">
-              <b><span className="chIcon"><Icon name={ch.icon} size={16} /></span>{ch.title}</b>
-              <div className="bar"><i style={{ width: Math.min(100, (ch.progress / ch.target) * 100) + "%" }} /></div>
-              <small>
-                <span>{fmtKm(ch.progress)} av {ch.target} {ch.unit}</span>
-                <span>+{ch.reward} poter</span>
-              </small>
-            </div>
-            <img className="challengeDog" src={img(PHOTO.max, 260, 260)} alt="" />
-          </div>
-        </section>
-      )}
-
-      {/* Arrangementer – bare hvis de finnes på ekte. */}
-      <section className="railCard eventsCard">
-        <div className="railHead">
-          <h3>Skjer snart</h3>
-          {nextEvents.length > 0 && (
-            <button className="linkish" onClick={() => app.setTab("Arrangementer")}>Se alle <Icon name="arrowRight" size={14} /></button>
-          )}
-        </div>
-        {nextEvents.length === 0 ? (
-          <div className="railEmpty">
-            <p>Ingen arrangementer i {app.kommune?.name} ennå.</p>
-            <button className="pillBtn soft small" onClick={() => app.open("eventComposer")}>
-              <Icon name="plus" size={15} stroke={2.6} /> Lag det første
-            </button>
-          </div>
-        ) : (
-          <div className="railEvents">
-            {nextEvents.map((e) => (
-              <button key={e.id} className="railEvent" onClick={() => app.open("event", e.id)}>
-                {e.photo ? <img src={img(e.photo, 160, 160)} alt="" /> : <span className="railEventIcon"><Icon name="calendar" size={20} /></span>}
-                <span className="dateChip"><b>{e.day}</b><small>{e.month}</small></span>
-                <span className="railEventText">
-                  <b>{e.title}</b>
-                  <small>{e.weekday} {e.time} · {e.place}</small>
-                  <span className="railEventGoing">
-                    {e.faces?.length > 0 && <AvatarStack ids={e.faces} size={20} />}
-                    {e.going + (app.eventGoing[e.id] && !e.mine ? 1 : 0)} påmeldt
-                  </span>
-                </span>
-                <Icon name="chevronRight" size={18} className="chev" />
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Oppdag – seed-steder er ekte, offentlig informasjon. */}
-      <section className="railCard discoverCard" style={{ backgroundImage: `linear-gradient(180deg,rgba(18,24,78,.58) 0%,rgba(18,24,78,.1) 55%,rgba(18,24,78,.55) 100%),url(${img(PHOTO.fjord, 700)})` }}>
-        <h3>{app.stats.places > 0 ? `${app.stats.places} turområder i ${app.kommune?.name}` : `Turområder i ${app.kommune?.name}`}</h3>
-        <p>Offentlige turområder fra Potesjarm-guiden.</p>
-        <button className="pillBtn white" onClick={() => app.setTab("Utforsk")}><Icon name="compass" size={17} /> Utforsk</button>
-        <SunDoodle />
-      </section>
+    <aside className="rightRail v2">
+      {app.tab === "For deg" && <><StreakRail /><ChallengeRail scope="daglig" /></>}
+      {app.tab === "Nå skjer" && <TonightRail />}
+      {app.tab === "Grupper" && <MyGroupsRail />}
+      {app.tab === "Aktivitet" && <ChallengeRail scope="ukentlig" title="Ukemål" all />}
+      {app.tab === "Hunder" && <FollowingRail />}
+      {app.tab === "Arrangementer" && <SignedUpRail />}
     </aside>
   );
 }
 
+function StreakRail() {
+  const app = useApp();
+  const me = app.me;
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  return (
+    <section className="rail2 streak">
+      <div className="rail2Head">
+        <h3>Uka deres</h3>
+        <b className="streakCount"><Icon name="flame" size={17} fill={me.streak > 0 ? "currentColor" : "none"} stroke={1.6} /> {me.streak} {me.streak === 1 ? "dag" : "dager"}</b>
+      </div>
+      <div className="weekPaws">
+        {WEEK.map((d, i) => {
+          const done = i < todayIdx && me.streak > todayIdx - i;
+          const todayDone = i === todayIdx && me.todayMinutes > 0;
+          return (
+            <span key={i} className={done || todayDone ? "done" : i === todayIdx ? "today" : ""}>
+              <i><Icon name="paw" size={15} fill={done || todayDone ? "currentColor" : "none"} stroke={done || todayDone ? 1.2 : 1.8} /></i>
+              <small>{d}</small>
+            </span>
+          );
+        })}
+      </div>
+      <p className="rail2Text">
+        {me.todayMinutes > 0 ? "Dagens tur er med. Godt jobba, dere to." : me.streak > 0 ? "Én tur i dag holder rekka i gang." : "Første tur starter rekka."}
+      </p>
+      <button className="pillBtn primary small" onClick={app.startWalk}><Icon name="play" size={13} fill="currentColor" stroke={0} /> {me.todayMinutes > 0 ? "Start en tur til" : "Start tur"}</button>
+    </section>
+  );
+}
+
+function ChallengeRail({ scope, title = "Dagens mål", all }) {
+  const app = useApp();
+  const list = app.challengeProgress.filter((c) => c.scope === scope);
+  const shown = all ? list : list.filter((c) => !c.done).slice(0, 1);
+  if (!shown.length) return null;
+  return (
+    <section className="rail2">
+      <div className="rail2Head"><h3>{title}</h3></div>
+      <div className="rail2List">
+        {shown.map((c) => (
+          <div key={c.id} className={"goalRow" + (c.done ? " done" : "")}>
+            <span className={"goalIcon tint-" + c.color}><Icon name={c.done ? "check" : c.icon} size={15} /></span>
+            <div>
+              <b>{c.title}</b>
+              <i className="todayBar"><i style={{ width: Math.min(100, (c.progress / c.target) * 100) + "%" }} /></i>
+              <small>{c.unit === "km" ? fmtKm(c.progress) : c.progress} av {c.target} {c.unit} · +{c.reward} poter</small>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TonightRail() {
+  const app = useApp();
+  const later = app.meetups.filter((m) => ["today", "tonight"].includes(meetupBucket(m.startsIn)));
+  return (
+    <section className="rail2">
+      <div className="rail2Head"><h3>I kveld</h3></div>
+      {later.length === 0 ? (
+        <p className="rail2Text">Ingenting planlagt senere i dag ennå. Et kveldstreff trenger bare én annen hund.</p>
+      ) : (
+        <div className="rail2List">
+          {later.map((m) => (
+            <button key={m.id} className="railRow" onClick={() => app.open("meetup", m.id)}>
+              <time>{startLabel(m.startsIn).replace("kl. ", "")}</time>
+              <span><b>{m.title}</b><small>{(m.place || "").split(",")[0]} · {goingCount(m, !!app.going[m.id])} med</small></span>
+            </button>
+          ))}
+        </div>
+      )}
+      <button className="pillBtn soft small" onClick={() => app.open("meetupComposer")}><Icon name="plus" size={14} stroke={2.6} /> Lag et kveldstreff</button>
+      <p className="rail2Fine">Nå skjer = spontant og i dag. Planlagte fellesturer ligger under Arrangementer.</p>
+    </section>
+  );
+}
+
+function MyGroupsRail() {
+  const app = useApp();
+  const mine = app.groups.filter((g) => app.joinedGroups[g.id]);
+  return (
+    <section className="rail2">
+      <div className="rail2Head"><h3>Mine grupper</h3></div>
+      {mine.length === 0 ? (
+        <p className="rail2Text">Du er ikke med i noen grupper ennå. Bli med i én, så dukker den opp her.</p>
+      ) : (
+        <div className="rail2List">
+          {mine.map((g) => (
+            <button key={g.id} className="railRow" onClick={() => app.openGroup(g.id)}>
+              <Avatar src={g.photo} name={g.name} size={34} square />
+              <span><b>{g.name}</b><small>{g.members ? `${g.members} ${g.members === 1 ? "medlem" : "medlemmer"}` : "Ny gruppe"}</small></span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FollowingRail() {
+  const app = useApp();
+  const followed = app.dogs.filter((d) => app.followed[d.id]);
+  return (
+    <section className="rail2">
+      <div className="rail2Head"><h3>Du følger</h3></div>
+      {followed.length === 0 ? (
+        <p className="rail2Text">Trykk på hjertet på en hund for å følge turene deres.</p>
+      ) : (
+        <div className="rail2List">
+          {followed.map((d) => (
+            <button key={d.id} className="railRow" onClick={() => app.openDog(d.id)}>
+              <Avatar src={d.photo} name={d.name} size={34} />
+              <span><b>{d.name}</b><small>{[d.breed, d.age].filter(Boolean).join(" · ")}</small></span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SignedUpRail() {
+  const app = useApp();
+  const mine = app.events.filter((e) => app.eventGoing[e.id] || e.mine);
+  return (
+    <section className="rail2">
+      <div className="rail2Head"><h3>Du er påmeldt</h3></div>
+      {mine.length === 0 ? (
+        <p className="rail2Text">Ingen påmeldinger ennå. Arrangementer er planlagt i forkant – for spontane turer, se Nå skjer.</p>
+      ) : (
+        <div className="rail2List">
+          {mine.map((e) => (
+            <button key={e.id} className="railRow" onClick={() => app.open("event", e.id)}>
+              <span className="dateChip"><b>{e.day}</b><small>{e.month}</small></span>
+              <span><b>{e.title}</b><small>{e.weekday} {e.time} · {e.place}</small></span>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* =========================================================================
+   Mobil: rolig topp (kontekst til venstre, varsler + deg til høyre)
+   ========================================================================= */
 export function MobileHeader() {
   const app = useApp();
   return (
-    <header className="mobileHeader">
-      <a className="brand" href="#" onClick={(e) => { e.preventDefault(); app.setTab("For deg"); }}>
-        <PawLogo size={32} />
-        <span>Potesjarm</span>
-      </a>
+    <header className="mobileHeader v2">
+      <button className="mhContext" onClick={() => app.open("location")} aria-label="Bytt sted">
+        <PawLogo size={28} />
+        <span>{placeShort(app.location)}</span>
+        <Icon name="chevronDown" size={15} />
+      </button>
       <div className="mobileActions">
-        <button className="cityChip light" onClick={() => app.open("location")}>
-          <Icon name="pin" size={14} />{placeShort(app.location)}
+        <BellButton size={20} />
+        <button className="mhAvatar" onClick={() => app.open("profile")} aria-label="Min profil">
+          <DogAvatar me size={34} />
         </button>
-        <button className="iconBtn" onClick={() => app.open("notifications")} aria-label="Varsler">
-          <Icon name="bell" size={19} />
-          {app.notifications.length > 0 && <i className="redDot" />}
-        </button>
-        <button className="iconBtn" onClick={() => app.open("inbox")} aria-label="Meldinger"><Icon name="mail" size={19} /></button>
       </div>
     </header>
   );
@@ -303,21 +364,23 @@ export function MobileHeader() {
 
 export function BottomNav() {
   const app = useApp();
+  const msgs = unreadMessages(app);
   const item = (id, icon, label) => (
-    <button className={app.tab === id ? "active" : ""} onClick={() => app.setTab(id)}>
-      <Icon name={icon} size={23} /><small>{label}</small>
+    <button className={app.tab === id ? "active" : ""} onClick={() => app.setTab(id)} aria-current={app.tab === id ? "page" : undefined}>
+      <span className="bnIcon"><Icon name={icon} size={22} /></span><small>{label}</small>
     </button>
   );
+  const inMore = ["Hunder", "Kart", "Aktivitet", "Arrangementer", "Utforsk"].includes(app.tab);
   return (
-    <nav className="bottomNav" aria-label="Mobilmeny">
+    <nav className="bottomNav v2" aria-label="Mobilmeny">
       {item("For deg", "home", "Hjem")}
       {item("Nå skjer", "live", "Nå skjer")}
       <button className="bottomCta" onClick={() => app.open("meetupComposer")} aria-label="Lag treff">
-        <span><Icon name="plus" size={26} stroke={2.6} /></span><small>Lag treff</small>
+        <span className="bnCta"><Icon name="plus" size={22} stroke={2.6} /></span><small>Lag treff</small>
       </button>
       {item("Grupper", "users", "Grupper")}
-      <button className={["Hunder", "Kart", "Aktivitet", "Arrangementer", "Utforsk"].includes(app.tab) ? "active" : ""} onClick={() => app.open("more")}>
-        <Icon name="grid" size={23} /><small>Mer</small>
+      <button className={inMore ? "active" : ""} onClick={() => app.open("more")}>
+        <span className="bnIcon"><Icon name="grid" size={22} />{msgs > 0 && <i className="bnDot" />}</span><small>Mer</small>
       </button>
     </nav>
   );
