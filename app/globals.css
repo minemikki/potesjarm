@@ -1501,40 +1501,219 @@ p { margin: 0; }
   .coldActions { grid-template-columns: 1fr; }
 }
 
-/* ---- Venteliste (lanseringsmodus, se app/lib/launch.js) ---- */
-.waitlist {
-  min-height: 100dvh; min-height: 100vh;
-  display: grid; place-items: center; gap: var(--s6);
-  padding: var(--s6) var(--s4);
-  background: radial-gradient(120% 90% at 15% 0%, rgba(92, 200, 255, 0.14), transparent 55%), var(--indigo);
+/* =========================================================================
+   Ventelistens landingsside (lanseringsmodus, se app/lib/launch.js).
+   Egen, selvstendig markedsføringsside – gjenbruker fargene og fontene fra
+   designsystemet, men bygger sin egen layout. Mobil-først.
+   ========================================================================= */
+.lp {
+  --lp-max: 1120px;
+  color: var(--ink);
+  background: var(--cream);
+  overflow-x: hidden;
+}
+.lp :where(h1, h2, h3) { font-family: var(--display); }
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+}
+
+/* ---- Header ---- */
+.lpHeader {
+  position: sticky; top: 0; z-index: 30;
+  backdrop-filter: saturate(1.4) blur(12px);
+  background: rgba(251, 248, 241, 0.82);
+  border-bottom: 1px solid rgba(21, 25, 76, 0.06);
+}
+.lpHeaderInner {
+  max-width: var(--lp-max); margin: 0 auto;
+  height: 60px; padding: 0 var(--gutter);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.lpBrand { display: inline-flex; align-items: center; gap: var(--s2); text-decoration: none; }
+.lpBrand span { font-family: var(--display); font-weight: 800; font-size: 21px; color: var(--indigo); letter-spacing: -0.01em; }
+.lpHeaderCta {
+  text-decoration: none; font-weight: 800; font-size: 14px; color: #fff;
+  background: var(--blue); padding: 9px 18px; border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(47, 107, 255, 0.32); transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.lpHeaderCta:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(47, 107, 255, 0.4); }
+
+/* ---- Hero ---- */
+.lpHero {
   position: relative; overflow: hidden;
+  background:
+    radial-gradient(130% 100% at 100% -10%, rgba(92, 200, 255, 0.12), transparent 55%),
+    radial-gradient(120% 90% at -10% 0%, rgba(124, 92, 240, 0.1), transparent 55%),
+    var(--cream);
+  padding: clamp(28px, 6vw, 72px) var(--gutter) clamp(40px, 7vw, 88px);
 }
-.waitlist::before {
-  content: ""; position: absolute; inset: 0;
-  background-image: var(--paw-pattern); background-size: 64px 64px; opacity: 0.06;
-}
-.waitlistCard {
+.lpAurora { position: absolute; inset: 0; z-index: 0; pointer-events: none; filter: blur(60px); opacity: 0.55; }
+.lpBlob { position: absolute; border-radius: 50%; }
+.lpBlob.b1 { width: 46vw; height: 46vw; max-width: 520px; max-height: 520px; top: -12%; right: -8%; background: radial-gradient(circle, rgba(92,200,255,0.9), transparent 68%); animation: lpFloatA 16s ease-in-out infinite; }
+.lpBlob.b2 { width: 40vw; height: 40vw; max-width: 460px; max-height: 460px; bottom: -18%; left: -10%; background: radial-gradient(circle, rgba(124,92,240,0.7), transparent 68%); animation: lpFloatB 20s ease-in-out infinite; }
+.lpBlob.b3 { width: 30vw; height: 30vw; max-width: 340px; max-height: 340px; top: 30%; left: 40%; background: radial-gradient(circle, rgba(34,185,138,0.55), transparent 68%); animation: lpFloatA 24s ease-in-out infinite reverse; }
+@keyframes lpFloatA { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-18px, 22px); } }
+@keyframes lpFloatB { 0%,100% { transform: translate(0,0); } 50% { transform: translate(22px, -16px); } }
+
+.lpHeroInner {
   position: relative; z-index: 1;
-  width: min(420px, 100%);
-  display: grid; justify-items: center; gap: var(--s2);
-  text-align: center;
-  background: var(--paper);
-  border-radius: var(--r-hero);
-  padding: var(--s8) var(--s6);
-  box-shadow: var(--sh-2);
+  max-width: var(--lp-max); margin: 0 auto;
+  display: grid; gap: clamp(28px, 5vw, 48px);
+  align-items: center;
 }
-.waitlistCard .kicker { margin-top: var(--s2); }
-.waitlistCard h1 { font-size: clamp(26px, 4.6vw, 34px); color: var(--indigo); margin: var(--s2) 0 var(--s2); line-height: 1.08; }
-.waitlistCard > p { color: var(--ink-2); font-weight: 600; font-size: 14.5px; line-height: 1.5; margin-bottom: var(--s4); }
-.waitlistForm { width: 100%; display: grid; gap: var(--s3); }
-.waitlistForm .field { text-align: left; }
-.waitlistForm .pillBtn.big { width: 100%; }
-.waitlistOk { display: grid; justify-items: center; gap: var(--s1); padding: var(--s4) 0; }
-.waitlistOk b { font-size: 18px; color: var(--indigo); }
-.waitlistOk small { color: var(--muted); font-weight: 700; }
-.waitlistCard .fineprint { margin-top: var(--s3); align-items: flex-start; text-align: left; }
-.waitlistCard .fineprint .icon { margin-top: 2px; flex: none; }
-.waitlistCard .fineprint a { color: var(--blue); font-weight: 800; }
-.waitlistCard .fineprint:last-child { align-items: center; text-align: center; justify-content: center; }
-.waitlistCard .fineprint:last-child .icon { margin-top: 0; }
-.waitlistScribble { position: relative; z-index: 1; color: rgba(255,255,255,0.85); font-size: 22px; }
+.lpKicker {
+  display: inline-block; font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--blue); background: var(--blue-bg); padding: 6px 12px; border-radius: 999px;
+}
+.lpHeroCopy h1 {
+  font-size: clamp(34px, 7vw, 58px); line-height: 1.02; letter-spacing: -0.02em;
+  color: var(--indigo); margin: var(--s4) 0 var(--s3);
+}
+.lpHeroCopy h1 em {
+  font-style: normal;
+  background: linear-gradient(100deg, var(--blue), var(--violet) 55%, var(--cyan));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lpLead { color: var(--ink-2); font-weight: 600; font-size: clamp(15px, 2.2vw, 18px); line-height: 1.55; max-width: 46ch; margin: 0 0 var(--s6); }
+
+/* ---- Skjema ---- */
+.lpForm { width: 100%; max-width: 480px; }
+.lpFormRow { display: flex; gap: var(--s2); }
+.lpFormRow input {
+  flex: 1; min-width: 0; height: 52px; padding: 0 var(--s4);
+  border-radius: 999px; border: 1.5px solid var(--line); background: var(--paper);
+  font: inherit; font-weight: 600; font-size: 16px; color: var(--ink);
+}
+.lpFormRow input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(47,107,255,0.14); }
+.lpFormRow button {
+  flex: none; height: 52px; padding: 0 22px; border: 0; cursor: pointer;
+  border-radius: 999px; font: inherit; font-weight: 800; font-size: 15px; color: #fff;
+  background: var(--blue); box-shadow: 0 8px 20px rgba(47,107,255,0.34);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.lpFormRow button:hover:not(:disabled) { transform: translateY(-1px); background: var(--blue-2); box-shadow: 0 12px 26px rgba(47,107,255,0.42); }
+.lpFormRow button:disabled { opacity: 0.7; cursor: default; }
+.lpFormNote { display: flex; align-items: center; gap: 7px; margin: var(--s3) 2px 0; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.lpFormNote .icon { flex: none; }
+.lpFormNote.warn { color: var(--red); align-items: flex-start; }
+.lpFormNote.warn .icon { margin-top: 2px; }
+.lpFormNote a { color: var(--blue); font-weight: 800; }
+.lpFormOk {
+  display: flex; align-items: center; gap: var(--s3); max-width: 480px;
+  background: var(--mint-bg); border: 1.5px solid rgba(34,185,138,0.35);
+  border-radius: var(--r-card); padding: var(--s4) var(--s4);
+}
+.lpOkIcon { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--mint); color: #fff; }
+.lpFormOk b { display: block; color: var(--indigo); font-size: 16px; }
+.lpFormOk small { color: var(--ink-2); font-weight: 700; }
+/* mørk variant (på indigo bunn-CTA) */
+.lpForm.tone-dark .lpFormRow input { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.28); color: #fff; }
+.lpForm.tone-dark .lpFormRow input::placeholder { color: rgba(255,255,255,0.6); }
+.lpForm.tone-dark .lpFormRow input:focus { border-color: #fff; box-shadow: 0 0 0 4px rgba(255,255,255,0.18); }
+.lpForm.tone-dark .lpFormNote { color: rgba(255,255,255,0.72); }
+.lpForm.tone-dark .lpFormNote.warn { color: #ffd0c8; }
+.lpForm.tone-dark .lpFormNote a { color: var(--cyan); }
+.lpFormOk.tone-dark { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.24); }
+.lpFormOk.tone-dark b { color: #fff; }
+.lpFormOk.tone-dark small { color: rgba(255,255,255,0.78); }
+
+/* ---- Telefon-klynge ---- */
+.lpHeroArt { display: flex; justify-content: center; }
+.lpPhones { position: relative; width: min(440px, 100%); aspect-ratio: 1 / 1; }
+.lpGlow {
+  position: absolute; inset: 6% 6% 14%; z-index: 0; border-radius: 50%;
+  background: radial-gradient(circle, rgba(47,107,255,0.28), rgba(124,92,240,0.16) 45%, transparent 70%);
+  filter: blur(30px);
+}
+.lpPhone { position: absolute; z-index: 1; }
+.lpPhoneShell {
+  position: relative; width: 172px; padding: 8px; background: #0e1140;
+  border-radius: 30px; box-shadow: 0 24px 60px rgba(21,25,76,0.35), 0 4px 12px rgba(21,25,76,0.2);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.lpPhoneShell img { display: block; width: 100%; border-radius: 22px; }
+.lpPhoneNotch { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); width: 46px; height: 5px; border-radius: 999px; background: rgba(255,255,255,0.35); z-index: 2; }
+.lpPhoneA { left: 2%;  top: 8%;  transform: rotate(-9deg); z-index: 1; animation: lpBob 7s ease-in-out infinite; }
+.lpPhoneB { left: 50%; top: 0;   transform: translateX(-50%) scale(1.08); z-index: 3; animation: lpBob 6s ease-in-out infinite 0.4s; }
+.lpPhoneC { right: 2%; top: 10%; transform: rotate(9deg); z-index: 2; animation: lpBob 8s ease-in-out infinite 0.8s; }
+@keyframes lpBob { 0%,100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+@media (prefers-reduced-motion: reduce) { .lpPhone { animation: none !important; } }
+.lpScribble {
+  position: absolute; z-index: 4; right: -2%; top: -4%;
+  color: var(--mint); font-size: clamp(22px, 3vw, 30px); transform: rotate(-6deg);
+  text-shadow: 0 2px 10px rgba(251,248,241,0.9);
+}
+
+/* ---- Seksjoner generelt ---- */
+.lpSection { padding: clamp(48px, 8vw, 96px) var(--gutter); }
+.lpSectionHead { max-width: 640px; margin: 0 auto clamp(28px, 5vw, 52px); text-align: center; }
+.lpEyebrow { display: inline-block; font-weight: 800; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--violet); margin-bottom: var(--s3); }
+.lpEyebrow.light { color: var(--cyan); }
+.lpSectionHead h2 { font-size: clamp(26px, 4.6vw, 42px); line-height: 1.08; letter-spacing: -0.02em; color: var(--indigo); margin: 0 0 var(--s3); }
+.lpSectionHead p { color: var(--ink-2); font-weight: 600; font-size: clamp(15px, 2vw, 17px); margin: 0; }
+
+/* ---- Funksjonskort ---- */
+.lpFeatureGrid { max-width: var(--lp-max); margin: 0 auto; display: grid; gap: var(--s4); grid-template-columns: 1fr; }
+.lpFeatureCard {
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-xl);
+  padding: clamp(20px, 3vw, 28px); box-shadow: var(--sh-1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.lpFeatureCard:hover { transform: translateY(-3px); box-shadow: var(--sh-2); }
+.lpFeatureIcon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--tb); color: var(--t); margin-bottom: var(--s3); }
+.lpFeatureCard h3 { font-size: 19px; color: var(--indigo); margin: 0 0 6px; }
+.lpFeatureCard p { color: var(--ink-2); font-weight: 600; font-size: 14.5px; line-height: 1.5; margin: 0; }
+
+/* ---- Følelse ---- */
+.lpEmotion {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(92,200,255,0.16), transparent 55%),
+    radial-gradient(120% 100% at 100% 100%, rgba(124,92,240,0.2), transparent 55%),
+    var(--indigo);
+  color: #fff;
+}
+.lpEmotion::before { content: ""; position: absolute; inset: 0; background-image: var(--paw-pattern); background-size: 64px 64px; opacity: 0.05; }
+.lpEmotionInner { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; text-align: center; }
+.lpEmotionInner h2 { font-size: clamp(26px, 5vw, 44px); line-height: 1.1; letter-spacing: -0.02em; color: #fff; margin: 0 0 var(--s4); }
+.lpEmotionInner p { color: rgba(255,255,255,0.82); font-weight: 600; font-size: clamp(15px, 2.2vw, 18px); line-height: 1.6; max-width: 56ch; margin: 0 auto var(--s6); }
+.lpBadges { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--s2); }
+.lpBadges li { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; font-size: 13.5px; color: #fff; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18); padding: 8px 14px; border-radius: 999px; }
+.lpBadges .icon { color: var(--cyan); }
+
+/* ---- Bunn-CTA ---- */
+.lpCta {
+  background: linear-gradient(160deg, var(--indigo-3), var(--indigo) 60%, var(--indigo-2));
+  color: #fff; text-align: center;
+}
+.lpCtaInner { max-width: 560px; margin: 0 auto; display: grid; justify-items: center; }
+.lpCtaInner h2 { font-size: clamp(28px, 5vw, 44px); color: #fff; margin: var(--s4) 0 var(--s3); letter-spacing: -0.02em; }
+.lpCtaInner > p { color: rgba(255,255,255,0.82); font-weight: 600; font-size: clamp(15px, 2.2vw, 18px); line-height: 1.55; margin: 0 0 var(--s6); }
+.lpCtaForm { width: 100%; display: flex; justify-content: center; }
+.lpCtaForm .lpForm { margin: 0 auto; }
+
+/* ---- Footer ---- */
+.lpFooter { background: var(--indigo-2); color: rgba(255,255,255,0.72); padding: clamp(32px, 5vw, 48px) var(--gutter); }
+.lpFooterInner { max-width: var(--lp-max); margin: 0 auto; display: grid; justify-items: center; gap: var(--s3); text-align: center; }
+.lpFooterBrand { display: inline-flex; align-items: center; gap: var(--s2); color: #fff; }
+.lpFooterBrand span { font-family: var(--display); font-weight: 800; font-size: 18px; }
+.lpFooterNote { max-width: 44ch; font-weight: 600; font-size: 14px; margin: 0; }
+.lpFooterMail { display: inline-flex; align-items: center; gap: 7px; color: var(--cyan); font-weight: 800; text-decoration: none; font-size: 14px; }
+.lpFooterCopy { color: rgba(255,255,255,0.45); font-weight: 700; }
+
+/* ---- Desktop: hero blir to kolonner, kort blir rutenett ---- */
+@media (min-width: 760px) {
+  .lpHeroInner { grid-template-columns: 1.05fr 0.95fr; }
+  .lpFeatureGrid { grid-template-columns: repeat(2, 1fr); gap: var(--s6); }
+}
+@media (min-width: 1024px) {
+  .lpFeatureGrid { grid-template-columns: repeat(4, 1fr); }
+}
+/* ---- Liten mobil: klyngen skaleres så den ikke flyter over ---- */
+@media (max-width: 400px) {
+  .lpPhoneShell { width: 150px; }
+  .lpFormRow { flex-wrap: wrap; }
+  .lpFormRow button { width: 100%; }
+}

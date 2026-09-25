@@ -46,9 +46,13 @@ export default defineConfig({
     },
   ],
   webServer: {
+    // E2E-testene tester selve appen (ikke ventelista) og onboarding-flyten,
+    // så vi bygger serveren med ventelistemodus av og onboarding på
+    // (se app/lib/launch.js og app/components/store.js).
     command: "npm run build && npm run start -- -p 3100",
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
+    env: { NEXT_PUBLIC_WAITLIST_MODE: "off", NEXT_PUBLIC_FORCE_ONBOARDING: "on" },
   },
 });
