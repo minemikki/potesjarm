@@ -30,10 +30,7 @@ export default function Home() {
             <div className="coldCopy">
               <span className="kicker">FELLESSKAPET I {app.kommune?.name?.toUpperCase()}</span>
               <h2>Ingen andre hundeeiere her ennå</h2>
-              <p>
-                Vi viser aldri oppdiktede hunder eller treff for å fylle plassen. Så lenge det står tomt her,
-                er det fordi det faktisk er tomt – og det endrer seg i det noen blir med.
-              </p>
+              <p>Bli den som starter det.</p>
             </div>
             <div className="coldActions">
               <button className="coldAction tint-coral" onClick={() => app.open("meetupComposer")}>
@@ -138,8 +135,8 @@ function Hero() {
         <h2>{empty ? <>Hundelivet her<br />starter med dere</> : <>Finn noen<br />å gå tur med i dag?</>}</h2>
         <p>
           {empty
-            ? "Spor turene deres, bygg streak og oppdag nye turområder. Etter hvert som flere i nabolaget blir med, fylles treff og fellesskap opp her."
-            : "Møt hundevenner i nabolaget, bli med på turer og opplev nye steder sammen."}
+            ? "Spor turene, bygg streak og oppdag nye turområder."
+            : "Møt hundevenner og bli med på turer i nærheten."}
         </p>
         <div className="heroBtns">
           {empty ? (

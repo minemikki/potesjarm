@@ -361,6 +361,42 @@ bildeopplasting. **Venter på beslutning:** native-app for bakgrunns-GPS.
 
 ---
 
+# 3f. UX/visuell forenklingsrunde (runde 4)
+
+Hard opprydding for at appen skal føles som et premium consumer-produkt, ikke
+en AI-generert prototype med alt på én skjerm. Ingen nye features.
+
+**Designtokens** (`globals.css :root`): 4-punkts spacing (--s1..--s8),
+radius-hierarki (--r-hero 24, --r-card 18, --r-ctrl 14, pill 999 – ikke lenger
+alt maks-rundt; --r-xl senket 28→24), og en bunn-nav-token
+(--bottomnav-h + --safe-b).
+
+**P0**
+- **Bunn-nav-overlap:** `.app` reserverer nå `bottomnav-h + 30px + safe-area`
+  så innhold og den hevede FAB-en aldri dekker innhold. Nav bruker
+  safe-area-tokenet. Testet 390 og 430 bredde.
+- **Mindre heroer + mindre copy:** cold-start-hero lavere (padding 108→88,
+  h2 29→26) og kortere tekst; «God kveld»-greeting mistet den overflødige
+  underteksten på hjem (hero bærer budskapet); Nå skjer-hero strammere.
+  «Kom i gang» vises nå over folden.
+- **Demo-banner:** «Demo · oppdiktet innhold» på én linje, ingen truncation.
+- **Merkevare-fallback-headere:** ingen blanke hvite medieflater lenger. Nytt
+  pote-mønster (`--paw-pattern`) bak plassholdere; `Img` fikk `brand`-variant
+  (indigo gradient + pote-mønster) og valgfri stor initial. Hundeprofil-hero
+  viser hundens forbokstav på gradient; gruppe-header har egen merkevare-cover.
+
+**P1**
+- **Kompakt treff-detalj:** lavere kartforhåndsvisning (190→132), strammere
+  info-rad og mindre tittel.
+- **Kompakt hundeprofil:** match-boksen viser maks 3 fellestrekk med «Se alle N».
+- **Kortere copy:** cold-start-blokk, tomme tilstander (Hunder), og onboarding
+  fikk kuttet marketing-forklaringer.
+
+Ingen tester endret logikk; én e2e-assertion oppdatert til den kortere
+tom-tilstand-teksten. **89 enhetstester + 24 e2e grønne.**
+
+---
+
 # 4. Designretning (godkjent)
 
 Identitet:

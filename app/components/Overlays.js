@@ -71,7 +71,7 @@ function Onboarding() {
           <PawLogo size={64} />
           <span className="kicker">VELKOMMEN TIL POTESJARM</span>
           <h1>Hundeliv er bedre sammen.</h1>
-          <p>Spor turene dine, bygg streak og bli kjent med hundefolk i nabolaget – etter hvert som de blir med.</p>
+          <p>Spor turene, bygg streak og bli kjent med hundefolk i nabolaget.</p>
           <div className="onboardGrid">
             {[
               ["walk", "Turer, streak og merker", "mint", "Virker fra dag 1"],
@@ -177,8 +177,8 @@ function Onboarding() {
           <h1>{dog.dogName} er klar 🐾</h1>
           <p>
             {app.stats.dogs > 0
-              ? <>Det er allerede {app.stats.dogs} {app.stats.dogs === 1 ? "hund" : "hunder"} i {kommune?.name}. Si hei!</>
-              : <>Dere er blant de første i {kommune?.name}. Start med en tur – fellesskapet bygger vi sammen etter hvert.</>}
+              ? <>Allerede {app.stats.dogs} {app.stats.dogs === 1 ? "hund" : "hunder"} i {kommune?.name}. Si hei!</>
+              : <>Blant de første i {kommune?.name}. Lokalt innhold vokser med fellesskapet.</>}
           </p>
           <div className="onboardGrid">
             <span className="tint-blue"><i><Icon name="walk" size={20} /></i><b>Gå en tur</b><small>Start streaken</small></span>
@@ -726,10 +726,12 @@ function DogProfile({ data: id, onClose }) {
   const rel = app.relationTo(d.id);
   const common = commonalities(app.me, d);
   const headline = common.length >= 3 ? "God turmatch" : common.length === 2 ? "Noe til felles" : "Ny å bli kjent med";
+  const [showAll, setShowAll] = useState(false);
+  const shownCommon = showAll ? common : common.slice(0, 3);
   return (
     <Layer onClose={onClose} className="dogProfile" label={d.name}>
       <div className="dogHero">
-        <Img id={d.photo} w={900} h={700} className="dogHeroImg" />
+        <Img id={d.photo} w={900} h={700} className="dogHeroImg" brand fallbackLabel={d.name?.charAt(0)} />
         <CloseBtn onClick={onClose} light />
         <div className="dogHeroText">
           <h2>{d.name} {d.online && <span className="onlinePill"><i /> Ute nå</span>}</h2>
@@ -741,11 +743,14 @@ function DogProfile({ data: id, onClose }) {
         <div className="matchWhy">
           <div className="matchWhyHead">
             <span className="chIcon tint-mint"><Icon name="paw" size={18} /></span>
-            <div><b>{headline}</b><small>{common.length} {common.length === 1 ? "ting" : "ting"} til felles med {app.me.dogName || "hunden din"}</small></div>
+            <div><b>{headline}</b><small>{common.length} til felles med {app.me.dogName || "hunden din"}</small></div>
           </div>
           <ul className="matchList">
-            {common.map((c) => <li key={c}><Icon name="check" size={15} /> {c}</li>)}
+            {shownCommon.map((c) => <li key={c}><Icon name="check" size={15} /> {c}</li>)}
           </ul>
+          {common.length > 3 && (
+            <button className="linkish" onClick={() => setShowAll(!showAll)}>{showAll ? "Vis mindre" : `Se alle ${common.length}`}</button>
+          )}
         </div>
         <div className="dogFacts">
           <span><small>Energi</small><Meter value={d.energy} /></span>

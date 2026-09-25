@@ -118,13 +118,13 @@ export function TopBar() {
           {title}
           {home && <SunDoodle />}
         </h1>
-        <p className="topSub">
-          {home ? (
-            app.me.isNew
-              ? <>Velkommen! Her bygger vi hundefellesskapet i <b>{app.kommune?.name}</b> – helt fra start.</>
-              : <>Turer, treff og hundevenner innenfor <b>{radiusLabel(app.location)}</b>.</>
-          ) : sub}
-        </p>
+        {/* På hjem bærer hero-kortet budskapet – vi gjentar det ikke her.
+            For andre faner viser vi den korte underteksten. */}
+        {home ? (
+          <p className="topSub home"><b>{radiusLabel(app.location)}</b></p>
+        ) : (
+          sub && <p className="topSub">{sub}</p>
+        )}
       </div>
       <div className="topActions">
         <button className="searchBar" onClick={() => app.open("search")}>
@@ -161,7 +161,7 @@ export function DemoBanner() {
   return (
     <div className="demoBanner">
       <Icon name="sparkle" size={15} />
-      <span><b>Demo</b> · innholdet er oppdiktet</span>
+      <span><b>Demo</b> · oppdiktet innhold</span>
       <button onClick={() => app.setMode(MODE.LIVE)}>Vis ekte data</button>
     </div>
   );

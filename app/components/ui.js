@@ -39,9 +39,10 @@ export function Avatar({ src, size = 40, ring, online, square, alt = "", name })
  * hvis det feiler viser vi en poteplassholder i stedet for et ødelagt ikon.
  * `id` er en Unsplash-id (se img() i data.js); `ratio` styrer aspektforholdet.
  */
-export function Img({ id, w = 800, h, alt = "", ratio, className = "", rounded }) {
+export function Img({ id, w = 800, h, alt = "", ratio, className = "", rounded, brand, fallbackIcon = "paw", fallbackLabel }) {
   const [state, setState] = useState(id ? "loading" : "empty");
-  const cls = "img" + (rounded ? " rounded" : "") + (className ? " " + className : "") + (state !== "ok" ? " img-ph" : "");
+  const cls =
+    "img" + (rounded ? " rounded" : "") + (brand ? " brand" : "") + (className ? " " + className : "") + (state !== "ok" ? " img-ph" : "");
   return (
     <span className={cls} style={ratio ? { aspectRatio: ratio } : undefined}>
       {id && state !== "error" && (
@@ -55,7 +56,9 @@ export function Img({ id, w = 800, h, alt = "", ratio, className = "", rounded }
         />
       )}
       {state !== "ok" && (
-        <span className="imgFallback" aria-hidden="true"><Icon name="paw" size={28} /></span>
+        <span className="imgFallback" aria-hidden="true">
+          {fallbackLabel ? <b className="imgInitial">{fallbackLabel}</b> : <Icon name={fallbackIcon} size={28} />}
+        </span>
       )}
     </span>
   );

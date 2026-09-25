@@ -29,7 +29,7 @@ test.describe("Cold start – tom kommune (live-modus)", () => {
     await expect(page.locator(".empty")).toContainText("Ingen treff");
 
     await page.locator('.navItem[title="Hunder"]').click();
-    await expect(page.locator(".empty")).toContainText("Ingen hunder registrert");
+    await expect(page.locator(".empty")).toContainText("Ingen hunder");
 
     await page.locator('.navItem[title="Grupper"]').click();
     await expect(page.locator(".myGroups, .groupGrid")).toContainText("Hundeliv Tromsø");

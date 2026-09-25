@@ -159,7 +159,11 @@ function GroupPage({ id }) {
     <div className="view groupPage">
       <button className="backLink" onClick={app.closeGroup}><Icon name="chevronLeft" size={18} /> Alle grupper</button>
       <section className={"groupHeader tint-" + (g.color || "blue")}>
-        <div className="groupBanner" style={g.photo ? { backgroundImage: `url(${img(g.photo, 1400, 500)})` } : undefined} />
+        {/* Ingen blank hvit cover: har gruppa foto vises det, ellers en
+            merkevare-header (indigo gradient + pote-mønster). */}
+        {g.photo
+          ? <div className="groupBanner" style={{ backgroundImage: `url(${img(g.photo, 1400, 500)})` }} />
+          : <div className="groupBanner branded" />}
         <div className="groupHeaderBody">
           {g.photo ? <Img id={g.photo} w={200} h={200} className="groupAvatar" rounded /> : <span className="groupAvatar blank"><Icon name="users" size={34} /></span>}
           <div className="groupTitle">
@@ -268,12 +272,12 @@ export function DogsView() {
         <Empty
           icon="dog"
           tone="sun"
-          title={`Ingen hunder registrert i ${app.kommune?.name} ennå`}
-          text="Hunder dukker opp her når eierne deres blir med i Potesjarm. Kjenner du noen med hund i området, er en invitasjon det raskeste vi kommer."
+          title={`Ingen hunder i ${app.kommune?.name} ennå`}
+          text="Kjenner du noen med hund i området?"
           cta="Inviter hundeeiere"
           onCta={() => app.open("invite")}
-          secondary="Se turområder i stedet"
-          onSecondary={() => app.setTab("Utforsk")}
+          secondary="Utvid radius"
+          onSecondary={() => app.open("location")}
         />
       </div>
     );
