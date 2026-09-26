@@ -29,8 +29,9 @@ Kjør deretter hele `supabase/security_checks.sql` (12 sjekker) + #13 manuelt (r
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon-nøkkel | trygg i klient |
 | `NEXT_PUBLIC_MAP_TILES_URL` | tile-URL | CARTO for pilot |
 | `NEXT_PUBLIC_WAITLIST_MODE` | *(ikke sett i Production)* | hardlåst uansett |
-| `SUPABASE_SERVICE_ROLE_KEY` | **kun** som Edge Function secret | ALDRI i klient/Vercel-klientvars |
-Aldri legg service-role-nøkkelen i en `NEXT_PUBLIC_*`-variabel.
+Den hemmelige nøkkelen (`SUPABASE_SECRET_KEYS`/legacy `SUPABASE_SERVICE_ROLE_KEY`)
+settes ALDRI manuelt her – den injiseres automatisk i Edge Function-miljøet av
+hosted Supabase (se §5). Legg den aldri i en `NEXT_PUBLIC_*`-variabel eller i Vercel.
 
 ## 3. Kartfliser (tiles)
 - Pilot: CARTO/OSM via `NEXT_PUBLIC_MAP_TILES_URL` (default i koden) er ok for lavt volum.
@@ -50,12 +51,18 @@ Finn uid: Supabase → Authentication → Users. Fjern med `delete from moderato
 
 ### Edge Function: delete-account (GDPR full sletting)
 ```bash
-# Krever Supabase CLI + innlogget prosjekt (supabase link).
+# Krever Supabase CLI + innlogget prosjekt.
+supabase link --project-ref <PROJECT_REF>
 supabase functions deploy delete-account
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-# SUPABASE_URL og SUPABASE_ANON_KEY settes automatisk av plattformen for functions.
 ```
-Test: kall funksjonen med en test-brukers JWT og body `{"confirm":"SLETT"}` → `{"deleted":true}`, og bekreft at auth-brukeren + all data er borte (cascade). Koble deretter `delete_my_account`-UI-knappen til Edge Function-endepunktet (i dag kaller den kun RPC-en som ikke fjerner auth-brukeren — se «Gjenstår»).
+Ingen `supabase secrets set` er nødvendig. Hosted Supabase injiserer nøklene
+automatisk i funksjonens miljø (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEYS`,
+`SUPABASE_SECRET_KEYS`, `SUPABASE_JWKS`) – funksjonen leser disse selv
+(med fallback til de eldre `SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY`
+kun for lokal/dev-kjøring der de nye settene ikke finnes). Den hemmelige
+nøkkelen forlater aldri funksjonens miljø.
+
+Test: kall funksjonen med en test-brukers JWT og body `{"confirm":"SLETT"}` → `{"deleted":true}`, og bekreft at auth-brukeren + all data er borte (cascade). UI-et (Innstillinger → Slett konto) kaller allerede dette endepunktet via `supabase.functions.invoke("delete-account")`.
 
 ## 6. Backup / sjekk
 - Supabase → Database → Backups: bekreft at Point-in-Time/daglig backup er på før pilot.
@@ -79,7 +86,6 @@ signup → onboarding → opprett hund → lag treff → bli med → meld → tu
 - DB: migrasjonene er additive; en dårlig migrasjon rulles tilbake med en ny reverserende migrasjon (ikke slett data). Bruk backup fra §6 kun ved datatap.
 
 ## Gjenstår før full public launch
-- Koble `delete_my_account`-UI til `delete-account` Edge Function (RPC alene fjerner ikke auth-bruker).
 - Ekte web-push (VAPID + service worker + utsendings-funksjon).
 - Supabase Storage for bilder (bucket + policyer).
 - Redaksjonelle steder i Rogaland (`docs/ROGALAND_PLACES_SEED.md`).
