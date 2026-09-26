@@ -428,6 +428,33 @@ button.todayText:hover b { color: var(--blue); }
 .map2Summary b { font-family: var(--display); font-weight: 800; font-size: 18px; color: var(--indigo); }
 .map2Summary p { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); font-weight: 600; }
 .placeSheet { padding: 14px 16px; border-radius: 18px; background: var(--paper); }
+.placeSheet .kicker { font-size: 11.5px; font-weight: 900; letter-spacing: 0.06em; color: var(--ink-3); }
+
+/* Sprint 8: kart-header (lag + posisjon + liste-veksling) og listevisning */
+.map2Head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.map2Head .map2Tools { position: static; inset: auto; z-index: auto; flex: 1 1 auto; min-width: 0; }
+.map2Head .map2Tools .chips { flex-wrap: nowrap; overflow-x: auto; }
+.map2HeadBtns { display: flex; gap: 8px; flex: 0 0 auto; }
+.mapPosNote { margin: -4px 0 12px; }
+.meHost { background: none; border: 0; }
+.pin2.me, .meHost > .pin2 { }
+.meHost::after {
+  content: ""; display: block; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--indigo); box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.28), 0 0 0 6px #fff;
+}
+.mapList { display: grid; gap: 14px; }
+.mapListItems { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mapListRow {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); cursor: pointer;
+}
+.mapListRow.sel { border-color: var(--indigo); box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.16); }
+.mapListRow .mapListText { flex: 1 1 auto; min-width: 0; display: grid; }
+.mapListRow .mapListText b { font-size: 15px; color: var(--indigo); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mapListRow .mapListText small { font-size: 13px; color: var(--ink-2); }
+.mapListRow > .icon { color: var(--ink-3); flex: 0 0 auto; }
+.mapEmpty { max-width: 100%; }
+.c3Pos { margin-top: 8px; }
 
 /* =========================================================================
    AKTIVITET – historien om dere

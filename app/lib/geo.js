@@ -608,3 +608,25 @@ export function inBandtvang(date = new Date()) {
   if (m === 8) return d <= 20;
   return false;
 }
+
+// ---------------------------------------------------------------------------
+// Region (fylke) <-> kommune. Lansering markedsføres på region (Rogaland),
+// men all community-logikk er per kommune. Disse rene oppslagene lar kart og
+// discovery falle tilbake fra kommune til region uten å hardkode ett sted.
+// ---------------------------------------------------------------------------
+export const fylkeById = Object.fromEntries(fylker.map((f) => [f.id, f]));
+
+/** Fylke-id for en kommune ("stavanger" -> "rogaland"), ellers null. */
+export function regionOfKommune(kommuneId) {
+  return kommuneById[kommuneId]?.fylke || null;
+}
+
+/** Visningsnavn for et fylke ("rogaland" -> "Rogaland"), ellers "". */
+export function regionName(fylkeId) {
+  return fylkeById[fylkeId]?.name || "";
+}
+
+/** Alle kommuner i et fylke (til region-drilldown), sortert på navn. */
+export function kommunerInRegion(fylkeId) {
+  return kommuner.filter((k) => k.fylke === fylkeId).sort((a, b) => a.name.localeCompare(b.name, "nb"));
+}

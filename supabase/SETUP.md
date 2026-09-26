@@ -41,6 +41,17 @@ Level Security). Denne guiden får din instans opp å kjøre.
      Erstatter Sprint 4 sin `list_group_posts` med en beriket variant (samme
      form som hjem-feeden), så gruppefeed og hjem-feed deler kode. Idempotent.
 
+   - `supabase/migrations/009_sprint8_map_geo.sql` – Sprint 8: kart/steder/geo.
+     Utvider `places` med `status` (pending/approved/rejected), `region` (fylke),
+     `address_label` og `updated_at`; strammer RLS så bare **godkjente** steder
+     (eller ens egne forslag) er synlige og brukerforslag alltid er `pending`.
+     SECURITY DEFINER-RPC-er: `places_in_area` (godkjente steder i kommune/
+     region/radius, med avstand + ekte antall kommende treff), `place_detail`,
+     `map_meetups` (aktive treff med koordinater – filtrerer bort blokkerte
+     verter og gruppetreff man ikke er medlem av) og `suggest_place` (foreslå et
+     `pending` sted; server setter created_by/source/status/region). Bruker
+     eksisterende `cube`/`earthdistance` – ingen PostGIS. Additiv og idempotent.
+
    - `supabase/migrations/008_waitlist.sql` – ventelisten: `waitlist_signups`
      (hund, e-post, by, ekte plass per by, Founder for de første 100, referral-
      kode, UTM + referrer), RPC-en `join_waitlist` (kan kalles uten innlogging;

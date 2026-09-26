@@ -13,7 +13,7 @@
    og live-modus blir den eneste modusen.
    ========================================================================= */
 
-import { PHOTO } from "./data";
+import { PHOTO } from "./data.js";
 
 export const dogs = [
   { id: "luna", kommuneId: "stavanger", name: "Luna", owner: "Lise", breed: "Golden retriever", age: "2 år", lat: 58.943, lng: 5.716, photo: PHOTO.luna, ring: "coral", online: true, match: 94, energy: 4, size: "Stor", play: ["Apportering", "Bading"], streak: 28, story: "Morgenbad i Mosvatnet" },
@@ -104,6 +104,40 @@ export const demoProfile = {
   totalKm: 812,
   totalWalks: 243,
   paws: 2840,
-  weekKm: 18.6,
-  weekWalks: 4,
+  // Ukas tall utledes nå fra faktiske demo-turer (demoWalks), slik at
+  // «denne uka»-tallet og stolpegrafen ALLTID stemmer overens. totalKm/
+  // totalWalks er historikk før denne uka; demo-turene legges til på toppen.
+  weekKm: 0,
+  weekWalks: 0,
 };
+
+/**
+ * Demo-turhistorikk for inneværende uke. Genereres relativt til `now` slik at
+ * turene faktisk faller i denne uka uansett når demoen åpnes. Summen av disse
+ * ER ukas kilometer og ER stolpene i Aktivitet – ingen frittstående tall som
+ * ikke har dekning i data (rettet integritetsavvik fra Design Pass V2).
+ */
+export function demoWalks(now = new Date()) {
+  const base = new Date(now);
+  base.setHours(8, 30, 0, 0);
+  // [dager siden, km, aktive minutter, sted]
+  const plan = [
+    [0, 3.2, 41, "Stokkavannet"],
+    [1, 2.6, 33, "Sørmarka"],
+    [2, 5.4, 78, "Dalsnuten"],
+    [3, 2.1, 26, "Vålandsskogen"],
+    [4, 4.3, 55, "Mosvatnet"],
+  ];
+  return plan.map(([daysAgo, km, mins, place], i) => {
+    const at = new Date(base);
+    at.setDate(base.getDate() - daysAgo);
+    return {
+      id: "demo-walk-" + i,
+      at: at.toISOString(),
+      km,
+      seconds: mins * 60,
+      movingSeconds: mins * 60,
+      place,
+    };
+  });
+}

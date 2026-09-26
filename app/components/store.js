@@ -14,6 +14,7 @@ import * as demo from "../lib/demo";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { loadMyData, persistProfileAndDog } from "../lib/db/sync";
 import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCancelMeetup, joinMeetup, leaveMeetup } from "../lib/db/meetups";
+import { listPlaces as dbListPlaces, listMapMeetups as dbListMapMeetups, createPlaceSuggestion as dbCreatePlaceSuggestion } from "../lib/db/places";
 import { discoverDogs, getDog } from "../lib/db/dogs";
 import * as social from "../lib/db/social";
 import * as groupsDb from "../lib/db/groups";
@@ -143,6 +144,10 @@ export function AppProvider({ children, authUser = null }) {
   // Ekte treff hentet fra Supabase for kommunen brukeren følger (se
   // refreshMeetups nedenfor). Tom liste = faktisk ingen treff, ikke en feil.
   const [realMeetups, setRealMeetups] = useState([]);
+  // Sprint 8: ekte steder + kart-treff for kommunen (kun backend). Tomt =
+  // faktisk ingen steder/treff kartfestet ennå, ikke en skjult feil.
+  const [realPlaces, setRealPlaces] = useState([]);
+  const [realMapMeetups, setRealMapMeetups] = useState([]);
   // Ekte, oppdagbare hunder i kommunen (discover_dogs). Tom = ingen andre hunder.
   const [realDogs, setRealDogs] = useState([]);
   // Enkelt-hunder hentet på forespørsel (f.eks. en treffverts hund) som ikke
@@ -307,6 +312,23 @@ export function AppProvider({ children, authUser = null }) {
     refreshMeetups();
   }, [refreshMeetups, state.location.kommuneId]);
 
+  /* ---- Sprint 8: ekte steder + kart-treff for kommunen ---- */
+  const refreshPlaces = useCallback(async () => {
+    if (!backend) return;
+    const kommuneId = stateRef.current.location.kommuneId;
+    if (!kommuneId) { setRealPlaces([]); setRealMapMeetups([]); return; }
+    const [places, mapMeetups] = await Promise.all([
+      dbListPlaces({ municipalityId: kommuneId }),
+      dbListMapMeetups({ municipalityId: kommuneId }),
+    ]);
+    setRealPlaces(places.data);
+    setRealMapMeetups(mapMeetups.data);
+  }, [backend]);
+
+  useEffect(() => {
+    refreshPlaces();
+  }, [refreshPlaces, state.location.kommuneId]);
+
   /* ---- Sprint 5: ekte chat (samtaler + meldinger + Realtime) ---- */
 
   // Innboksen: alle mine samtaler med siste melding + ulest-antall.
@@ -437,6 +459,9 @@ export function AppProvider({ children, authUser = null }) {
     if (state.mode === MODE.DEMO) {
       setComments((c) => (Object.keys(c).length ? c : demo.initialComments));
       setMessages((m) => (Object.keys(m).length ? m : demo.initialMessages));
+      // Ekte demo-turhistorikk for denne uka, slik at Aktivitet-tallet og
+      // stolpegrafen alltid stemmer (samme kilde). Seedes bare én gang.
+      setState((s) => (s.walks.length ? s : { ...s, walks: demo.demoWalks() }));
     }
   }, [state.mode]);
 
@@ -522,8 +547,16 @@ export function AppProvider({ children, authUser = null }) {
       // forsvinner faktisk fra feeden – ikke bare en toast.
       posts: backend ? realFeed : notBlocked([...mine(state.myPosts), ...content.posts]),
       events: [...mine(state.myEvents), ...content.events],
+      // Sprint 8: kartet/Utforsk viser ekte, godkjente steder i backend-modus.
+      // Uten backend beholdes de redaksjonelle demo-stedene.
+      places: backend ? realPlaces : content.places,
+      // Kart-treff (med koordinater). Backend: personvernfiltrert RPC. Ellers:
+      // egne + demo-treff som faktisk har et punkt.
+      mapMeetups: backend
+        ? realMapMeetups
+        : [...mine(state.myMeetups), ...content.meetups].filter((m) => typeof m.lat === "number"),
     };
-  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups, realDogs, realGroups, realFeed]);
+  }, [content, state.myMeetups, state.myPosts, state.myEvents, state.location.kommuneId, state.blocked, backend, realMeetups, realDogs, realGroups, realFeed, realPlaces, realMapMeetups]);
 
   const stats = useMemo(() => getStats(contentWithMine), [contentWithMine]);
 
@@ -835,6 +868,20 @@ export function AppProvider({ children, authUser = null }) {
     },
     toggleEvent: (id) => toggleIn("eventGoing", id, "Du er påmeldt!", "Påmelding fjernet", "calendar"),
     togglePlace: (id) => toggleIn("savedPlaces", id, "Sted lagret", "Fjernet fra lagrede", "star"),
+
+    // Sprint 8: foreslå et nytt sted. Kun ekte med backend – da opprettes et
+    // `pending` sted som IKKE vises offentlig før en moderator godkjenner det.
+    // Uten innlogging/backend later vi aldri som noe ble sendt.
+    canSuggestPlace: backend,
+    suggestPlace: async ({ name, category, lat, lng, description = null } = {}) => {
+      if (!backend) { flash("Logg inn for å foreslå et sted", "pin"); return { ok: false }; }
+      const municipalityId = stateRef.current.location.kommuneId;
+      const { data, error } = await dbCreatePlaceSuggestion({ name, category, lat, lng, municipalityId, description });
+      if (error || !data) { flash("Kunne ikke sende forslaget – prøv igjen", "alert"); return { ok: false }; }
+      // Godkjenning kommer senere; stedet dukker opp på kartet først da.
+      flash("Takk! Forslaget er sendt til gjennomgang", "check");
+      return { ok: true, status: data.status };
+    },
     // Å bekrefte et sted er en førstehånds-påstand om et ekte, navngitt sted
     // brukeren kjenner – derfor teller det også som et besøkt/kjent sted
     // (placesVisited), som er signalet «Utforsker»-merket og «nye steder»-
@@ -1099,6 +1146,7 @@ export function AppProvider({ children, authUser = null }) {
           }
           flash("Treffet er ute! Det vises nå i Nå skjer", "live");
           refreshMeetups();
+          refreshPlaces(); // oppdater kart-treffene også
         });
         return null;
       }

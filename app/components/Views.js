@@ -8,7 +8,7 @@ import { useApp } from "./store";
 import { PostCard, FeedPostCard, InviteCard, InlineEmpty, DogTile, dogSignal } from "./Home";
 import { Avatar, AvatarStack, Bar, Chips, DogAvatar, Empty, Img, Meter, SectionHead, SourceTag } from "./ui";
 import { fmtKm, fmtNum, img, meetupTypes, PHOTO } from "../lib/data";
-import { BANDTVANG, inBandtvang, kommuneById, placeShort } from "../lib/geo";
+import { BANDTVANG, inBandtvang, kommuneById, placeShort, distanceKm, roundCoord, regionName, regionOfKommune } from "../lib/geo";
 import { placeTypes, publicInfo } from "../lib/seed";
 import { getDogCommonalities, commonalityHeadline } from "../lib/social";
 import { ShareCard } from "./Moments";
@@ -459,21 +459,29 @@ export function MapView() {
   const [sel, setSel] = useState(null);
   const [pinEls, setPinEls] = useState([]);
   const [ready, setReady] = useState(false);
+  const [asList, setAsList] = useState(false);
+  const [myPos, setMyPos] = useState(null); // { lat, lng } – kun på egen klient
+  const [posState, setPosState] = useState("idle"); // idle | locating | denied | error
   const box = useRef(null);
   const mapRef = useRef(null);
   const LRef = useRef(null);
+  const meRef = useRef(null);
   const k = app.kommune;
+  const region = regionOfKommune(app.location?.kommuneId);
 
-  const placePins = app.places.filter((p) => p.lat).map((p) => ({ kind: "place", id: p.id, lat: p.lat, lng: p.lng, label: p.name, icon: placeTypes[p.type]?.icon || "pin", color: placeTypes[p.type]?.color || "mint" }));
-  const meetPins = app.meetups.filter((m) => m.lat).map((m) => {
+  // Kartet viser KUN ekte, kartfestede ting: godkjente steder og aktive treff
+  // med koordinater. app.mapMeetups er allerede personvernfiltrert i backend.
+  const placePins = app.places.filter((p) => typeof p.lat === "number").map((p) => ({ kind: "place", id: p.id, lat: p.lat, lng: p.lng, label: p.name, icon: placeTypes[p.type]?.icon || "pin", color: placeTypes[p.type]?.color || "mint" }));
+  const meetPins = (app.mapMeetups || []).filter((m) => typeof m.lat === "number").map((m) => {
     const t = meetupTypes.find((x) => x.id === m.type) || meetupTypes[0];
     return { kind: "meetup", id: m.id, lat: m.lat, lng: m.lng, label: m.title, icon: t.icon, color: t.color, live: (m.startsIn || 0) <= 10 };
   });
   const pins = [...(layer !== "Steder" ? meetPins : []), ...(layer !== "Treff" ? placePins : [])];
-  const pinKey = pins.map((p) => p.kind + p.id).join("|");
+  const pinKey = pins.map((p) => p.kind + p.id).join("|") + (myPos ? "|me" : "");
 
   // Opprett kartet én gang (kun i nettleseren).
   useEffect(() => {
+    if (asList) return; // ingen kart å bygge i listevisning
     let dead = false;
     import("leaflet").then((mod) => {
       if (dead || !box.current || mapRef.current) return;
@@ -492,8 +500,9 @@ export function MapView() {
       dead = true;
       setReady(false);
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
+      meRef.current = null;
     };
-  }, [k?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [k?.id, asList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Pins som Leaflet-markører; innholdet tegnes med React via portaler.
   useEffect(() => {
@@ -508,73 +517,166 @@ export function MapView() {
       mk.on("click", (e) => { L.DomEvent.stopPropagation(e); setSel(p); });
       return { p, mk };
     });
+    // Egen posisjon som en egen, tydelig markør (kun lokalt, aldri delt).
+    if (myPos) {
+      meRef.current = L.marker([myPos.lat, myPos.lng], {
+        icon: L.divIcon({ className: "pinHost meHost", html: "", iconSize: [26, 26], iconAnchor: [13, 13] }),
+        keyboard: false,
+        title: "Din posisjon (omtrentlig)",
+      }).addTo(map);
+    }
     setPinEls(markers.map(({ p, mk }) => ({ p, el: mk.getElement() })));
-    return () => markers.forEach(({ mk }) => mk.remove());
+    return () => { markers.forEach(({ mk }) => mk.remove()); if (meRef.current) { meRef.current.remove(); meRef.current = null; } };
   }, [pinKey, ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const selMeetup = sel?.kind === "meetup" ? app.meetups.find((m) => m.id === sel.id) : null;
+  const findMe = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { setPosState("error"); return; }
+    setPosState("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPosState("idle");
+        const p = { lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude) };
+        setMyPos(p);
+        if (mapRef.current) mapRef.current.setView([p.lat, p.lng], 13);
+      },
+      (err) => setPosState(err.code === 1 ? "denied" : "error"),
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 }
+    );
+  };
+
+  const selMeetup = sel?.kind === "meetup" ? (app.meetups.find((m) => m.id === sel.id) || (app.mapMeetups || []).find((m) => m.id === sel.id)) : null;
   const selPlace = sel?.kind === "place" ? app.places.find((p) => p.id === sel.id) : null;
 
   return (
     <div className="view mapView2">
-      <div className="map2">
-        <div ref={box} className="map2Canvas" aria-label={`Kart over ${k?.name || "området"}`} />
-        {pinEls.map(({ p, el }) => el && createPortal(
-          <span className={"pin2 tint-" + p.color + (sel?.id === p.id ? " sel" : "") + (p.kind === "meetup" ? " meet" : "")}>
-            <Icon name={p.icon} size={17} />
-            {p.live && <i className="liveDot" />}
-          </span>,
-          el,
-          p.kind + p.id
-        ))}
+      <div className="map2Head">
         <div className="map2Tools">
           <Chips items={["Alt", "Treff", "Steder"]} value={layer} onChange={(v) => { setLayer(v); setSel(null); }} />
         </div>
-        <div className="map2Sheet">
-          {selMeetup ? (
-            <InviteCard m={selMeetup} />
-          ) : selPlace ? (
-            <PlaceSheet place={selPlace} onClose={() => setSel(null)} />
-          ) : (
-            <div className="map2Summary">
-              <b>Hundekartet i {k?.name || "området"}</b>
-              <p>
-                {pins.length === 0
-                  ? "Ingenting kartfestet her ennå. Vær den første som legger ut et treff."
-                  : [meetPins.length ? `${meetPins.length} ${meetPins.length === 1 ? "treff" : "treff"} nå` : null, placePins.length ? `${placePins.length} turområder` : null].filter(Boolean).join(" · ")}
-              </p>
-              <div className="mapSheetBtns">
-                <button className="pillBtn primary small" onClick={() => app.open("meetupComposer")}><Icon name="plus" size={15} stroke={2.6} /> Lag treff</button>
-                <button className="pillBtn soft small" onClick={() => app.setTab("Utforsk")}><Icon name="compass" size={15} /> Steder</button>
-              </div>
-            </div>
-          )}
+        <div className="map2HeadBtns">
+          <button className="pillBtn soft small" onClick={findMe} disabled={posState === "locating"} aria-label="Finn min posisjon">
+            <Icon name="pin" size={15} /> {posState === "locating" ? "Finner…" : "Min posisjon"}
+          </button>
+          <button className="pillBtn soft small" onClick={() => { setAsList(!asList); setSel(null); }} aria-pressed={asList}>
+            <Icon name={asList ? "map" : "list"} size={15} /> {asList ? "Kart" : "Liste"}
+          </button>
         </div>
+      </div>
+      {posState === "denied" && <p className="fineprint warn mapPosNote"><Icon name="alert" size={13} /> Vi fikk ikke posisjonen din. Viser {k?.name || "området"} i stedet.</p>}
+
+      {asList ? (
+        <MapList pins={pins} myPos={myPos} onSelect={setSel} sel={sel} selMeetup={selMeetup} selPlace={selPlace} />
+      ) : (
+        <div className="map2">
+          <div ref={box} className="map2Canvas" aria-label={`Kart over ${k?.name || "området"}`} />
+          {pinEls.map(({ p, el }) => el && createPortal(
+            <span className={"pin2 tint-" + p.color + (sel?.id === p.id ? " sel" : "") + (p.kind === "meetup" ? " meet" : "")}>
+              <Icon name={p.icon} size={17} />
+              {p.live && <i className="liveDot" />}
+            </span>,
+            el,
+            p.kind + p.id
+          ))}
+          <div className="map2Sheet">
+            {selMeetup ? (
+              <InviteCard m={selMeetup} />
+            ) : selPlace ? (
+              <PlaceSheet place={selPlace} myPos={myPos} onClose={() => setSel(null)} />
+            ) : pins.length === 0 ? (
+              <MapEmpty kommune={k} region={region} />
+            ) : (
+              <div className="map2Summary">
+                <b>Hundekartet i {k?.name || "området"}</b>
+                <p>
+                  {[meetPins.length ? `${meetPins.length} ${meetPins.length === 1 ? "treff" : "treff"} nå` : null, placePins.length ? `${placePins.length} ${placePins.length === 1 ? "sted" : "steder"}` : null].filter(Boolean).join(" · ")}
+                </p>
+                <div className="mapSheetBtns">
+                  <button className="pillBtn primary small" onClick={() => app.open("meetupComposer")}><Icon name="plus" size={15} stroke={2.6} /> Lag treff</button>
+                  <button className="pillBtn soft small" onClick={() => app.open("placeSuggest")}><Icon name="pin" size={15} /> Foreslå sted</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Cold start: ærlig tomt kart. Kommune valgt vs. bare region kjent. */
+function MapEmpty({ kommune, region }) {
+  const app = useApp();
+  return (
+    <div className="map2Summary mapEmpty">
+      {kommune ? (
+        <>
+          <b>Ingen hundesteder i {kommune.name} ennå</b>
+          <p>Vi bygger Potesjarm {region ? `i ${regionName(region)} ` : ""}by for by. Kjenner du et godt sted, eller vil du ta det første treffet?</p>
+        </>
+      ) : (
+        <>
+          <b>Vi bygger Potesjarm i {region ? regionName(region) : "Rogaland"} by for by</b>
+          <p>Velg kommunen din for å se hundeliv i nærheten.</p>
+        </>
+      )}
+      <div className="mapSheetBtns">
+        <button className="pillBtn primary small" onClick={() => app.open("meetupComposer")}><Icon name="plus" size={15} stroke={2.6} /> Lag det første treffet</button>
+        <button className="pillBtn soft small" onClick={() => app.open("placeSuggest")}><Icon name="pin" size={15} /> Foreslå et sted</button>
       </div>
     </div>
   );
 }
 
-function PlaceSheet({ place, onClose }) {
+/* Tilgjengelig alternativ til kartet: samme pins som en liste. */
+function MapList({ pins, myPos, onSelect, sel, selMeetup, selPlace }) {
+  const app = useApp();
+  if (pins.length === 0) return <MapEmpty kommune={app.kommune} region={regionOfKommune(app.location?.kommuneId)} />;
+  return (
+    <div className="mapList">
+      {selMeetup ? <InviteCard m={selMeetup} /> : selPlace ? <PlaceSheet place={selPlace} myPos={myPos} onClose={() => onSelect(null)} /> : null}
+      <ul className="mapListItems">
+        {pins.map((p) => {
+          const dist = myPos ? distanceKm(myPos, { lat: p.lat, lng: p.lng }) : null;
+          return (
+            <li key={p.kind + p.id}>
+              <button className={"mapListRow" + (sel?.id === p.id ? " sel" : "")} onClick={() => onSelect(p)}>
+                <span className={"chIcon tint-" + p.color}><Icon name={p.icon} size={17} /></span>
+                <span className="mapListText"><b>{p.label || (p.kind === "meetup" ? "Treff" : "Sted")}</b><small>{p.kind === "meetup" ? "Treff" : "Sted"}{dist != null ? ` · ${fmtKm(dist)} km unna` : ""}</small></span>
+                <Icon name="chevronRight" size={18} />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function PlaceSheet({ place, myPos, onClose }) {
   const app = useApp();
   const t = placeTypes[place.type] || placeTypes.tursti;
-  const here = app.meetups.filter((m) => (m.place || "").toLowerCase().startsWith(place.name.toLowerCase())).length;
+  // Ekte antall kommende treff fra serveren (place_detail/places_in_area).
+  // Uten backend faller vi tilbake på et lokalt tekst-treff, aldri et påstått tall.
+  const here = typeof place.upcomingMeetups === "number"
+    ? place.upcomingMeetups
+    : app.meetups.filter((m) => m.placeId === place.id || (place.name && (m.place || "").toLowerCase().startsWith(place.name.toLowerCase()))).length;
+  const dist = myPos && typeof place.lat === "number" ? distanceKm(myPos, { lat: place.lat, lng: place.lng }) : place.distanceKm;
   return (
     <div className="placeSheet">
       <div className="placeSheetHead">
         <span className={"chIcon big tint-" + t.color}><Icon name={t.icon} size={22} /></span>
         <div>
-          <span className="kicker">{t.label.toUpperCase()}</span>
+          <span className="kicker">{t.label.toUpperCase()}{dist != null ? ` · ${fmtKm(dist)} km unna` : ""}</span>
           <h3>{place.name}</h3>
         </div>
         <button className="ghostIcon" onClick={onClose} aria-label="Lukk"><Icon name="x" size={18} /></button>
       </div>
-      <p>{here > 0 ? `${here} ${here === 1 ? "treff" : "treff"} her nå. ` : ""}{place.about}</p>
+      <p>{here > 0 ? `${here} ${here === 1 ? "kommende treff" : "kommende treff"} her. ` : ""}{place.about}</p>
       <div className="mapSheetBtns">
         <button className="pillBtn soft small" onClick={() => app.togglePlace(place.id)}>
           <Icon name="star" size={15} fill={app.savedPlaces[place.id] ? "currentColor" : "none"} /> {app.savedPlaces[place.id] ? "Lagret" : "Lagre"}
         </button>
-        <button className="pillBtn primary small" onClick={() => app.open("meetupComposer", { place: place.name })}>
+        <button className="pillBtn primary small" onClick={() => app.open("meetupComposer", { place: place.name, placeId: place.id, lat: place.lat, lng: place.lng })}>
           <Icon name="plus" size={15} stroke={2.6} /> Treff her
         </button>
       </div>
@@ -838,7 +940,7 @@ export function ExploreView() {
             title={`Vi har ikke lagt inn turområder i ${app.kommune?.name || "området"} ennå.`}
             text="Guiden bygges kommune for kommune. Kjenner du et godt sted, vil vi gjerne vite om det."
             cta="Foreslå et sted"
-            onCta={() => app.flash("Takk! Stedsforslag kommer med innlogging", "pin")}
+            onCta={() => app.open("placeSuggest")}
           />
         ) : (
           <div className="placeGrid">{app.places.map((p) => <PlaceCard key={p.id} place={p} />)}</div>

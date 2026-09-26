@@ -182,13 +182,20 @@ export function meetupComposerToRow(composer = {}, { hostId, municipalityId, now
   const startsAt = new Date(now.getTime() + startsIn * 60000);
   const exp = expiryOptions.find((e) => e.id === composer.expiry) || expiryOptions[0];
   const expiresAt = new Date(now.getTime() + exp.minutes * 60000);
+  // Treffstedet: enten et eksisterende offentlig sted (place_id gjenbrukes)
+  // eller et punkt verten slapp på kartet (lat/lng lagres på treffet, IKKE som
+  // et nytt permanent Place). Koordinater tas kun med når de faktisk finnes.
+  const hasPoint = typeof composer.lat === "number" && typeof composer.lng === "number";
   return {
     host_id: hostId,
     municipality_id: municipalityId,
     kind: composer.type || "tur",
     title: composer.title?.trim() || null,
     note: composer.note?.trim() || null,
+    place_id: composer.placeId || null,
     place_text: composer.place?.trim() || null,
+    lat: hasPoint ? composer.lat : null,
+    lng: hasPoint ? composer.lng : null,
     starts_at: startsAt.toISOString(),
     expires_at: expiresAt.toISOString(),
     max_dogs: Number.isInteger(composer.max) && composer.max >= 2 && composer.max <= 50 ? composer.max : 8,
@@ -211,6 +218,10 @@ export function rowToMeetup(row = {}, ctx = {}) {
     title: row.title || "",
     note: row.note || "",
     place: row.place_text || "",
+    placeId: row.place_id || null,
+    // Eksplisitt publisert treffsted (verten deler det selv) – trygt å vise.
+    lat: typeof row.lat === "number" ? row.lat : null,
+    lng: typeof row.lng === "number" ? row.lng : null,
     when: relativeWhen(startsIn),
     startsIn,
     max: row.max_dogs ?? 8,
@@ -411,5 +422,65 @@ export function rowToNotificationSettings(row = {}) {
     streak: on(row.streak),
     events: on(row.events),
     lostDog: on(row.lost_dog),
+  };
+}
+
+/* =========================================================================
+   Sprint 8: steder (places) og kart-treff.
+
+   Kartet og Utforsk viser KUN ekte, godkjente steder i backend-modus. En rad
+   fra RPC-en places_in_area / place_detail oversettes til samme form som
+   demo-stedene (placeTypes-nøkkelen `type`), pluss `real: true`. Vi finner
+   aldri på avstand eller treff-tall – de kommer fra serveren eller utelates.
+   ========================================================================= */
+
+/** En rad fra places_in_area()/place_detail() -> app-stedsform. */
+export function rowToPlace(row = {}) {
+  return {
+    id: row.id,
+    real: true,
+    name: row.name || "",
+    type: row.kind || "tursti",
+    about: row.about || "",
+    lat: typeof row.lat === "number" ? row.lat : null,
+    lng: typeof row.lng === "number" ? row.lng : null,
+    kommuneId: row.municipality_id || null,
+    region: row.region || null,
+    addressLabel: row.address_label || null,
+    source: row.source || "user",
+    verifiedCount: typeof row.verified_count === "number" ? row.verified_count : 0,
+    // Kun satt når serveren faktisk regnet det ut (klientpunkt / ekte treff).
+    distanceKm: typeof row.distance_km === "number" ? row.distance_km : null,
+    upcomingMeetups: typeof row.upcoming_meetups === "number" ? row.upcoming_meetups : null,
+  };
+}
+
+/**
+ * En rad fra map_meetups() -> lett kart-treffform (pin + bunnark). RPC-en har
+ * allerede filtrert bort blokkerte verter og gruppetreff du ikke er medlem av,
+ * og gir ekte deltakertall. Fullt vert-/hunde-navn hentes ikke her; kartet slår
+ * opp det berikede treffet i listen ved klikk når det finnes.
+ */
+export function rowToMapMeetup(row = {}, now = new Date()) {
+  const startsIn = minutesUntil(row.starts_at, now) ?? 0;
+  return {
+    id: row.id,
+    real: true,
+    type: row.kind || "tur",
+    title: row.title || "",
+    note: row.note || "",
+    place: row.place_text || "",
+    placeId: row.place_id || null,
+    lat: typeof row.lat === "number" ? row.lat : null,
+    lng: typeof row.lng === "number" ? row.lng : null,
+    when: relativeWhen(startsIn),
+    startsIn,
+    max: row.max_dogs ?? 8,
+    hostId: row.host_id,
+    groupId: row.group_id || null,
+    goingCount: typeof row.going_count === "number" ? row.going_count : 0,
+    distanceKm: typeof row.distance_km === "number" ? row.distance_km : null,
+    iAmGoing: false,
+    going: [],
   };
 }

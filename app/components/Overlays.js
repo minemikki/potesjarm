@@ -424,6 +424,23 @@ function MeetupComposer({ data, onClose }) {
   const [more, setMore] = useState(false);
   const [title, setTitle] = useState("");
   const [max, setMax] = useState(6);
+  // Sprint 8: treffsted kan gjenbruke et eksisterende sted (placeId) eller
+  // være et punkt verten deler (coords). Begge lagres på selve treffet.
+  const [placeId, setPlaceId] = useState(data?.placeId || null);
+  const [coords, setCoords] = useState(typeof data?.lat === "number" ? { lat: data.lat, lng: data.lng } : null);
+  const [posState, setPosState] = useState("idle");
+
+  const pickPlace = (p) => { setPlace(p.name); setPlaceId(p.id); setCoords(typeof p.lat === "number" ? { lat: p.lat, lng: p.lng } : null); };
+  const pickCustom = (text) => { setCustom(text); setPlace("__custom"); setPlaceId(null); };
+  const useMyPos = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { setPosState("error"); return; }
+    setPosState("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setPosState("idle"); setCoords({ lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude) }); setPlaceId(null); if (place !== "__custom" && !custom) { setPlace("__custom"); setCustom("Møtested (min posisjon)"); } },
+      (err) => setPosState(err.code === 1 ? "denied" : "error"),
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 }
+    );
+  };
 
   const placeName = (place === "__custom" ? custom : place).trim();
   const autoTitle = withDog ? `Tur med ${withDog.name}?` : intentTitle(intent, placeName);
@@ -436,6 +453,10 @@ function MeetupComposer({ data, onClose }) {
       startsIn: startsInFor(when),
       expiry: expiryFor(when),
       place: placeName || app.kommune?.name,
+      // Gjenbruk et eksisterende sted, eller ta med et delt kartpunkt.
+      placeId: placeId || null,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
       max,
       pace: "Rolig",
       note: "",
@@ -494,9 +515,9 @@ function MeetupComposer({ data, onClose }) {
         <>
           <div className="choiceList">
             {app.places.slice(0, 5).map((p) => (
-              <button key={p.id} className={"choice" + (place === p.name ? " active" : "")} onClick={() => setPlace(p.name)}>
+              <button key={p.id} className={"choice" + (placeId === p.id ? " active" : "")} onClick={() => pickPlace(p)}>
                 <b>{p.name}</b><small>{placeTypes[p.type]?.label || "Turområde"}</small>
-                {place === p.name && <Icon name="check" size={18} stroke={2.6} />}
+                {placeId === p.id && <Icon name="check" size={18} stroke={2.6} />}
               </button>
             ))}
             <label className={"choice input" + (place === "__custom" ? " active" : "")}>
@@ -504,11 +525,20 @@ function MeetupComposer({ data, onClose }) {
               <input
                 value={custom}
                 onFocus={() => setPlace("__custom")}
-                onChange={(e) => { setCustom(e.target.value); setPlace("__custom"); }}
+                onChange={(e) => pickCustom(e.target.value)}
                 placeholder={app.places.length ? "Et annet sted…" : "Hvor møtes dere?"}
               />
             </label>
           </div>
+          <div className="locCenter c3Pos">
+            <small className="muted">
+              {coords ? <>Møtestedet er kartfestet ({coords.lat.toFixed(3)}, {coords.lng.toFixed(3)})</> : "Del posisjon for å kartfeste møtestedet (valgfritt)."}
+            </small>
+            <button className="linkish" onClick={useMyPos} disabled={posState === "locating"}>
+              <Icon name="pin" size={13} /> {posState === "locating" ? "Finner…" : coords ? "Oppdater punkt" : "Bruk min posisjon"}
+            </button>
+          </div>
+          {posState === "denied" && <p className="fineprint warn"><Icon name="alert" size={13} /> Posisjonstilgang ble ikke gitt. Treffet legges ut uten kartpunkt.</p>}
 
           <button className="linkish c3More" onClick={() => setMore(!more)}>
             {more ? "Færre valg" : "Flere valg"} <Icon name={more ? "chevronUp" : "chevronDown"} size={15} />
@@ -1847,10 +1877,92 @@ function WalkSummary({ data: s, onClose }) {
   );
 }
 
+/* ========================= Foreslå et sted (Sprint 8) ========================= */
+const PLACE_CATEGORIES = [
+  { id: "tursti", label: "Tursti" },
+  { id: "park", label: "Park" },
+  { id: "skog", label: "Turområde" },
+  { id: "strand", label: "Strand" },
+  { id: "utsiktspunkt", label: "Utsiktspunkt" },
+  { id: "hundepark", label: "Hundepark" },
+  { id: "hundevennlig", label: "Hundevennlig kafé" },
+  { id: "veterinaer", label: "Veterinær" },
+];
+
+function PlaceSuggest({ onClose }) {
+  const app = useApp();
+  const [name, setName] = useState("");
+  const [cat, setCat] = useState("tursti");
+  const [desc, setDesc] = useState("");
+  const [pos, setPos] = useState(null); // { lat, lng } – kun brukerens eget punkt
+  const [posState, setPosState] = useState("idle");
+  const [busy, setBusy] = useState(false);
+
+  const usePos = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) { setPosState("error"); return; }
+    setPosState("locating");
+    navigator.geolocation.getCurrentPosition(
+      (p) => { setPosState("idle"); setPos({ lat: roundCoord(p.coords.latitude), lng: roundCoord(p.coords.longitude) }); },
+      (err) => setPosState(err.code === 1 ? "denied" : "error"),
+      { enableHighAccuracy: true, maximumAge: 60000, timeout: 15000 }
+    );
+  };
+
+  const canSubmit = !!name.trim() && !!pos && app.canSuggestPlace && !busy;
+  const submit = async () => {
+    if (!canSubmit) return;
+    setBusy(true);
+    const r = await app.suggestPlace({ name: name.trim(), category: cat, lat: pos.lat, lng: pos.lng, description: desc.trim() || null });
+    setBusy(false);
+    if (r?.ok) onClose();
+  };
+
+  return (
+    <Layer onClose={onClose} className="sheet composer" label="Foreslå et sted">
+      <LayerHead kicker="NYTT STED" title="Foreslå et hundested" onClose={onClose} />
+      {!app.canSuggestPlace && (
+        <p className="fineprint warn"><Icon name="alert" size={14} /> Du må være innlogget for å foreslå et sted. Da blir forslaget sendt til gjennomgang før det vises på kartet.</p>
+      )}
+      <label className="field">
+        <span>Navn</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="F.eks. Stokkavannet rundt" maxLength={80} autoFocus />
+      </label>
+      <div className="field">
+        <span>Hva slags sted?</span>
+        <div className="miniChips scroll">
+          {PLACE_CATEGORIES.map((c) => (
+            <button key={c.id} className={cat === c.id ? "active" : ""} onClick={() => setCat(c.id)}>{c.label}</button>
+          ))}
+        </div>
+      </div>
+      <label className="field">
+        <span>Kort beskrivelse (valgfritt)</span>
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Hva gjør stedet fint for hund?" maxLength={500} rows={3} />
+      </label>
+      <div className="field">
+        <span>Posisjon</span>
+        <div className="locCenter">
+          <small className="muted">
+            {pos ? <>Omtrentlig posisjon lagret ({pos.lat.toFixed(3)}, {pos.lng.toFixed(3)})</> : "Stå på stedet og del din omtrentlige posisjon."}
+          </small>
+          <button className="linkish" onClick={usePos} disabled={posState === "locating"}>
+            <Icon name="pin" size={13} /> {posState === "locating" ? "Finner…" : pos ? "Oppdater" : "Bruk min posisjon"}
+          </button>
+        </div>
+        {posState === "denied" && <p className="fineprint warn"><Icon name="alert" size={13} /> Posisjonstilgang ble ikke gitt. Vi trenger posisjonen for å kartfeste stedet.</p>}
+        {posState === "error" && <p className="fineprint warn"><Icon name="alert" size={13} /> Fikk ikke posisjonen din. Prøv igjen.</p>}
+      </div>
+      <p className="fineprint"><Icon name="shield" size={14} /> Forslag vises ikke offentlig før de er godkjent. Del bare offentlige steder – aldri en hjemmeadresse.</p>
+      <button className="pillBtn primary block big" onClick={submit} disabled={!canSubmit}>{busy ? "Sender…" : "Send forslag"}</button>
+    </Layer>
+  );
+}
+
 const MAP = {
   onboarding: Onboarding,
   location: LocationPicker,
   meetupComposer: MeetupComposer,
+  placeSuggest: PlaceSuggest,
   groupComposer: GroupComposer,
   postComposer: PostComposer,
   eventComposer: EventComposer,
