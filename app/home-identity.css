@@ -1,0 +1,210 @@
+/* Home identity pass — one photographic hero, the rest Potesjarm-native graphics.
+   No fake profiles, meetups, places or social proof. */
+
+/* Keep one emotional photograph only: the cold-start hero. */
+.hero2.walk.cold {
+  min-height: 300px !important;
+  background-image:
+    linear-gradient(90deg, rgba(9,14,55,.90) 0%, rgba(9,14,55,.72) 36%, rgba(9,14,55,.30) 65%, rgba(9,14,55,.10) 100%),
+    linear-gradient(0deg, rgba(7,11,47,.40), rgba(7,11,47,0) 52%),
+    var(--pj-fjord) !important;
+  background-size: cover !important;
+  background-position: center 51% !important;
+  box-shadow: 0 20px 42px rgba(25,30,89,.18) !important;
+}
+.hero2.walk.cold h2 {
+  max-width: 9.5ch !important;
+  font-size: clamp(38px, 4vw, 54px) !important;
+  line-height: .96 !important;
+}
+.hero2.walk.cold .hero2Actions { margin-top: 12px !important; }
+
+/* Discovery tiles: branded graphics, not stock-photo mini banners. */
+.home2:has(.hero2.walk.cold) .exploreDog {
+  gap: 12px !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard {
+  min-height: 148px !important;
+  border: 1px solid rgba(28,31,102,.08) !important;
+  box-shadow: 0 10px 24px rgba(22,26,82,.08) !important;
+  background-image: none !important;
+  color: var(--indigo) !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard::before,
+.home2:has(.hero2.walk.cold) .exploreCard::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+/* TUR — mint route lines */
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1) {
+  background:
+    radial-gradient(circle at 82% 18%, rgba(59,207,159,.24) 0 9%, transparent 9.5%),
+    linear-gradient(145deg, #f6fffb 0%, #e9fbf4 100%) !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1)::before {
+  width: 170px; height: 95px; right: -12px; top: 26px;
+  border: 3px solid rgba(38,186,137,.34);
+  border-left-color: transparent;
+  border-radius: 50% 42% 58% 45%;
+  transform: rotate(-12deg);
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1)::after {
+  width: 10px; height: 10px; right: 34px; top: 44px;
+  border-radius: 50%; background: #29bf8c;
+  box-shadow: -76px 48px 0 #29bf8c;
+}
+
+/* STEDER — blue map grid/pin language */
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2) {
+  background:
+    linear-gradient(rgba(55,112,255,.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,112,255,.08) 1px, transparent 1px),
+    linear-gradient(145deg, #f7f9ff 0%, #edf2ff 100%) !important;
+  background-size: 22px 22px, 22px 22px, auto !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2)::before {
+  width: 58px; height: 58px; right: 26px; top: 26px;
+  border-radius: 50% 50% 50% 12%;
+  background: linear-gradient(145deg,#4d7fff,#2f62ec);
+  transform: rotate(-45deg);
+  box-shadow: 0 14px 28px rgba(47,98,236,.22);
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2)::after {
+  width: 16px; height: 16px; right: 47px; top: 47px;
+  border-radius: 50%; background: #fff;
+}
+
+/* TREFF — coral signal rings / connection */
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) {
+  background:
+    radial-gradient(circle at 78% 34%, transparent 0 21px, rgba(255,116,100,.17) 22px 24px, transparent 25px 38px, rgba(255,116,100,.12) 39px 41px, transparent 42px),
+    linear-gradient(145deg,#fff8f6 0%,#ffefeb 100%) !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3)::before {
+  width: 18px; height: 18px; right: 61px; top: 51px;
+  border-radius: 50%; background: #ff7464;
+  box-shadow: 24px 14px 0 #1c1f66;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3)::after {
+  width: 64px; height: 24px; right: 33px; top: 72px;
+  border: 3px solid rgba(28,31,102,.16);
+  border-top: 0;
+  border-radius: 0 0 44px 44px;
+}
+
+.home2:has(.hero2.walk.cold) .exploreCard .exploreIcon {
+  position: relative; z-index: 2;
+  background: #fff !important;
+  color: var(--indigo) !important;
+  box-shadow: 0 6px 18px rgba(24,29,88,.10) !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard b {
+  position: relative; z-index: 2;
+  color: var(--indigo) !important;
+  text-shadow: none !important;
+  font-size: 20px !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 14px 30px rgba(22,26,82,.11) !important;
+}
+
+/* Local starter: location identity, not a photo of people that can look like real members. */
+.home2:has(.hero2.walk.cold) .localStarter {
+  min-height: 188px !important;
+  padding: 26px 28px !important;
+  background:
+    radial-gradient(circle at 83% 46%, rgba(74,115,255,.13) 0 7px, transparent 8px),
+    radial-gradient(circle at 75% 67%, rgba(47,199,151,.14) 0 6px, transparent 7px),
+    linear-gradient(135deg,#f9f8ff 0%,#f2f4ff 50%,#eefbf7 100%) !important;
+  color: var(--indigo) !important;
+  border: 1px solid rgba(28,31,102,.08) !important;
+  box-shadow: 0 14px 30px rgba(22,26,82,.07) !important;
+  isolation: isolate;
+}
+.home2:has(.hero2.walk.cold) .localStarter::before,
+.home2:has(.hero2.walk.cold) .localStarter::after {
+  content: "";
+  position: absolute;
+  right: -40px;
+  width: 300px;
+  height: 160px;
+  border: 2px solid rgba(57,96,213,.11);
+  border-radius: 47% 53% 43% 57%;
+  transform: rotate(-9deg);
+  pointer-events: none;
+  z-index: -1;
+}
+.home2:has(.hero2.walk.cold) .localStarter::before { top: -24px; }
+.home2:has(.hero2.walk.cold) .localStarter::after { top: 26px; right: -72px; transform: rotate(13deg); }
+.home2:has(.hero2.walk.cold) .localStarterTop b {
+  color: var(--indigo) !important;
+  text-shadow: none !important;
+  font-size: clamp(28px,3vw,38px) !important;
+}
+.home2:has(.hero2.walk.cold) .localStarterActions .pillBtn.soft {
+  color: var(--indigo) !important;
+  background: rgba(255,255,255,.72) !important;
+  box-shadow: inset 0 0 0 1px rgba(28,31,102,.10) !important;
+}
+.home2:has(.hero2.walk.cold) .localStarterActions .pillBtn.primary {
+  background: var(--blue) !important;
+  color: #fff !important;
+}
+
+/* Keep cold start compact — it is the app, not a landing page. */
+.home2:has(.hero2.walk.cold) > .sec { margin-top: 0 !important; }
+.home2:has(.hero2.walk.cold) .secHead { margin-bottom: 8px !important; }
+.home2:has(.hero2.walk.cold) .secHead h2 { font-size: 21px !important; }
+
+@media (min-width: 1180px) {
+  .hero2.walk.cold { min-height: 310px !important; }
+  .home2:has(.hero2.walk.cold) .localStarter { min-height: 190px !important; }
+}
+
+@media (max-width: 760px) {
+  .hero2.walk.cold {
+    min-height: 390px !important;
+    background-image:
+      linear-gradient(0deg, rgba(7,11,47,.90) 0%, rgba(7,11,47,.36) 52%, rgba(7,11,47,.06) 80%),
+      var(--pj-fjord) !important;
+    background-position: 58% center !important;
+  }
+  .home2:has(.hero2.walk.cold) .exploreDog {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    grid-auto-flow: unset !important;
+    grid-auto-columns: unset !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 8px !important;
+  }
+  .home2:has(.hero2.walk.cold) .exploreCard {
+    min-height: 128px !important;
+    padding: 12px !important;
+    border-radius: 18px !important;
+  }
+  .home2:has(.hero2.walk.cold) .exploreCard::before,
+  .home2:has(.hero2.walk.cold) .exploreCard::after { opacity: .72; transform: scale(.76); transform-origin: top right; }
+  .home2:has(.hero2.walk.cold) .exploreIcon { width: 32px !important; height: 32px !important; }
+  .home2:has(.hero2.walk.cold) .exploreCard b { font-size: 15px !important; line-height: 1.05 !important; }
+  .home2:has(.hero2.walk.cold) .localStarter {
+    min-height: 170px !important;
+    padding: 22px !important;
+  }
+  .home2:has(.hero2.walk.cold) .localStarterTop b { font-size: 29px !important; }
+}
+
+@media (max-width: 430px) {
+  .home2:has(.hero2.walk.cold) .exploreCard { min-height: 122px !important; }
+  .home2:has(.hero2.walk.cold) .exploreCard b { font-size: 14px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home2:has(.hero2.walk.cold) .exploreCard { transition: none !important; }
+}
