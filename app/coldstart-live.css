@@ -1,0 +1,229 @@
+/* Real-data cold start system. No fake dogs, meetups, groups, places or activity. */
+
+/* Shared empty-state treatment: editorial, calm, action-led. */
+.tab-hunder .main .view > .inlineEmpty,
+.tab-grupper .main .groups2 .inlineEmpty,
+.tab-arrangementer .main .events2 .inlineEmpty,
+.tab-utforsk .main .explore2 .inlineEmpty {
+  position: relative;
+  overflow: hidden;
+  min-height: 250px;
+  display: grid;
+  align-content: end;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(90% 110% at 100% 0%, rgba(68,113,255,.14), transparent 55%),
+    radial-gradient(80% 90% at 0% 100%, rgba(55,201,158,.12), transparent 58%),
+    linear-gradient(145deg, #fffdf8, #f6f8ff 68%, #eef8f4);
+  box-shadow: 0 20px 48px rgba(21,25,76,.09);
+  border: 1px solid rgba(21,25,76,.06);
+}
+.tab-hunder .main .view > .inlineEmpty::after,
+.tab-grupper .main .groups2 .inlineEmpty::after,
+.tab-arrangementer .main .events2 .inlineEmpty::after,
+.tab-utforsk .main .explore2 .inlineEmpty::after {
+  content: "";
+  position: absolute;
+  right: -70px;
+  top: -70px;
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(95,130,255,.08) 42%, transparent 68%);
+  pointer-events: none;
+}
+.tab-hunder .main .view > .inlineEmpty .inlineEmptyIcon,
+.tab-grupper .main .groups2 .inlineEmpty .inlineEmptyIcon,
+.tab-arrangementer .main .events2 .inlineEmpty .inlineEmptyIcon,
+.tab-utforsk .main .explore2 .inlineEmpty .inlineEmptyIcon {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  box-shadow: 0 12px 26px rgba(21,25,76,.10);
+}
+.tab-hunder .main .view > .inlineEmpty b,
+.tab-grupper .main .groups2 .inlineEmpty b,
+.tab-arrangementer .main .events2 .inlineEmpty b,
+.tab-utforsk .main .explore2 .inlineEmpty b {
+  font-family: var(--display);
+  font-size: clamp(28px, 3vw, 42px);
+  line-height: 1.02;
+  letter-spacing: -.025em;
+  max-width: 16ch;
+}
+.tab-hunder .main .view > .inlineEmpty p,
+.tab-grupper .main .groups2 .inlineEmpty p,
+.tab-arrangementer .main .events2 .inlineEmpty p,
+.tab-utforsk .main .explore2 .inlineEmpty p {
+  max-width: 48ch;
+  font-size: 15px;
+}
+
+/* Hunder: never invent profiles. Make the absence itself feel intentional. */
+.tab-hunder .main .view > .inlineEmpty {
+  min-height: 330px;
+  background:
+    radial-gradient(60% 100% at 100% 0%, rgba(255,205,96,.18), transparent 60%),
+    radial-gradient(80% 100% at 0% 100%, rgba(55,201,158,.16), transparent 58%),
+    linear-gradient(145deg, #fffdf7, #f9fbff 65%, #eef8f4);
+}
+.tab-hunder .main .view > .inlineEmpty::before {
+  content: "";
+  position: absolute;
+  right: 34px;
+  bottom: 28px;
+  width: min(34vw, 300px);
+  aspect-ratio: 1;
+  opacity: .28;
+  background: var(--topo) center / contain no-repeat;
+  pointer-events: none;
+}
+
+/* Nå skjer: no fake cards; ideas remain explicitly ideas, not events. */
+.now2:has(.nowCold) .goOut {
+  min-height: 210px;
+  align-content: end;
+  padding: 26px;
+  border-radius: 26px;
+  background:
+    radial-gradient(85% 120% at 100% 0%, rgba(86,168,255,.20), transparent 58%),
+    var(--topo) right -40px top -40px / 360px auto no-repeat,
+    linear-gradient(140deg, #171b63, #232a84 58%, #1b2f78);
+  box-shadow: 0 20px 46px rgba(28,31,102,.20);
+}
+.now2:has(.nowCold) .goOut h2 {
+  font-size: clamp(30px, 3vw, 42px);
+  letter-spacing: -.025em;
+}
+.now2:has(.nowCold) .goOut p { max-width: 42ch; }
+.now2:has(.nowCold) .nowCold {
+  min-height: 210px;
+  align-content: center;
+  justify-items: start;
+  padding: 26px;
+  border: 0;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #fff9e9, #fffdf8 55%, #f3f8ff);
+  box-shadow: 0 14px 34px rgba(21,25,76,.07);
+}
+.now2:has(.nowCold) .nowCold h3 {
+  font-family: var(--display);
+  font-size: clamp(26px, 2.5vw, 36px);
+  line-height: 1.05;
+  max-width: 16ch;
+}
+.now2:has(.nowCold) .ideaList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.now2:has(.nowCold) .ideaRowLabel { grid-column: 1 / -1; }
+.now2:has(.nowCold) .ideaCard {
+  min-height: 116px;
+  align-content: end;
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: 0 10px 24px rgba(21,25,76,.07);
+}
+
+/* Groups cold: one invitation instead of catalogue-shaped emptiness. */
+.groups2:has(.inlineEmpty) > .sec {
+  gap: 16px;
+}
+.groups2:has(.inlineEmpty) .secHead h2 {
+  font-size: clamp(26px, 2.4vw, 36px);
+}
+
+/* Events cold: calendar is useful even when empty; keep one decisive action. */
+.events2:has(.inlineEmpty) .eventsBar {
+  justify-content: flex-end;
+}
+
+/* Explore cold: places are editorial data, never fabricated. */
+.explore2 .sec:has(.inlineEmpty) {
+  gap: 14px;
+}
+.explore2 .sec:has(.inlineEmpty) .secHead h2 {
+  font-size: clamp(26px, 2.4vw, 36px);
+}
+
+/* Map already uses a real map. Make its zero-data sheet lighter and action-led. */
+.mapEmpty {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255,253,248,.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(21,25,76,.07);
+}
+.mapEmpty b {
+  font-size: 21px;
+  line-height: 1.08;
+}
+.mapEmpty p {
+  max-width: 42ch;
+}
+
+/* Activity cold: do not make zero look like failure. Hide secondary gamification noise until first real walk. */
+.act2:has(.story2 h2:first-child) { }
+.story2 {
+  border-radius: 26px;
+  box-shadow: 0 18px 42px rgba(28,31,102,.16);
+}
+
+/* General warmth for live data cards without inventing anything. */
+.dog2Photo,
+.gCover,
+.postMedia,
+.place {
+  box-shadow: 0 14px 34px rgba(21,25,76,.10);
+}
+.dog2,
+.groupRow,
+.invite,
+.place,
+.eventList {
+  transition: transform .18s var(--ease), box-shadow .18s var(--ease);
+}
+@media (hover:hover) {
+  .dog2:hover,
+  .groupRow:hover,
+  .place:hover { transform: translateY(-2px); }
+}
+
+@media (max-width: 760px) {
+  .tab-hunder .main .view > .inlineEmpty,
+  .tab-grupper .main .groups2 .inlineEmpty,
+  .tab-arrangementer .main .events2 .inlineEmpty,
+  .tab-utforsk .main .explore2 .inlineEmpty {
+    min-height: 250px;
+    padding: 22px;
+    border-radius: 24px;
+  }
+  .tab-hunder .main .view > .inlineEmpty { min-height: 300px; }
+  .tab-hunder .main .view > .inlineEmpty b,
+  .tab-grupper .main .groups2 .inlineEmpty b,
+  .tab-arrangementer .main .events2 .inlineEmpty b,
+  .tab-utforsk .main .explore2 .inlineEmpty b {
+    font-size: 30px;
+  }
+  .now2:has(.nowCold) .goOut {
+    min-height: 190px;
+    margin: 0;
+    border-radius: 24px;
+    padding: 22px;
+  }
+  .now2:has(.nowCold) .ideaList {
+    grid-template-columns: 1fr;
+  }
+  .now2:has(.nowCold) .ideaCard {
+    min-height: 78px;
+  }
+  .mapEmpty { border-radius: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dog2, .groupRow, .invite, .place, .eventList { transition: none; }
+}
