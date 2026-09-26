@@ -3,7 +3,11 @@
 --
 -- Additiv og idempotent. Lukker reelle hull uten å over-engineere. Bygger på
 -- schema.sql + migrasjonene 003–010.
+--
+-- Kjøres som ÉN transaksjon (begin/commit): enten går alt inn, eller ingenting
+-- – trygt å kjøre på nytt.
 -- =============================================================================
+begin;
 
 -- =============================================================================
 -- 1. RPC-PRIVILEGIER: fjern PUBLIC-defaulten overalt
@@ -17,9 +21,19 @@ grant  execute on all functions in schema public to authenticated;
 
 -- Privilegerte interne skrivere skal ALDRI kalles direkte (kun av definer-
 -- funksjoner/triggere som kjører som eier). Ellers kunne en klient gitt seg
--- selv poter eller laget vilkårlige varsler.
-revoke execute on function _award_paws(uuid, text, text, uuid, integer) from authenticated;
-revoke execute on function _notify(uuid, uuid, text, text, text, text, text, uuid, text, interval) from authenticated;
+-- selv poter eller laget vilkårlige varsler. Signatur-uavhengig (finner den
+-- faktiske funksjonen via oid, uansett argumenttyper/defaults).
+do $$
+declare r record;
+begin
+  for r in
+    select p.oid::regprocedure as sig
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname in ('_award_paws', '_notify')
+  loop
+    execute format('revoke execute on function %s from authenticated', r.sig);
+  end loop;
+end $$;
 
 -- Ekte offentlige endepunkter (uinnlogget): ventelisten + les av godkjente steder.
 grant execute on function join_waitlist(text, text, text, text, text, text, text, text, text, text, text) to anon;
@@ -425,3 +439,5 @@ begin
 end $$;
 revoke execute on function delete_my_account(text) from public;
 grant  execute on function delete_my_account(text) to authenticated;
+
+commit;
