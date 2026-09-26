@@ -8,12 +8,20 @@ test.use({ viewport: { width: 390, height: 844 } });
 
 const STAVANGER = { kommuneId: "stavanger", omrade: null, radiusKm: 25 };
 
-test("hjem: helt ny bruker får «dagens tur» som viktigste handling – ingen oppdiktede tall", async ({ page }) => {
+test("hjem cold start: personlig hero + guidet start + lokal reframe, ingen tomme «ingen …»-kort", async ({ page }) => {
   await gotoSeeded(page, { location: STAVANGER });
-  await expect(page.locator(".hero2.walk")).toContainText("Klar for dagens tur");
-  await expect(page.locator(".liveLine")).toContainText("Hundelivet her starter med dere");
+  // Personlig førstegangs-hero med ÉN primær handling.
+  await expect(page.locator(".hero2.walk.cold")).toContainText("finne på i dag");
+  await expect(page.locator(".hero2.walk.cold .pillBtn.primary")).toContainText("Start første tur");
+  // Soul-seksjoner for cold start.
+  await expect(page.locator(".exploreDog")).toBeVisible();
+  await expect(page.locator(".localStarter")).toContainText("helt i starten");
+  await expect(page.locator(".weekStart")).toContainText("starten på uka");
   // Ingen «I dag»-tidslinje uten ekte turer/treff.
   await expect(page.locator(".todayList")).toHaveCount(0);
+  // Ingen negativ tomstabling: aldri «Ingen andre hunder» / «Ingen innlegg».
+  await expect(page.locator("body")).not.toContainText("Ingen andre hunder");
+  await expect(page.locator("body")).not.toContainText("Ingen innlegg");
 });
 
 test("hjem i demo: heroen inviterer til et ekte treff i nærheten", async ({ page }) => {

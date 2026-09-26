@@ -166,6 +166,18 @@ export const INTENTS = [
   { id: "ut", label: "Har noen lyst ut?", type: "tur", title: "Har noen lyst ut?", icon: "live", noPlace: true },
 ];
 
+/**
+ * Idéer å starte med når det ikke finnes ekte treff ennå. Dette er tydelig
+ * merkede FORSLAG (ikke ekte treff, ingen påmeldte, ingen personer) som
+ * forhåndsutfyller «Lag treff». De må ALLTID vises med «Idé»-merking i UI-et,
+ * så det aldri kan forveksles med reell aktivitet.
+ */
+export const MEETUP_IDEAS = [
+  { id: "kveldstur", intent: "rolig", label: "Rolig kveldstur", sub: "Ofte holder det med én annen hund", icon: "walk" },
+  { id: "morgen", intent: "ut", label: "Morgenrunde sammen", sub: "En kort tur før dagen starter", icon: "sun" },
+  { id: "lek", intent: "lek", label: "Litt lek i parken", sub: "For de sosiale hundene", icon: "ball" },
+];
+
 /** Standardtittel fra intensjon + sted. */
 export function intentTitle(intent, place) {
   if (!intent) return place ? `Tur ved ${place}` : "Tur";

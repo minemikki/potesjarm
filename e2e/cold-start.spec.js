@@ -16,9 +16,12 @@ test.describe("Cold start – tom kommune (live-modus)", () => {
     await expect(main).not.toContainText("18 dager");
   });
 
-  test("tomme tilstander er rolige linjer, ikke store tomme kort", async ({ page }) => {
+  test("forsiden reframer tom lokal start positivt – ingen negative «ingen …»-kort", async ({ page }) => {
     await gotoSeeded(page, { location: EMPTY_KOMMUNE });
-    await expect(page.locator(".inlineEmpty", { hasText: "Ingen andre hunder" })).toBeVisible();
+    // Positiv «du er tidlig»-framing i stedet for en negativ advarsel.
+    await expect(page.locator(".localStarter")).toContainText("helt i starten");
+    await expect(page.locator(".main")).not.toContainText("Ingen andre hunder");
+    await expect(page.locator(".main")).not.toContainText("Ingen innlegg");
     await expect(page.locator(".empty")).toHaveCount(0);
   });
 
@@ -26,7 +29,7 @@ test.describe("Cold start – tom kommune (live-modus)", () => {
     await gotoSeeded(page, { location: EMPTY_KOMMUNE });
 
     await page.locator('.navItem[title="Nå skjer"]').click();
-    await expect(page.locator(".nowCold")).toContainText("ingen treff");
+    await expect(page.locator(".nowCold")).toContainText("Ingen åpne treff");
     // Intensjonene er CTA-en: lav terskel for å starte selv.
     await expect(page.locator(".intent")).toHaveCount(6);
 

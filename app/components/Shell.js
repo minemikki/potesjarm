@@ -226,7 +226,7 @@ function StreakRail() {
   );
 }
 
-function ChallengeRail({ scope, title = "Dagens mål", all }) {
+function ChallengeRail({ scope, title = "Dagens lille mål", all }) {
   const app = useApp();
   const list = app.challengeProgress.filter((c) => c.scope === scope);
   const shown = all ? list : list.filter((c) => !c.done).slice(0, 1);
@@ -241,7 +241,12 @@ function ChallengeRail({ scope, title = "Dagens mål", all }) {
             <div>
               <b>{c.title}</b>
               <i className="todayBar"><i style={{ width: Math.min(100, (c.progress / c.target) * 100) + "%" }} /></i>
-              <small>{c.unit === "km" ? fmtKm(c.progress) : c.progress} av {c.target} {c.unit} · +{c.reward} poter</small>
+              <small>
+                {c.progress > 0
+                  ? <>{c.unit === "km" ? fmtKm(c.progress) : c.progress} av {c.target} {c.unit}</>
+                  : <>{c.target} {c.unit} ute sammen</>}
+                <span className="goalPaws"> · +{c.reward} poter</span>
+              </small>
             </div>
           </div>
         ))}

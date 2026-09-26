@@ -10,7 +10,7 @@ import { lostDogHoursLeft } from "../lib/lostdog";
 import { placeTypes } from "../lib/seed";
 import { getDogCommonalities } from "../lib/social";
 import {
-  goingCount, homeHero, hostOf, inviteSentence, liveStatus, startLabel, streakLine, todayItems,
+  goingCount, homeHero, hostOf, inviteSentence, liveStatus, startLabel, streakLine, todayItems, MEETUP_IDEAS,
 } from "../lib/today";
 
 function greeting(h) {
@@ -44,6 +44,11 @@ export default function Home() {
   const today = todayItems({ walks: app.walks, meetups: app.meetups, going: app.going, weekWalks: me.weekWalks });
   const name = me.ownerName?.trim().split(" ")[0];
 
+  // Cold start = ingen ekte lokal aktivitet ennå. Da forteller vi en historie om
+  // en begynnelse i stedet for å stable tomme «ingen …»-kort oppå hverandre.
+  const noWalks = (app.walks?.length || 0) === 0;
+  const cold = app.meetups.length === 0 && app.dogs.length === 0 && app.posts.length === 0 && noWalks;
+
   return (
     <div className="home2">
       <header className="hello">
@@ -59,81 +64,78 @@ export default function Home() {
 
       {app.lostDogLive && <LostBanner />}
 
-      <HomeHero hero={hero} />
+      <HomeHero hero={hero} cold={cold} />
 
-      {today.length > 0 && <TodayLine items={today} />}
-
-      {others.length > 0 && (
-        <section className="sec">
-          <div className="secHead">
-            <h2>Skjer nær deg</h2>
-            <button className="linkish" onClick={() => app.setTab("Nå skjer")}>Alle treff <Icon name="arrowRight" size={14} /></button>
-          </div>
-          <div className="strip">
-            {others.slice(0, 6).map((m) => <InviteCard key={m.id} m={m} compact />)}
-          </div>
-        </section>
-      )}
-
-      <section className="sec">
-        <div className="secHead">
-          <h2>Hunder i nærheten</h2>
-          {app.dogs.length > 0 && <button className="linkish" onClick={() => app.setTab("Hunder")}>Se alle <Icon name="arrowRight" size={14} /></button>}
-        </div>
-        {app.dogs.length === 0 ? (
-          <InlineEmpty
-            icon="dog"
-            tone="sun"
-            title={`Ingen andre hunder i ${app.kommune?.name || "området"} ennå.`}
-            text={`${me.dogName || "Hunden din"} kan være den første. Inviter en hundevenn og bygg hundelivet sammen.`}
-            cta="Inviter en hundevenn"
-            onCta={() => app.open("invite")}
-          />
-        ) : (
-          <div className="strip dogs">
-            {app.dogs.slice(0, 10).map((d) => <DogTile key={d.id} d={d} />)}
-          </div>
-        )}
-      </section>
-
-      <section className="sec">
-        <div className="secHead">
-          <h2>Fra fellesskapet</h2>
-          {app.posts.length > 0 && <button className="linkish" onClick={() => app.open("postComposer")}>Del noe <Icon name="plus" size={14} stroke={2.6} /></button>}
-        </div>
-        {app.posts.length === 0 ? (
-          <InlineEmpty
-            icon="camera"
-            tone="blue"
-            title="Ingen innlegg her ennå."
-            text="Del den første turen eller spør nabolaget om noe."
-            cta="Lag innlegg"
-            onCta={() => app.open("postComposer")}
-          />
-        ) : (
-          <>
-            <div className="feedGrid">
-              {app.posts.map((p) => (app.backend ? <FeedPostCard key={p.id} post={p} /> : <PostCard key={p.id} post={p} />))}
-            </div>
-            {app.backend && app.feedHasMore && (
-              <button className="linkish seeMore" onClick={app.loadMoreFeed}>Last flere innlegg</button>
-            )}
-          </>
-        )}
-      </section>
-
+      {/* Guidet start høyt oppe – en liten historie, ikke en tung sjekkliste. */}
       {me.isNew && <FirstSteps />}
 
-      {app.places.length > 0 && (
-        <section className="sec">
-          <div className="secHead">
-            <h2>Turområder i {app.kommune?.name}</h2>
-            <button className="linkish" onClick={() => app.setTab("Utforsk")}>Utforsk <Icon name="arrowRight" size={14} /></button>
-          </div>
-          <div className="strip">
-            {app.places.slice(0, 6).map((p) => <PlaceMini key={p.id} place={p} />)}
-          </div>
-        </section>
+      {cold ? (
+        <>
+          <ExploreWithDog />
+          <LocalStarter />
+          <WeekStoryLine />
+        </>
+      ) : (
+        <>
+          {today.length > 0 && <TodayLine items={today} />}
+
+          {others.length > 0 && (
+            <section className="sec">
+              <div className="secHead">
+                <h2>Skjer nær deg</h2>
+                <button className="linkish" onClick={() => app.setTab("Nå skjer")}>Alle treff <Icon name="arrowRight" size={14} /></button>
+              </div>
+              <div className="strip">
+                {others.slice(0, 6).map((m) => <InviteCard key={m.id} m={m} compact />)}
+              </div>
+            </section>
+          )}
+
+          {/* Sol-verdi selv uten nettverk: utforsk med hunden din. */}
+          <ExploreWithDog />
+
+          {app.dogs.length > 0 && (
+            <section className="sec">
+              <div className="secHead">
+                <h2>Hunder i nærheten</h2>
+                <button className="linkish" onClick={() => app.setTab("Hunder")}>Se alle <Icon name="arrowRight" size={14} /></button>
+              </div>
+              <div className="strip dogs">
+                {app.dogs.slice(0, 10).map((d) => <DogTile key={d.id} d={d} />)}
+              </div>
+            </section>
+          )}
+
+          {/* Feeden vises først når det finnes ekte innlegg – aldri et tomt kort. */}
+          {app.posts.length > 0 && (
+            <section className="sec">
+              <div className="secHead">
+                <h2>Fra fellesskapet</h2>
+                <button className="linkish" onClick={() => app.open("postComposer")}>Del noe <Icon name="plus" size={14} stroke={2.6} /></button>
+              </div>
+              <div className="feedGrid">
+                {app.posts.map((p) => (app.backend ? <FeedPostCard key={p.id} post={p} /> : <PostCard key={p.id} post={p} />))}
+              </div>
+              {app.backend && app.feedHasMore && (
+                <button className="linkish seeMore" onClick={app.loadMoreFeed}>Last flere innlegg</button>
+              )}
+            </section>
+          )}
+
+          {app.dogs.length === 0 && <LocalStarter />}
+
+          {app.places.length > 0 && (
+            <section className="sec">
+              <div className="secHead">
+                <h2>Turområder i {app.kommune?.name}</h2>
+                <button className="linkish" onClick={() => app.setTab("Utforsk")}>Utforsk <Icon name="arrowRight" size={14} /></button>
+              </div>
+              <div className="strip">
+                {app.places.slice(0, 6).map((p) => <PlaceMini key={p.id} place={p} />)}
+              </div>
+            </section>
+          )}
+        </>
       )}
 
       <InviteNudge />
@@ -141,8 +143,81 @@ export default function Home() {
   );
 }
 
+/* ---- Utforsk med hunden din: solo-verdi selv uten nettverk ---- */
+function ExploreWithDog() {
+  const app = useApp();
+  const dog = app.me.dogName?.trim();
+  const actions = [
+    { icon: "route", tone: "mint", title: "Finn en tur", sub: "Turområder nær deg", go: () => app.setTab("Utforsk") },
+    { icon: "pin", tone: "blue", title: "Oppdag et sted", sub: "På kartet", go: () => app.setTab("Kart") },
+    { icon: "live", tone: "coral", title: "Lag et treff", sub: "Inviter nabolaget ut", go: () => app.open("meetupComposer") },
+  ];
+  return (
+    <section className="sec">
+      <div className="secHead"><h2>Utforsk med {dog || "hunden din"}</h2></div>
+      <div className="exploreDog">
+        {actions.map((a) => (
+          <button key={a.title} className={"exploreCard tint-" + a.tone} onClick={a.go}>
+            <span className="exploreIcon"><Icon name={a.icon} size={22} /></span>
+            <b>{a.title}</b>
+            <small>{a.sub}</small>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ---- Lokal start: samme sannhet, bedre psykologi. Ingen fake aktivitet. ---- */
+function LocalStarter() {
+  const app = useApp();
+  const by = app.kommune?.name || "området";
+  return (
+    <section className="localStarter">
+      <div className="localStarterTop">
+        <span className="localStarterIcon"><Icon name="sprout" size={22} /></span>
+        <div>
+          <b>{by} er helt i starten.</b>
+          <p>Du er blant de første hundeeierne her. Det første treffet kan starte med dere – ofte holder det med én annen hund.</p>
+        </div>
+      </div>
+      <div className="localStarterActions">
+        <button className="pillBtn primary" onClick={() => app.open("meetupComposer")}>Lag {by}s første treff</button>
+        <button className="pillBtn soft" onClick={() => app.open("invite")}><Icon name="gift" size={15} /> Inviter en hundevenn</button>
+      </div>
+      <div className="ideaRow">
+        <span className="ideaRowLabel">Idéer å starte med</span>
+        {MEETUP_IDEAS.map((idea) => (
+          <button key={idea.id} className="ideaChip" onClick={() => app.open("meetupComposer", { intent: idea.intent })}>
+            <Icon name={idea.icon} size={15} /> {idea.label}
+            <span className="ideaTag">Idé</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ---- Uka deres som en begynnelse, ikke en fitness-widget ---- */
+function WeekStoryLine() {
+  const app = useApp();
+  const dog = app.me.dogName?.trim();
+  return (
+    <section className="weekStart">
+      <div className="weekStartDots" aria-hidden="true">
+        {Array.from({ length: 7 }).map((_, i) => <i key={i} />)}
+      </div>
+      <b>Dette er starten på uka deres.</b>
+      <p>Ta den første turen, så begynner historien til {dog || "dere"} her – dag for dag.</p>
+      <button className="pillBtn primary small" onClick={app.startWalk}>
+        <Icon name="play" size={13} fill="currentColor" stroke={0} /> Start første tur
+      </button>
+    </section>
+  );
+}
+
 /* ---- Hero: dagens viktigste handling (dynamisk, fra ekte state) ---- */
-function HomeHero({ hero }) {
+function HomeHero({ hero, cold }) {
   const app = useApp();
   const me = app.me;
   const m = hero.meetup;
@@ -192,6 +267,24 @@ function HomeHero({ hero }) {
   }
 
   if (hero.kind === "walk") {
+    // Aller første gang: en personlig, varm velkomst i stedet for et streak-kort.
+    const firstEver = (me.totalWalks || 0) === 0;
+    if (firstEver) {
+      return (
+        <section className="hero2 walk cold">
+          <div className="hero2Body">
+            <span className="hero2Kicker"><Icon name="paw" size={14} /> Nytt kapittel</span>
+            <h2>Hva skal {me.dogName || "hunden din"} og du finne på i dag?</h2>
+            <p className="hero2Meta">Dere er helt i starten. La oss ta den aller første turen sammen.</p>
+            <div className="hero2Actions">
+              <button className="pillBtn primary" onClick={app.startWalk}><Icon name="play" size={14} fill="currentColor" stroke={0} /> Start første tur</button>
+              <button className="pillBtn ghostLight" onClick={() => app.setTab("Utforsk")}>Finn et sted å gå</button>
+            </div>
+          </div>
+          <span className="hero2Dog"><Avatar src={me.photo} name={me.dogName} size={84} /></span>
+        </section>
+      );
+    }
     return (
       <section className="hero2 walk">
         <div className="hero2Body">

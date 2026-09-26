@@ -567,3 +567,90 @@ button.todayText:hover b { color: var(--blue); }
 .walkPost { overflow: hidden; }
 
 .verifiedTag.founder { color: #a86b00; background: var(--sun-bg); }
+
+/* =========================================================================
+   COLD START / SOUL PASS – varmt, lokalt, hunden i sentrum. Ingen fake data.
+   ========================================================================= */
+
+/* Personlig førstegangs-hero: samme indigo-identitet, men varmere og roligere. */
+.hero2.walk.cold {
+  background:
+    var(--topo) right -30px bottom -24px / 320px auto no-repeat,
+    radial-gradient(130% 100% at 0% 0%, rgba(255, 214, 107, 0.22), transparent 52%),
+    radial-gradient(120% 90% at 100% 100%, rgba(92, 200, 255, 0.16), transparent 55%),
+    var(--indigo);
+  padding-bottom: 22px;
+}
+.hero2.walk.cold h2 { font-size: 27px; }
+.hero2.walk.cold .hero2Kicker { color: #ffd66b; }
+.hero2.walk.cold .hero2Dog { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22); border-radius: 50%; }
+
+/* Utforsk med hunden din – tre store, visuelle handlinger. */
+.exploreDog { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.exploreCard {
+  display: grid; gap: 3px; justify-items: start; text-align: left;
+  padding: 14px; border-radius: 18px; border: 1px solid var(--line);
+  background: var(--paper); box-shadow: var(--sh-1); cursor: pointer;
+  transition: transform 0.14s var(--ease), border-color 0.14s var(--ease);
+}
+.exploreCard:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--t) 45%, var(--line)); }
+.exploreIcon { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: var(--t); background: var(--tb); margin-bottom: 6px; }
+.exploreCard b { font-size: 15px; color: var(--indigo); line-height: 1.2; }
+.exploreCard small { font-size: 12.5px; color: var(--ink-2); font-weight: 600; line-height: 1.25; }
+
+/* Lokal start – varm cream, positiv «du er tidlig»-framing. */
+.localStarter {
+  display: grid; gap: 14px; padding: 20px; border-radius: 22px;
+  background:
+    var(--topo) right -46px bottom -34px / 300px auto no-repeat,
+    linear-gradient(135deg, var(--cream) 0%, var(--cream-2) 100%);
+  border: 1px solid var(--line); box-shadow: var(--sh-1);
+}
+.localStarterTop { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.localStarterIcon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: var(--mint); background: var(--mint-bg); }
+.localStarterTop b { font-family: var(--display); font-weight: 800; font-size: 19px; color: var(--indigo); line-height: 1.2; }
+.localStarterTop p { margin: 4px 0 0; font-size: 14.5px; color: var(--ink-2); font-weight: 600; line-height: 1.4; max-width: 46ch; }
+.localStarterActions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Idé-rader/-kort – ALLTID merket «Idé», aldri forvekslet med ekte treff. */
+.ideaRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ideaRowLabel { font-size: 11.5px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); width: 100%; }
+.ideaChip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px;
+  border: 1px dashed color-mix(in srgb, var(--indigo) 24%, var(--line)); background: var(--paper);
+  font-size: 13.5px; font-weight: 700; color: var(--indigo); cursor: pointer;
+}
+.ideaChip:hover { border-style: solid; }
+.ideaTag { font-size: 10.5px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); background: var(--cream-2); padding: 2px 6px; border-radius: 6px; }
+.ideaList { display: grid; gap: 8px; margin-top: 4px; }
+.ideaCard {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 16px; border: 1px dashed color-mix(in srgb, var(--indigo) 22%, var(--line));
+  background: var(--paper); cursor: pointer; text-align: left;
+}
+.ideaCard:hover { border-style: solid; }
+.ideaCardIcon { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: var(--indigo); background: var(--cream-2); }
+.ideaCardText { display: grid; }
+.ideaCardText b { font-size: 15px; color: var(--indigo); }
+.ideaCardText small { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+
+/* Uka deres som en begynnelse. */
+.weekStart {
+  display: grid; gap: 8px; padding: 18px 20px; border-radius: 20px;
+  border: 1px solid var(--line); background: var(--paper); box-shadow: var(--sh-1);
+}
+.weekStartDots { display: flex; gap: 7px; }
+.weekStartDots i { width: 12px; height: 12px; border-radius: 50%; border: 2px dashed color-mix(in srgb, var(--indigo) 28%, var(--line)); }
+.weekStart b { font-family: var(--display); font-weight: 800; font-size: 18px; color: var(--indigo); }
+.weekStart p { margin: 0; font-size: 14px; color: var(--ink-2); font-weight: 600; line-height: 1.4; max-width: 48ch; }
+.weekStart .pillBtn { justify-self: start; margin-top: 4px; }
+
+@media (max-width: 560px) {
+  .exploreDog { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .exploreCard { padding: 11px; }
+  .exploreIcon { width: 38px; height: 38px; }
+  .exploreCard b { font-size: 13.5px; }
+  .exploreCard small { font-size: 11.5px; }
+}
+
+.goalPaws { color: var(--ink-3); font-weight: 700; }

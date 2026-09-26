@@ -12,7 +12,7 @@ import { BANDTVANG, inBandtvang, kommuneById, placeShort, distanceKm, roundCoord
 import { placeTypes, publicInfo } from "../lib/seed";
 import { getDogCommonalities, commonalityHeadline } from "../lib/social";
 import { ShareCard } from "./Moments";
-import { INTENTS, groupByBucket, milestone, startLabel, streakLine } from "../lib/today";
+import { INTENTS, groupByBucket, milestone, startLabel, streakLine, MEETUP_IDEAS } from "../lib/today";
 
 /* ========================= Nå skjer ========================= */
 /*
@@ -52,12 +52,24 @@ export function NowView() {
       )}
 
       {all.length === 0 ? (
-        <div className="nowCold">
-          <span className="nowColdIcon"><Icon name="live" size={22} /></span>
-          <h3>Det er ingen treff i nærheten akkurat nå.</h3>
-          <p>Start det første – ofte holder det med én annen hund. Velg en av tingene over, så ser alle i {app.kommune?.name || "området"} det med en gang.</p>
-          <button className="linkish" onClick={() => app.open("invite")}><Icon name="gift" size={15} /> Inviter en hundevenn</button>
-        </div>
+        <>
+          <div className="nowCold">
+            <span className="nowColdIcon"><Icon name="live" size={22} /></span>
+            <h3>Ingen åpne treff akkurat nå.</h3>
+            <p>Det første kan starte med dere – ofte holder det med én annen hund. Velg en av tingene over, så ser alle i {app.kommune?.name || "området"} det med en gang.</p>
+            <button className="linkish" onClick={() => app.open("invite")}><Icon name="gift" size={15} /> Inviter en hundevenn</button>
+          </div>
+          <div className="ideaList">
+            <span className="ideaRowLabel">Idéer å starte med</span>
+            {MEETUP_IDEAS.map((idea) => (
+              <button key={idea.id} className="ideaCard" onClick={() => app.open("meetupComposer", { intent: idea.intent })}>
+                <span className="ideaCardIcon"><Icon name={idea.icon} size={18} /></span>
+                <span className="ideaCardText"><b>{idea.label}</b><small>{idea.sub}</small></span>
+                <span className="ideaTag">Idé</span>
+              </button>
+            ))}
+          </div>
+        </>
       ) : list.length === 0 ? (
         <p className="nowNone">Ingen treff i denne kategorien nå. <button className="linkish inline" onClick={() => setType("alle")}>Vis alle</button></p>
       ) : (
