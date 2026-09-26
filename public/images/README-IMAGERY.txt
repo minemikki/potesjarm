@@ -1,0 +1,1 @@
+Potesjarm lifestyle imagery is decorative brand photography only. It must never be presented as a real user, dog, meetup, place, attendance count, or local activity record.
