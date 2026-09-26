@@ -20,23 +20,37 @@ export async function listMeetupsNear(municipalityId, myProfileId = null) {
   const sb = getSupabase();
   if (!sb || !municipalityId) return { data: [], error: null };
 
-  const { data: rows, error } = await sb
-    .from("meetups")
-    .select("*")
-    .eq("municipality_id", municipalityId)
-    .is("cancelled_at", null)
-    .gt("expires_at", new Date().toISOString())
-    .order("starts_at", { ascending: true });
-  if (error) return { data: [], error };
+  // Sprint 9 preflight: gå via list_meetups_near (SECURITY DEFINER) som håndhever
+  // blokkering og gruppesynlighet server-side – samme regler som kartet. Faller
+  // ærlig tilbake på den gamle (RLS-begrensede) spørringen kun hvis RPC-en ennå
+  // ikke finnes (migrasjon 010 ikke kjørt), så appen ikke stopper opp.
+  let rows;
+  const rpc = await sb.rpc("list_meetups_near", { p_municipality: municipalityId });
+  if (rpc.error) {
+    if (!/does not exist|PGRST202|Could not find the function/i.test(`${rpc.error.message || ""} ${rpc.error.code || ""}`)) {
+      return { data: [], error: rpc.error };
+    }
+    const fb = await sb.from("meetups").select("*")
+      .eq("municipality_id", municipalityId).is("cancelled_at", null)
+      .gt("expires_at", new Date().toISOString()).order("starts_at", { ascending: true });
+    if (fb.error) return { data: [], error: fb.error };
+    rows = fb.data;
+  } else {
+    rows = rpc.data;
+  }
   if (!rows?.length) return { data: [], error: null };
 
-  const meetupIds = rows.map((r) => r.id);
   const hostIds = [...new Set(rows.map((r) => r.host_id))];
 
-  const [{ data: profiles }, { data: dogs }, { data: participants }] = await Promise.all([
+  // Vert- og primærhund-info hentes for berikelse. Deltakertall/iAmGoing kommer
+  // fra RPC-en (going_count/i_am_going); ved fallback teller vi participants selv.
+  const needParticipants = rows.some((r) => r.going_count == null);
+  const [{ data: profiles }, { data: dogs }, participantsRes] = await Promise.all([
     sb.from("profiles").select("id, display_name").in("id", hostIds),
     sb.from("dogs").select("owner_id, name, photo_url, created_at").in("owner_id", hostIds).order("created_at", { ascending: true }),
-    sb.from("meetup_participants").select("meetup_id, profile_id").in("meetup_id", meetupIds),
+    needParticipants
+      ? sb.from("meetup_participants").select("meetup_id, profile_id").in("meetup_id", rows.map((r) => r.id))
+      : Promise.resolve({ data: [] }),
   ]);
 
   const nameById = new Map((profiles || []).map((p) => [p.id, p.display_name]));
@@ -45,7 +59,7 @@ export async function listMeetupsNear(municipalityId, myProfileId = null) {
 
   const goingCountByMeetup = new Map();
   const iAmGoingByMeetup = new Set();
-  for (const p of participants || []) {
+  for (const p of participantsRes.data || []) {
     goingCountByMeetup.set(p.meetup_id, (goingCountByMeetup.get(p.meetup_id) || 0) + 1);
     if (myProfileId && p.profile_id === myProfileId) iAmGoingByMeetup.add(p.meetup_id);
   }
@@ -58,8 +72,8 @@ export async function listMeetupsNear(municipalityId, myProfileId = null) {
       hostDogName: dog?.name || "",
       hostDogId: dog?.id || null,
       hostPhoto: dog?.photo_url || null,
-      goingCount: goingCountByMeetup.get(row.id) || 0,
-      iAmGoing: iAmGoingByMeetup.has(row.id),
+      goingCount: row.going_count != null ? row.going_count : (goingCountByMeetup.get(row.id) || 0),
+      iAmGoing: row.i_am_going != null ? row.i_am_going : iAmGoingByMeetup.has(row.id),
       myProfileId,
       now,
     });

@@ -821,7 +821,7 @@ function Leaderboard({ records }) {
             </p>
           </div>
         </div>
-        <Bar value={app.stats.dogs} max={app.coldStart.leaderboardMinActive} tone="sun" />
+        <Bar value={app.leaderboardActive ?? app.stats.dogs} max={app.coldStart.leaderboardMinActive} tone="sun" />
         <button className="pillBtn primary" onClick={() => app.open("invite")}><Icon name="gift" size={16} /> Inviter hundeeiere</button>
 
         <h4>Dine egne rekorder</h4>
@@ -840,6 +840,30 @@ function Leaderboard({ records }) {
   // ekte topplistekilde ennå (den krever backend-aggregering av ekte turer), så
   // vi later ALDRI som om demo-navn er en ekte lokal ranking. Uten dette vernet
   // ville en fremtidig live-hundekilde kunne dytte demo-hunder inn i topplista.
+  // Backend: ekte, server-aggregerte rader ({dog_name, km}). Demo: fixtures med
+  // hunde-oppslag. Live uten backend later vi ALDRI som demo-navn er en ranking.
+  const realRows = app.leaderboard?.rows || [];
+  if (app.leaderboard) {
+    if (realRows.length === 0) {
+      return (
+        <div className="leaderboard">
+          <Empty icon="trophy" title="Topplista er ikke klar ennå" text="Lokal ranking kommer når nok ekte turer er registrert i området." />
+        </div>
+      );
+    }
+    return (
+      <div className="leaderboard">
+        {realRows.map((r, i) => (
+          <div key={i} className="lbRow">
+            <b className="rank">{i + 1}</b>
+            <Avatar name={r.dog_name} size={40} />
+            <span><b>{r.dog_name}</b></span>
+            <b>{fmtKm(r.km)} km</b>
+          </div>
+        ))}
+      </div>
+    );
+  }
   const rows = app.isDemo ? app.demoLeaderboard : [];
   if (rows.length === 0) {
     return (

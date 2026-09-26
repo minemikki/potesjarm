@@ -52,6 +52,18 @@ Level Security). Denne guiden får din instans opp å kjøre.
      `pending` sted; server setter created_by/source/status/region). Bruker
      eksisterende `cube`/`earthdistance` – ingen PostGIS. Additiv og idempotent.
 
+   - `supabase/migrations/010_sprint9_activity_gamification.sql` – Sprint 9:
+     aktivitet + gamification (server som sannhet). **Preflight-sikkerhet:** ny
+     `list_meetups_near`-RPC (blokkering + gruppesynlighet som kartet) og
+     eksplisitt `revoke execute ... from public` på 009-RPC-ene. Legger til
+     idempotens-nøkler (`walks.client_key`, `paw_ledger.source_key` med unike
+     indekser), seeder challenge-/badge-definisjoner, og SECURITY DEFINER-RPC-er:
+     `complete_walk` (persisterer tur, validerer eierskap, deler ut poter/streak/
+     challenge-fremgang/merker – alt idempotent), `activity_summary`,
+     `list_challenges`, `list_badges` og `local_leaderboard` (låst under 10
+     aktive hunder). Klienten sender aldri fremgang. Additiv og idempotent.
+     Uten denne faller aktivitet tilbake på lokal/demo-logikk.
+
    - `supabase/migrations/008_waitlist.sql` – ventelisten: `waitlist_signups`
      (hund, e-post, by, ekte plass per by, Founder for de første 100, referral-
      kode, UTM + referrer), RPC-en `join_waitlist` (kan kalles uten innlogging;

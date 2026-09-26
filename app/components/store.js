@@ -15,6 +15,7 @@ import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { loadMyData, persistProfileAndDog } from "../lib/db/sync";
 import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCancelMeetup, joinMeetup, leaveMeetup } from "../lib/db/meetups";
 import { listPlaces as dbListPlaces, listMapMeetups as dbListMapMeetups, createPlaceSuggestion as dbCreatePlaceSuggestion } from "../lib/db/places";
+import { completeWalk as dbCompleteWalk, activitySummary as dbActivitySummary, listChallenges as dbListChallenges, listBadges as dbListBadges, localLeaderboard as dbLocalLeaderboard } from "../lib/db/activity";
 import { discoverDogs, getDog } from "../lib/db/dogs";
 import * as social from "../lib/db/social";
 import * as groupsDb from "../lib/db/groups";
@@ -148,6 +149,12 @@ export function AppProvider({ children, authUser = null }) {
   // faktisk ingen steder/treff kartfestet ennå, ikke en skjult feil.
   const [realPlaces, setRealPlaces] = useState([]);
   const [realMapMeetups, setRealMapMeetups] = useState([]);
+  // Sprint 9: ekte aktivitet/gamification fra serveren (kun backend). Serveren
+  // er sannheten for turer, poter, streak, challenges, merker og toppliste.
+  const [realActivity, setRealActivity] = useState(null);
+  const [realChallenges, setRealChallenges] = useState([]);
+  const [realBadges, setRealBadges] = useState([]);
+  const [realLeaderboard, setRealLeaderboard] = useState(null);
   // Ekte, oppdagbare hunder i kommunen (discover_dogs). Tom = ingen andre hunder.
   const [realDogs, setRealDogs] = useState([]);
   // Enkelt-hunder hentet på forespørsel (f.eks. en treffverts hund) som ikke
@@ -328,6 +335,26 @@ export function AppProvider({ children, authUser = null }) {
   useEffect(() => {
     refreshPlaces();
   }, [refreshPlaces, state.location.kommuneId]);
+
+  /* ---- Sprint 9: ekte aktivitet + gamification ---- */
+  const refreshActivity = useCallback(async () => {
+    if (!backend) return;
+    const kommuneId = stateRef.current.location.kommuneId;
+    const [summary, challenges, badges, leaderboard] = await Promise.all([
+      dbActivitySummary(),
+      dbListChallenges(),
+      dbListBadges(),
+      kommuneId ? dbLocalLeaderboard(kommuneId) : Promise.resolve({ data: null }),
+    ]);
+    setRealActivity(summary.data);
+    setRealChallenges(challenges.data);
+    setRealBadges(badges.data);
+    setRealLeaderboard(leaderboard.data);
+  }, [backend]);
+
+  useEffect(() => {
+    refreshActivity();
+  }, [refreshActivity, state.location.kommuneId]);
 
   /* ---- Sprint 5: ekte chat (samtaler + meldinger + Realtime) ---- */
 
@@ -571,7 +598,7 @@ export function AppProvider({ children, authUser = null }) {
     // Poters eneste sannhet er hovedboken – se pushLedgerOnce/EMPTY.pawLedger.
     const pawLedgerTotal = pawsTotal(state.pawLedger);
 
-    return {
+    const local = {
       dogName: state.profile.dogName || base?.dogName || "",
       ownerName: state.profile.ownerName || "",
       breed: state.profile.breed || base?.breed || "",
@@ -603,24 +630,49 @@ export function AppProvider({ children, authUser = null }) {
       newPlaces: state.placesVisited.length,
       isNew: walks.length === 0 && state.mode === MODE.LIVE,
     };
-  }, [state, state.mode]);
+    // Backend: serveren er sannheten for aktivitetstall. Overstyr de utledede
+    // tallene med activity_summary (ekte turer/poter/streak/PB). Profil-felter
+    // (navn/rase/foto) beholdes fra lokal state.
+    if (backend && realActivity) {
+      const a = realActivity;
+      return {
+        ...local,
+        totalKm: a.total_km ?? local.totalKm,
+        totalWalks: a.total_walks ?? local.totalWalks,
+        weekKm: a.week_km ?? local.weekKm,
+        weekWalks: a.week_walks ?? local.weekWalks,
+        activeDaysWeek: a.week_active_days ?? 0,
+        todayMinutes: local.todayMinutes,
+        streak: a.streak_current ?? 0,
+        longestStreak: a.streak_longest ?? 0,
+        paws: a.paws ?? local.paws,
+        pbLongestWalkKm: a.pb_longest_walk_km ?? 0,
+        pbBestWeekKm: a.pb_best_week_km ?? 0,
+        isNew: (a.total_walks || 0) === 0,
+      };
+    }
+    return local;
+  }, [state, state.mode, backend, realActivity]);
 
   const level = useMemo(() => levelFor(me.paws), [me.paws]);
 
-  /** Fremgang på utfordringer, regnet ut fra brukerens faktiske tall. */
+  /** Fremgang på utfordringer. Backend: ekte, server-derivert. Ellers: lokalt. */
   const challengeProgress = useMemo(
-    () => challenges.map((c) => ({ ...c, progress: me[c.metric] || 0, done: (me[c.metric] || 0) >= c.target })),
-    [me]
+    () => backend
+      ? realChallenges.map((c) => ({ ...c, pct: Math.min(100, (c.progress / c.target) * 100) }))
+      : challenges.map((c) => ({ ...c, progress: me[c.metric] || 0, done: (me[c.metric] || 0) >= c.target })),
+    [me, backend, realChallenges]
   );
 
-  /** Merker. Ingenting er "oppnådd" uten at tallet faktisk er der. */
+  /** Merker. Backend: ekte tildelinger fra serveren. Ellers: lokalt utledet. */
   const badgeProgress = useMemo(
-    () =>
-      badges.map((b) => {
-        const v = me[b.metric] || 0;
-        return { ...b, value: v, done: v >= b.target, pct: Math.min(100, (v / b.target) * 100) };
-      }),
-    [me]
+    () => backend
+      ? realBadges.map((b) => ({ ...b, value: b.done ? b.target : 0, pct: b.done ? 100 : 0 }))
+      : badges.map((b) => {
+          const v = me[b.metric] || 0;
+          return { ...b, value: v, done: v >= b.target, pct: Math.min(100, (v / b.target) * 100) };
+        }),
+    [me, backend, realBadges]
   );
 
   /** Slår opp en hund i det innholdet som faktisk finnes (+ enkelt-hentede). */
@@ -1230,6 +1282,38 @@ export function AppProvider({ children, authUser = null }) {
         return;
       }
 
+      // Backend: serveren er sannheten. Persister turen idempotent og la
+      // serveren dele ut poter/streak/challenges/merker. Klienten sender ALDRI
+      // fremgang. Retry med samme client_key er trygt (server-dedup).
+      if (backend) {
+        const endedMs = Date.now();
+        const startedMs = endedMs - seconds * 1000;
+        const clientKey = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `wk-${startedMs}-${Math.round(session.totalMeters)}`;
+        const payload = {
+          clientKey,
+          dogId: primaryDogIdRef.current || null,
+          startedAt: new Date(startedMs).toISOString(),
+          endedAt: new Date(endedMs).toISOString(),
+          distanceM: Math.round(session.totalMeters),
+          durationS: seconds,
+          movingS: session.movingSeconds,
+          gpsQuality: session.suspicious ? "fair" : "good",
+          flagged: !!session.suspicious,
+        };
+        (async () => {
+          let { data, error } = await dbCompleteWalk(payload);
+          if (error) ({ data, error } = await dbCompleteWalk(payload)); // idempotent retry
+          if (error || !data) { flash("Kunne ikke lagre turen – prøv igjen", "alert"); return; }
+          refreshActivity();
+          const kmSrv = data.km ?? +(session.totalMeters / 1000).toFixed(2);
+          setOverlays([{ type: "walkSummary", data: {
+            km: kmSrv, seconds, paws: data.paws_awarded || 0, streak: data.streak_current || 0,
+            first: false, newBadges: data.new_badges || [], completedChallenges: data.completed_challenges || [],
+          } }]);
+        })();
+        return;
+      }
+
       const km = +(session.totalMeters / 1000).toFixed(2);
       const earned = pawsForWalk(session.totalMeters);
       const now = Date.now();
@@ -1417,7 +1501,11 @@ export function AppProvider({ children, authUser = null }) {
     usingMyPosition: typeof state.location.lat === "number",
     isDemo: content.demo,
     isEarly: isEarlyArea(stats),
-    leaderboardUnlocked: leaderboardUnlocked(stats),
+    // Backend: ekte toppliste, låst under 10 aktive hunder (aktiv = ekte tur
+    // denne uka). Ellers lokal terskel mot antall hunder i området.
+    leaderboardUnlocked: backend ? !!realLeaderboard?.unlocked : leaderboardUnlocked(stats),
+    leaderboard: backend ? realLeaderboard : null,
+    leaderboardActive: backend ? (realLeaderboard?.active_dogs ?? 0) : stats.dogs,
     coldStart: COLD_START,
     demoLeaderboard: demo.leaderboard,
     gpsConfig: GPS_CONFIG,
