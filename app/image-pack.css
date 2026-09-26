@@ -1,11 +1,12 @@
 /* Potesjarm validated lifestyle imagery.
-   Decorative brand photography only — never represents a real user, dog, meetup or place. */
+   Decorative brand photography only — never represents a real user, dog, meetup or place.
+   Only verified WebP assets are referenced here. */
 
 .hero2.walk.cold {
   background-image:
-    linear-gradient(90deg, rgba(7,11,43,.82) 0%, rgba(7,11,43,.58) 38%, rgba(7,11,43,.10) 72%, rgba(7,11,43,.02) 100%),
-    linear-gradient(0deg, rgba(7,11,43,.28), rgba(7,11,43,0) 56%),
-    url('/images/home-hero.webp') !important;
+    linear-gradient(90deg, rgba(7,11,43,.80) 0%, rgba(7,11,43,.55) 38%, rgba(7,11,43,.08) 72%, rgba(7,11,43,.01) 100%),
+    linear-gradient(0deg, rgba(7,11,43,.24), rgba(7,11,43,0) 56%),
+    url('/images/discover-place.webp') !important;
   background-size: cover !important;
   background-position: center 48% !important;
   background-color: var(--indigo);
@@ -19,30 +20,28 @@
 }
 .home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) {
   background-image: url('/images/discover-meetup.webp') !important;
+  background-position: 58% center !important;
 }
 .home2:has(.hero2.walk.cold) .exploreCard {
   background-size: cover !important;
   background-position: center !important;
 }
 .home2:has(.hero2.walk.cold) .exploreCard::before {
-  background: linear-gradient(180deg, rgba(6,9,35,.02) 28%, rgba(6,9,35,.72) 100%) !important;
-}
-.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) {
-  background-position: 58% center !important;
+  background: linear-gradient(180deg, rgba(6,9,35,.01) 25%, rgba(6,9,35,.68) 100%) !important;
 }
 
 .home2:has(.hero2.walk.cold) .localStarter {
   background-image:
-    linear-gradient(90deg, rgba(7,11,43,.78) 0%, rgba(7,11,43,.45) 45%, rgba(7,11,43,.08) 78%),
-    url('/images/local-community.webp') !important;
+    linear-gradient(90deg, rgba(7,11,43,.78) 0%, rgba(7,11,43,.42) 45%, rgba(7,11,43,.06) 78%),
+    url('/images/discover-meetup.webp') !important;
   background-size: cover !important;
-  background-position: center 50% !important;
+  background-position: center 46% !important;
   background-color: var(--indigo);
 }
 
 .now2:has(.nowCold) .goOut {
   background-image:
-    linear-gradient(90deg, rgba(7,11,43,.84), rgba(7,11,43,.58) 48%, rgba(7,11,43,.10)),
+    linear-gradient(90deg, rgba(7,11,43,.82), rgba(7,11,43,.55) 48%, rgba(7,11,43,.08)),
     url('/images/discover-meetup.webp') !important;
   background-size: cover !important;
   background-position: center 46% !important;
@@ -51,14 +50,14 @@
 .tab-hunder .main .view > .inlineEmpty {
   background-image:
     linear-gradient(90deg, rgba(255,253,247,.97) 0%, rgba(255,253,247,.86) 52%, rgba(255,253,247,.28) 100%),
-    url('/images/home-hero.webp') !important;
+    url('/images/discover-walk.webp') !important;
   background-size: cover !important;
   background-position: center 48% !important;
 }
 .tab-grupper .main .groups2 .inlineEmpty {
   background-image:
     linear-gradient(90deg, rgba(255,253,248,.97), rgba(255,253,248,.84) 58%, rgba(255,253,248,.20)),
-    url('/images/local-community.webp') !important;
+    url('/images/discover-meetup.webp') !important;
   background-size: cover !important;
   background-position: center 48% !important;
 }
@@ -72,7 +71,7 @@
 .tab-utforsk .main .explore2 .inlineEmpty {
   background-image:
     linear-gradient(90deg, rgba(255,253,248,.97), rgba(255,253,248,.82) 55%, rgba(255,253,248,.18)),
-    url('/images/discover-walk.webp') !important;
+    url('/images/discover-place.webp') !important;
   background-size: cover !important;
   background-position: center 52% !important;
 }
@@ -80,11 +79,11 @@
 @media (max-width: 760px) {
   .hero2.walk.cold {
     background-image:
-      linear-gradient(0deg, rgba(7,10,43,.88) 0%, rgba(7,10,43,.30) 54%, rgba(7,10,43,.03) 82%),
-      url('/images/home-hero.webp') !important;
+      linear-gradient(0deg, rgba(7,10,43,.86) 0%, rgba(7,10,43,.28) 54%, rgba(7,10,43,.02) 82%),
+      url('/images/discover-place.webp') !important;
     background-position: 56% center !important;
   }
-  .home2:has(.hero2.walk.cold) .localStarter { background-position: 60% center !important; }
+  .home2:has(.hero2.walk.cold) .localStarter,
   .now2:has(.nowCold) .goOut { background-position: 60% center !important; }
   .tab-hunder .main .view > .inlineEmpty,
   .tab-grupper .main .groups2 .inlineEmpty,
