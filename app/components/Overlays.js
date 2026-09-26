@@ -1124,7 +1124,7 @@ function PostMenu({ data: post, onClose }) {
           <button className="danger" onClick={() => { onClose(); app.deleteRealPost(post.id); }}><Icon name="ban" size={19} /> Slett innlegg</button>
         ) : (
           <>
-            <button onClick={() => { onClose(); app.reportRealPost(post.id); }}><Icon name="flag" size={19} /> Rapporter innlegg</button>
+            <button onClick={() => { onClose(); app.open("report", { table: "post", id: post.id, label: "innlegget" }); }}><Icon name="flag" size={19} /> Rapporter innlegg</button>
             {post.authorId && (
               <button className="danger" onClick={() => { onClose(); app.blockOwner({ real: true, ownerId: post.authorId }); }}><Icon name="ban" size={19} /> Blokker {post.author}</button>
             )}
@@ -1480,6 +1480,9 @@ function Settings({ onClose }) {
 
       <h5>Personvern</h5>
       <Toggle on={app.privacy} set={app.setPrivacy} title="Vis meg i nærområdet" sub={`Andre i ${app.kommune?.name} kan finne ${app.me.dogName || "hunden din"}.`} />
+      {app.backend && (
+        <Toggle on={app.leaderboardOptIn} set={app.setLeaderboardOptIn} title="Vis på lokal toppliste" sub="Av som standard. Kun hundenavn og km denne uka vises – aldri posisjon eller rute." />
+      )}
       {app.backend ? (
         <button className="rowBtn" onClick={() => app.open("notificationSettings")}><Icon name="bell" size={18} /> Varsler <Icon name="chevronRight" size={17} /></button>
       ) : (
@@ -1504,7 +1507,108 @@ function Settings({ onClose }) {
 
       <h5>Konto</h5>
       <button className="rowBtn" onClick={() => app.open("invite")}><Icon name="gift" size={18} /> Inviter hundeeiere <Icon name="chevronRight" size={17} /></button>
+      {app.backend && (
+        <>
+          <button className="rowBtn" onClick={() => app.open("dataExport")}><Icon name="download" size={18} /> Last ned dataene mine <Icon name="chevronRight" size={17} /></button>
+          <button className="rowBtn danger" onClick={() => app.open("deleteAccount")}><Icon name="ban" size={18} /> Slett konto <Icon name="chevronRight" size={17} /></button>
+        </>
+      )}
       <button className="rowBtn danger" onClick={app.resetAll}><Icon name="logout" size={18} /> Nullstill appen <Icon name="chevronRight" size={17} /></button>
+    </Layer>
+  );
+}
+
+/* ========================= GDPR: dataeksport ========================= */
+function DataExport({ onClose }) {
+  const app = useApp();
+  const [busy, setBusy] = useState(false);
+  const download = async () => {
+    setBusy(true);
+    const data = await app.exportMyData();
+    setBusy(false);
+    if (!data) return;
+    try {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `potesjarm-mine-data-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      onClose();
+    } catch { app.flash("Kunne ikke lage nedlastingen", "alert"); }
+  };
+  return (
+    <Layer onClose={onClose} className="sheet" label="Last ned data">
+      <LayerHead kicker="PERSONVERN" title="Last ned dataene dine" onClose={onClose} />
+      <p>Du får en JSON-fil med profilen din, hundene, innlegg, kommentarer, meldinger du har skrevet, turer, gamification og innstillinger. Kun dine egne data – aldri andres.</p>
+      <button className="pillBtn primary block big" onClick={download} disabled={busy}>{busy ? "Henter…" : "Last ned JSON"}</button>
+    </Layer>
+  );
+}
+
+/* ========================= GDPR: slett konto ========================= */
+function DeleteAccount({ onClose }) {
+  const app = useApp();
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const del = async () => {
+    setBusy(true);
+    const r = await app.deleteMyAccount(confirm);
+    setBusy(false);
+    if (r?.ok) { app.flash("Kontoen og dataene dine er slettet.", "check"); onClose(); app.resetAll?.(); }
+  };
+  return (
+    <Layer onClose={onClose} className="sheet" label="Slett konto">
+      <LayerHead kicker="KONTO" title="Slett konto og data" onClose={onClose} />
+      <p>Dette sletter profilen din og <b>alle personlige data</b> permanent: hunder, turer, innlegg, kommentarer, meldinger du har skrevet, poter, streak og innstillinger. Handlingen kan ikke angres.</p>
+      <label className="field">
+        <span>Skriv <b>SLETT</b> for å bekrefte</span>
+        <input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="SLETT" autoCapitalize="characters" />
+      </label>
+      <button className="pillBtn danger block big" onClick={del} disabled={busy || confirm !== "SLETT"}>{busy ? "Sletter…" : "Slett kontoen min permanent"}</button>
+      <p className="fineprint"><Icon name="shield" size={14} /> Selve innloggingen (e-posten din hos Supabase) fjernes i et separat steg av oss.</p>
+    </Layer>
+  );
+}
+
+/* ========================= Moderering: rapporter ========================= */
+const REPORT_REASONS = [
+  { id: "spam", label: "Spam" },
+  { id: "harassment", label: "Trakassering" },
+  { id: "unsafe", label: "Utrygt / farlig" },
+  { id: "inappropriate", label: "Upassende innhold" },
+  { id: "fake", label: "Falskt / villedende" },
+  { id: "other", label: "Annet" },
+];
+function ReportEntity({ data, onClose }) {
+  const app = useApp();
+  const [reason, setReason] = useState(null);
+  const [details, setDetails] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    if (!reason) return;
+    setBusy(true);
+    const r = await app.reportEntity({ table: data.table, id: data.id, reason, details: details.trim() || null });
+    setBusy(false);
+    if (r?.ok) onClose();
+  };
+  return (
+    <Layer onClose={onClose} className="sheet" label="Rapporter">
+      <LayerHead kicker="RAPPORTER" title={data?.label ? `Rapporter ${data.label}` : "Rapporter"} onClose={onClose} />
+      <div className="choiceList">
+        {REPORT_REASONS.map((r) => (
+          <button key={r.id} className={"choice" + (reason === r.id ? " active" : "")} onClick={() => setReason(r.id)}>
+            <b>{r.label}</b>{reason === r.id && <Icon name="check" size={18} stroke={2.6} />}
+          </button>
+        ))}
+      </div>
+      <label className="field">
+        <span>Mer info (valgfritt)</span>
+        <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={1000} rows={3} placeholder="Hva er problemet?" />
+      </label>
+      <button className="pillBtn primary block big" onClick={submit} disabled={!reason || busy}>{busy ? "Sender…" : "Send rapport"}</button>
+      <p className="fineprint"><Icon name="shield" size={14} /> Rapporten er anonym for den du melder. Vi ser på den så snart vi kan.</p>
     </Layer>
   );
 }
@@ -1963,6 +2067,9 @@ const MAP = {
   location: LocationPicker,
   meetupComposer: MeetupComposer,
   placeSuggest: PlaceSuggest,
+  dataExport: DataExport,
+  deleteAccount: DeleteAccount,
+  report: ReportEntity,
   groupComposer: GroupComposer,
   postComposer: PostComposer,
   eventComposer: EventComposer,

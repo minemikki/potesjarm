@@ -11,11 +11,12 @@ import { migrateState as migrateStateLib, pawsTotal, pushLedgerOnce } from "../l
 import { cancelFriendRequest, sendFriendRequest, toggleFollow as toggleFollowLib } from "../lib/friends";
 import { relationStatus } from "../lib/social";
 import * as demo from "../lib/demo";
-import { isSupabaseConfigured } from "../lib/supabaseClient";
+import { isSupabaseConfigured, getSupabase } from "../lib/supabaseClient";
 import { loadMyData, persistProfileAndDog } from "../lib/db/sync";
 import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCancelMeetup, joinMeetup, leaveMeetup } from "../lib/db/meetups";
 import { listPlaces as dbListPlaces, listMapMeetups as dbListMapMeetups, createPlaceSuggestion as dbCreatePlaceSuggestion } from "../lib/db/places";
 import { completeWalk as dbCompleteWalk, activitySummary as dbActivitySummary, listChallenges as dbListChallenges, listBadges as dbListBadges, localLeaderboard as dbLocalLeaderboard } from "../lib/db/activity";
+import { submitReport as dbSubmitReport, setLeaderboardOptIn as dbSetLeaderboardOptIn, exportMyData as dbExportMyData, deleteMyAccount as dbDeleteMyAccount } from "../lib/db/privacy";
 import { discoverDogs, getDog } from "../lib/db/dogs";
 import * as social from "../lib/db/social";
 import * as groupsDb from "../lib/db/groups";
@@ -155,6 +156,8 @@ export function AppProvider({ children, authUser = null }) {
   const [realChallenges, setRealChallenges] = useState([]);
   const [realBadges, setRealBadges] = useState([]);
   const [realLeaderboard, setRealLeaderboard] = useState(null);
+  // Sprint 10: leaderboard er eksplisitt opt-in (default av) for primærhunden.
+  const [leaderboardOptIn, setLeaderboardOptInState] = useState(false);
   // Ekte, oppdagbare hunder i kommunen (discover_dogs). Tom = ingen andre hunder.
   const [realDogs, setRealDogs] = useState([]);
   // Enkelt-hunder hentet på forespørsel (f.eks. en treffverts hund) som ikke
@@ -350,6 +353,13 @@ export function AppProvider({ children, authUser = null }) {
     setRealChallenges(challenges.data);
     setRealBadges(badges.data);
     setRealLeaderboard(leaderboard.data);
+    // Les primærhundens leaderboard-samtykke (eksplisitt opt-in).
+    const dogId = primaryDogIdRef.current;
+    if (dogId) {
+      const sb = getSupabase();
+      const { data: dog } = await sb.from("dogs").select("show_on_leaderboard").eq("id", dogId).maybeSingle();
+      setLeaderboardOptInState(dog?.show_on_leaderboard === true);
+    }
   }, [backend]);
 
   useEffect(() => {
@@ -933,6 +943,40 @@ export function AppProvider({ children, authUser = null }) {
       // Godkjenning kommer senere; stedet dukker opp på kartet først da.
       flash("Takk! Forslaget er sendt til gjennomgang", "check");
       return { ok: true, status: data.status };
+    },
+
+    /* --- Sprint 10: personvern / moderering / GDPR --- */
+    // Leaderboard er eksplisitt opt-in per hund (default av).
+    leaderboardOptIn,
+    setLeaderboardOptIn: async (on) => {
+      if (!backend) { flash("Logg inn for å endre dette", "shield"); return; }
+      setLeaderboardOptInState(on); // optimistisk
+      const { error } = await dbSetLeaderboardOptIn(primaryDogIdRef.current, on);
+      if (error) { setLeaderboardOptInState(!on); flash("Kunne ikke lagre – prøv igjen", "alert"); return; }
+      flash(on ? "Du er med på topplista" : "Du vises ikke på topplista", on ? "trophy" : "shield");
+      refreshActivity();
+    },
+    // Rapporter en entitet (ekte rad, dedupet server-side). Ingen falsk suksess.
+    reportEntity: async ({ table, id, reason, details = null }) => {
+      if (!backend) { flash("Takk, vi har notert det", "shield"); return { ok: true }; }
+      const { error } = await dbSubmitReport({ targetTable: table, targetId: id, reason, details });
+      if (error) { flash("Kunne ikke sende rapporten – prøv igjen", "alert"); return { ok: false }; }
+      flash("Takk. Rapporten er sendt til gjennomgang.", "shield");
+      return { ok: true };
+    },
+    // GDPR: last ned alle mine data som JSON.
+    exportMyData: async () => {
+      if (!backend) { flash("Dataeksport krever innlogging", "shield"); return null; }
+      const { data, error } = await dbExportMyData();
+      if (error || !data) { flash("Kunne ikke hente dataene – prøv igjen", "alert"); return null; }
+      return data;
+    },
+    // GDPR: slett konto. Krever bekreftelsesordet «SLETT». Cascader bort alt personlig.
+    deleteMyAccount: async (confirm) => {
+      if (!backend) { flash("Sletting krever innlogging", "shield"); return { ok: false }; }
+      const { data, error } = await dbDeleteMyAccount(confirm);
+      if (error || !data?.deleted) { flash("Kunne ikke slette kontoen – prøv igjen", "alert"); return { ok: false }; }
+      return { ok: true };
     },
     // Å bekrefte et sted er en førstehånds-påstand om et ekte, navngitt sted
     // brukeren kjenner – derfor teller det også som et besøkt/kjent sted

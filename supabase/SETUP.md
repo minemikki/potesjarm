@@ -64,6 +64,22 @@ Level Security). Denne guiden får din instans opp å kjøre.
      aktive hunder). Klienten sender aldri fremgang. Additiv og idempotent.
      Uten denne faller aktivitet tilbake på lokal/demo-logikk.
 
+   - `supabase/migrations/011_sprint10_security_moderation_privacy.sql` – Sprint 10:
+     sikkerhet + moderering + personvern + GDPR. Fjerner `EXECUTE` for `PUBLIC`
+     på ALLE funksjoner (og gir authenticated det de trenger; carve-out på de
+     privilegerte interne skriverne `_award_paws`/`_notify`; anon kun på
+     venteliste + les-steder). Låser `walks`/`streaks`/`challenge_progress` til
+     lese-kun for klienten (skriving kun via `complete_walk`). Kolonne-nivå
+     UPDATE på `profiles` (klient kan ikke sette `is_founder`/`verified_at`/
+     `suspended_at`), og founder-flagget utledes kun fra en legitim venteliste-
+     signup. Strammer `posts`/`comments`/`meetups` SELECT for gruppe-/blokk-
+     konfidensialitet. Innholdslengder (CHECK, NOT VALID). Leaderboard opt-in
+     (`dogs.show_on_leaderboard`, default av). Fysisk plausibilitet i
+     `complete_walk` (umulige turer gir 0 belønning). Rapport-RPC med dedupe,
+     og GDPR-RPC-ene `export_my_data` + `delete_my_account`. Se
+     `supabase/security_checks.sql` for verifiseringsspørringer å kjøre etterpå.
+     Additiv og idempotent.
+
    - `supabase/migrations/008_waitlist.sql` – ventelisten: `waitlist_signups`
      (hund, e-post, by, ekte plass per by, Founder for de første 100, referral-
      kode, UTM + referrer), RPC-en `join_waitlist` (kan kalles uten innlogging;

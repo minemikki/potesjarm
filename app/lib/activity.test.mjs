@@ -72,3 +72,12 @@ test("challengeValue/challengeProgress: derivert, aldri klient-inkrementert", ()
   const done = challengeProgress({ id: "week-3-turer", metric: "walks_week", target: 3 }, agg);
   assert.equal(done.done, true);
 });
+
+test("isPlausibleWalk: fysisk umulig tur gir ingen belønning (samme regel som server)", async () => {
+  const { isPlausibleWalk } = await import("./activity.js");
+  assert.equal(isPlausibleWalk({ distanceM: 3000, durationS: 1800 }), true);   // 3 km / 30 min – ok
+  assert.equal(isPlausibleWalk({ distanceM: 50000, durationS: 300 }), false);   // 50 km / 5 min – umulig
+  assert.equal(isPlausibleWalk({ distanceM: 20, durationS: 600 }), false);      // for kort
+  assert.equal(isPlausibleWalk({ distanceM: 200000, durationS: 36000 }), false);// over 100 km
+  assert.equal(isPlausibleWalk({ distanceM: 5000, durationS: 0 }), false);      // null varighet
+});

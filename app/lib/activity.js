@@ -81,3 +81,16 @@ export function challengeProgress(def, agg) {
   const value = challengeValue(def.metric, agg);
   return { ...def, progress: value, done: value >= def.target, pct: Math.min(100, (value / def.target) * 100) };
 }
+
+/**
+ * Fysisk plausibel tur? Speiler server-regelen i complete_walk (migrasjon 011):
+ * distanse 50 m–100 km, positiv varighet, snittfart <= 12 m/s (~43 km/t).
+ * En fysisk umulig tur (f.eks. 50 km på 5 min) er ugyldig og gir ALDRI
+ * belønning – verken på klienten eller serveren.
+ */
+export function isPlausibleWalk({ distanceM, durationS } = {}) {
+  const d = Number(distanceM) || 0;
+  const t = Number(durationS) || 0;
+  if (d < 50 || d > 100000 || t <= 0) return false;
+  return d / t <= 12;
+}
