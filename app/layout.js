@@ -1,5 +1,6 @@
 import "./globals.css";
 import "./v2.css";
+import "./soul.css";
 import "./landing.css";
 
 export const metadata = {
