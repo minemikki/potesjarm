@@ -17,6 +17,7 @@ import { listMeetupsNear, createMeetup as dbCreateMeetup, cancelMeetup as dbCanc
 import { listPlaces as dbListPlaces, listMapMeetups as dbListMapMeetups, createPlaceSuggestion as dbCreatePlaceSuggestion } from "../lib/db/places";
 import { completeWalk as dbCompleteWalk, activitySummary as dbActivitySummary, listChallenges as dbListChallenges, listBadges as dbListBadges, localLeaderboard as dbLocalLeaderboard } from "../lib/db/activity";
 import { submitReport as dbSubmitReport, setLeaderboardOptIn as dbSetLeaderboardOptIn, exportMyData as dbExportMyData, deleteMyAccount as dbDeleteMyAccount } from "../lib/db/privacy";
+import { track as trackEvent } from "../lib/analytics";
 import { discoverDogs, getDog } from "../lib/db/dogs";
 import * as social from "../lib/db/social";
 import * as groupsDb from "../lib/db/groups";
@@ -777,6 +778,7 @@ export function AppProvider({ children, authUser = null }) {
       // ord (refreshMeetups henter faktisk tilstand etterpå).
       const m = contentWithMine.meetups.find((x) => x.id === id);
       if (backend && m?.real) {
+        if (!wasOn) trackEvent("meetup_joined", {});
         const write = wasOn ? leaveMeetup(id, authUser.id) : joinMeetup(id, authUser.id, primaryDogIdRef.current);
         write.then(({ error }) => {
           if (error) flash("Kunne ikke oppdatere – prøv igjen", "alert");
@@ -942,6 +944,7 @@ export function AppProvider({ children, authUser = null }) {
       if (error || !data) { flash("Kunne ikke sende forslaget – prøv igjen", "alert"); return { ok: false }; }
       // Godkjenning kommer senere; stedet dukker opp på kartet først da.
       flash("Takk! Forslaget er sendt til gjennomgang", "check");
+      trackEvent("place_suggested", { kommune: municipalityId });
       return { ok: true, status: data.status };
     },
 
@@ -962,6 +965,7 @@ export function AppProvider({ children, authUser = null }) {
       const { error } = await dbSubmitReport({ targetTable: table, targetId: id, reason, details });
       if (error) { flash("Kunne ikke sende rapporten – prøv igjen", "alert"); return { ok: false }; }
       flash("Takk. Rapporten er sendt til gjennomgang.", "shield");
+      trackEvent("report_submitted", { target: table });
       return { ok: true };
     },
     // GDPR: last ned alle mine data som JSON.
@@ -1056,6 +1060,7 @@ export function AppProvider({ children, authUser = null }) {
           { id: tmpId, mine: true, senderId: authUser.id, body, at: new Date().toISOString() },
         ]),
       }));
+      trackEvent("message_sent", {});
       chatDb.sendMessage(convId, body).then(({ data, error }) => {
         if (error || !data) {
           flash("Meldingen ble ikke sendt", "alert");
@@ -1241,6 +1246,7 @@ export function AppProvider({ children, authUser = null }) {
             return;
           }
           flash("Treffet er ute! Det vises nå i Nå skjer", "live");
+          trackEvent("meetup_created", { kommune: stateRef.current.location.kommuneId });
           refreshMeetups();
           refreshPlaces(); // oppdater kart-treffene også
         });
@@ -1349,6 +1355,7 @@ export function AppProvider({ children, authUser = null }) {
           if (error) ({ data, error } = await dbCompleteWalk(payload)); // idempotent retry
           if (error || !data) { flash("Kunne ikke lagre turen – prøv igjen", "alert"); return; }
           refreshActivity();
+          trackEvent("walk_completed", { valid: !!data.valid });
           const kmSrv = data.km ?? +(session.totalMeters / 1000).toFixed(2);
           setOverlays([{ type: "walkSummary", data: {
             km: kmSrv, seconds, paws: data.paws_awarded || 0, streak: data.streak_current || 0,
@@ -1396,6 +1403,8 @@ export function AppProvider({ children, authUser = null }) {
     completeOnboarding: (data) => {
       patch({ ...data, onboarded: true });
       close("onboarding");
+      trackEvent("onboarding_completed", { kommune: stateRef.current.location.kommuneId });
+      if (data?.dogName) trackEvent("dog_created", {});
       flash("Velkommen til Potesjarm!", "paw");
       // Lagre til Supabase med de nettopp innsamlede verdiene (ikke stale state).
       persist(data.profile, data.location);

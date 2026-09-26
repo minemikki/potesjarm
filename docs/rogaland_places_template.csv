@@ -1,0 +1,3 @@
+municipality_id,name,kind,lat,lng,about,address_label,source_url
+# Eksempel-header. Fyll inn ekte, kildebelagte steder. IKKE dikt opp data.
+# stavanger,Eksempelparken hundepark,hundepark,58.9701,5.7331,Innhegnet hundepark,,https://www.stavanger.kommune.no/...

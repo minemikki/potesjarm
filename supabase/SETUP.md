@@ -80,6 +80,17 @@ Level Security). Denne guiden får din instans opp å kjøre.
      `supabase/security_checks.sql` for verifiseringsspørringer å kjøre etterpå.
      Additiv og idempotent.
 
+   - `supabase/migrations/012_pilot_launch_readiness.sql` – pilot-klargjøring:
+     sikker moderator-minimum (`moderators`-allowlist + RPC-er `is_moderator`,
+     `list_pending_places`, `moderate_place`, `list_open_reports`, `mark_report`,
+     `moderate_hide` – rolle sjekkes server-side, aldri klient), skjuling av
+     `hidden_at`-innhold i lese-policyene, og lett misbruksbeskyttelse via
+     rate-gate-triggere (meldinger/kommentarer/innlegg/treff/steder). Legg til
+     moderatorer manuelt: `insert into moderators (profile_id) values ('<uid>')`.
+     Additiv og idempotent (én transaksjon). GDPR full sletting (auth.users)
+     gjøres av Edge Function `supabase/functions/delete-account` – se
+     `docs/LAUNCH_RUNBOOK.md` for deploy.
+
    - `supabase/migrations/008_waitlist.sql` – ventelisten: `waitlist_signups`
      (hund, e-post, by, ekte plass per by, Founder for de første 100, referral-
      kode, UTM + referrer), RPC-en `join_waitlist` (kan kalles uten innlogging;
