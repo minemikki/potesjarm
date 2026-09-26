@@ -1,0 +1,270 @@
+/* Potesjarm visual soul pass — image-led cold start only. */
+
+/* Brand-new home: stop rendering the page like onboarding/dashboard chrome. */
+.home2:has(.hero2.walk.cold) {
+  gap: 20px;
+}
+.home2:has(.hero2.walk.cold) > .sec:has(.stepList),
+.home2:has(.hero2.walk.cold) > .weekStart {
+  display: none;
+}
+.app:has(.hero2.walk.cold) .rightRail .challengeCard {
+  display: none;
+}
+
+/* Give the greeting less visual weight so the image carries the page. */
+.home2:has(.hero2.walk.cold) .hello {
+  gap: 0;
+}
+.home2:has(.hero2.walk.cold) .helloHi {
+  font-size: clamp(24px, 2vw, 32px);
+}
+.home2:has(.hero2.walk.cold) .helloPlace {
+  margin-top: 2px;
+}
+.home2:has(.hero2.walk.cold) .liveLine {
+  display: none;
+}
+
+/* Photographic hero. Existing repo imagery keeps the implementation self-contained. */
+.hero2.walk.cold {
+  min-height: 310px;
+  display: flex;
+  align-items: flex-end;
+  padding: 30px;
+  background-image:
+    linear-gradient(90deg, rgba(11, 15, 58, .88) 0%, rgba(11, 15, 58, .68) 38%, rgba(11, 15, 58, .14) 72%, rgba(11, 15, 58, .04) 100%),
+    linear-gradient(0deg, rgba(11, 15, 58, .5), rgba(11, 15, 58, 0) 50%),
+    url('/images/potesjarm-ai-1.webp');
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 22px 50px rgba(24, 29, 90, .22);
+}
+.hero2.walk.cold .hero2Body {
+  max-width: 570px;
+  padding-right: 0;
+  gap: 12px;
+}
+.hero2.walk.cold .hero2Kicker {
+  display: none;
+}
+.hero2.walk.cold h2 {
+  font-size: clamp(34px, 4.2vw, 56px);
+  line-height: .98;
+  max-width: 10ch;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .18);
+}
+.hero2.walk.cold .hero2Meta {
+  display: none;
+}
+.hero2.walk.cold .hero2Dog {
+  display: none;
+}
+.hero2.walk.cold .hero2Actions {
+  margin-top: 8px;
+  align-items: center;
+}
+.hero2.walk.cold .hero2Actions .pillBtn.primary {
+  height: 50px;
+  padding: 0 24px;
+  font-size: 16px;
+  box-shadow: 0 12px 28px rgba(29, 83, 234, .34);
+}
+.hero2.walk.cold .hero2Actions .ghostLight {
+  height: auto;
+  padding: 8px 2px;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  color: rgba(255,255,255,.94);
+}
+.hero2.walk.cold .hero2Actions .ghostLight::after {
+  content: ' →';
+}
+
+/* Discovery is visual content, not three SaaS feature cards. */
+.home2:has(.hero2.walk.cold) .exploreDog {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.home2:has(.hero2.walk.cold) .exploreCard {
+  min-height: 190px;
+  position: relative;
+  overflow: hidden;
+  align-content: end;
+  justify-items: start;
+  gap: 3px;
+  padding: 18px;
+  border-radius: 20px;
+  color: #fff;
+  background-color: var(--indigo);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 12px 26px rgba(28, 31, 102, .14);
+  isolation: isolate;
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease);
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1) { background-image: url('/images/potesjarm-ai-2.webp'); }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2) { background-image: url('/images/potesjarm-ai-3.webp'); }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) { background-image: url('/images/potesjarm-ai-4.webp'); }
+.home2:has(.hero2.walk.cold) .exploreCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(11,15,58,.02) 35%, rgba(11,15,58,.82) 100%);
+}
+.home2:has(.hero2.walk.cold) .exploreCard:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 18px 34px rgba(28, 31, 102, .2);
+}
+.home2:has(.hero2.walk.cold) .exploreIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,.94);
+  color: var(--indigo);
+  margin-bottom: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.14);
+}
+.home2:has(.hero2.walk.cold) .exploreCard b {
+  color: #fff;
+  font-family: var(--display);
+  font-size: 22px;
+  line-height: 1;
+  text-shadow: 0 2px 10px rgba(0,0,0,.22);
+}
+.home2:has(.hero2.walk.cold) .exploreCard small {
+  display: none;
+}
+
+/* One local moment, not another explanatory card. */
+.home2:has(.hero2.walk.cold) .localStarter {
+  min-height: 220px;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  align-content: end;
+  gap: 12px;
+  padding: 26px;
+  border: 0;
+  border-radius: 24px;
+  color: #fff;
+  background-image:
+    linear-gradient(90deg, rgba(10,15,56,.84), rgba(10,15,56,.28) 68%, rgba(10,15,56,.12)),
+    url('/images/potesjarm-ai-5.webp');
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 18px 36px rgba(28, 31, 102, .16);
+}
+.home2:has(.hero2.walk.cold) .localStarterTop {
+  display: block;
+}
+.home2:has(.hero2.walk.cold) .localStarterIcon,
+.home2:has(.hero2.walk.cold) .localStarterTop p,
+.home2:has(.hero2.walk.cold) .ideaRow {
+  display: none;
+}
+.home2:has(.hero2.walk.cold) .localStarterTop b {
+  color: #fff;
+  font-family: var(--display);
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1;
+  letter-spacing: -.02em;
+  text-shadow: 0 2px 14px rgba(0,0,0,.25);
+}
+.home2:has(.hero2.walk.cold) .localStarterActions {
+  margin: 0;
+}
+.home2:has(.hero2.walk.cold) .localStarterActions .pillBtn.soft {
+  color: #fff;
+  background: rgba(255,255,255,.14);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
+}
+
+/* Right rail: keep one useful quiet module instead of zero-state widget soup. */
+.app:has(.hero2.walk.cold) .rightRail {
+  gap: 0;
+}
+.app:has(.hero2.walk.cold) .streakCard {
+  background: linear-gradient(160deg, #f7fcfa, #eaf7f1);
+  box-shadow: 0 12px 28px rgba(21,25,76,.06);
+}
+
+/* Mobile: make it feel like the same product, not a long onboarding page. */
+@media (max-width: 760px) {
+  .home2:has(.hero2.walk.cold) {
+    gap: 18px;
+    padding-bottom: calc(var(--bottomnav-h) + var(--safe-b) + 34px);
+  }
+  .home2:has(.hero2.walk.cold) .hello {
+    margin-top: 10px;
+  }
+  .home2:has(.hero2.walk.cold) .helloPlace {
+    display: none;
+  }
+  .hero2.walk.cold {
+    min-height: 430px;
+    margin: 0;
+    padding: 24px 20px 22px;
+    border-radius: 24px;
+    background-image:
+      linear-gradient(0deg, rgba(9,13,51,.88) 0%, rgba(9,13,51,.28) 58%, rgba(9,13,51,.02) 86%),
+      url('/images/potesjarm-ai-1.webp');
+    background-position: center;
+  }
+  .hero2.walk.cold h2 {
+    font-size: clamp(34px, 11vw, 46px);
+    max-width: 9ch;
+  }
+  .hero2.walk.cold .hero2Actions {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
+  }
+  .hero2.walk.cold .hero2Actions .pillBtn.primary {
+    width: auto;
+    min-width: 170px;
+  }
+  .home2:has(.hero2.walk.cold) .exploreDog {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 72%;
+    grid-template-columns: none;
+    overflow-x: auto;
+    gap: 10px;
+    margin: 0 -14px;
+    padding: 2px 14px 8px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .home2:has(.hero2.walk.cold) .exploreDog::-webkit-scrollbar { display: none; }
+  .home2:has(.hero2.walk.cold) .exploreCard {
+    min-height: 210px;
+    scroll-snap-align: start;
+  }
+  .home2:has(.hero2.walk.cold) .localStarter {
+    min-height: 230px;
+    padding: 22px;
+    margin-bottom: 6px;
+  }
+  .home2:has(.hero2.walk.cold) .localStarterTop b {
+    font-size: 31px;
+  }
+  .home2:has(.hero2.walk.cold) .localStarterActions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 430px) {
+  .hero2.walk.cold { min-height: 390px; }
+  .home2:has(.hero2.walk.cold) .exploreDog { grid-auto-columns: 78%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home2:has(.hero2.walk.cold) .exploreCard { transition: none; }
+}
