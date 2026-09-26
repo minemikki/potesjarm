@@ -1,0 +1,265 @@
+/* Potesjarm full-app visual polish.
+   Presentation only: never fabricates users, dogs, meetups, places, counts or activity. */
+
+/* ---------- Global consumer-app rhythm ---------- */
+.view { min-width: 0; }
+.main { background:
+  radial-gradient(900px 420px at 82% -6%, rgba(78,112,255,.05), transparent 62%),
+  var(--cream); }
+
+.secHead h2,
+.bucketHead,
+.eventsBar,
+.gInfo h2 { letter-spacing: -.02em; }
+
+/* Make real objects feel tactile, not administrative. */
+.invite,
+.groupRow,
+.place,
+.eventList,
+.lockedBoard,
+.goalRow,
+.badge2,
+.infoFold,
+.map2Summary,
+.placeSheet {
+  border-color: rgba(20,26,82,.055) !important;
+}
+
+/* ---------- Nå skjer ---------- */
+.now2 { gap: 24px; }
+.goOut {
+  border-radius: 26px;
+  padding: 22px;
+  box-shadow: 0 18px 42px rgba(23,28,95,.17);
+}
+.goOut h2 { font-size: clamp(28px, 3vw, 40px); letter-spacing: -.025em; }
+.goOut p { max-width: 48ch; margin-top: 3px; }
+.intentRow { margin-top: 8px; }
+.intent {
+  min-height: 44px;
+  border-radius: 15px;
+  box-shadow: 0 7px 18px rgba(7,12,47,.12);
+}
+.inviteList { gap: 14px; }
+.invite {
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(21,25,76,.075);
+}
+.invite h3 { font-size: 20px; letter-spacing: -.012em; }
+.bucketHead { font-family: var(--display); font-size: 22px; color: var(--indigo); }
+
+/* ---------- Hunder ---------- */
+.dogs2 { gap: 20px; }
+.dogGrid2 {
+  grid-template-columns: repeat(auto-fill, minmax(205px, 1fr));
+  gap: 22px 16px;
+}
+.dog2 { gap: 10px; }
+.dog2Photo {
+  border-radius: 24px;
+  box-shadow: 0 16px 38px rgba(21,25,76,.11);
+  background: linear-gradient(145deg, #eef3ff, #fff9ed);
+}
+.dog2Body b { font-family: var(--display); font-size: 19px; line-height: 1.05; }
+.dog2Body small { margin-top: 2px; }
+.dog2Signal { margin-top: 3px; }
+.dog2Heart {
+  width: 38px; height: 38px;
+  box-shadow: 0 8px 20px rgba(8,12,44,.13);
+}
+
+/* ---------- Grupper ---------- */
+.groups2 { gap: 24px; }
+.groupList { gap: 12px; }
+.groupRow {
+  border-radius: 22px;
+  padding: 14px;
+  background: var(--paper);
+  box-shadow: 0 11px 28px rgba(21,25,76,.07);
+}
+.groupRowImg,
+.groupRowIcon { border-radius: 17px; }
+.groupRowText b { font-family: var(--display); font-size: 18px; line-height: 1.05; }
+.groupRowText p { color: var(--ink-2); }
+
+.groupPage { gap: 18px; }
+.gHead {
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--paper);
+  box-shadow: 0 16px 40px rgba(21,25,76,.08);
+}
+.gCover { min-height: 200px; background-size: cover; background-position: center; }
+.gCover.branded {
+  background:
+    radial-gradient(75% 110% at 85% 15%, rgba(100,155,255,.22), transparent 58%),
+    var(--topo) right -50px bottom -40px / 360px auto no-repeat,
+    linear-gradient(145deg, #171b63, #252d88);
+}
+.gIdentity { padding-inline: 22px; }
+.gDesc, .gActions, .gBadge { margin-inline: 22px; }
+.gActions { padding-bottom: 20px; }
+.gTabs {
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(14px);
+  border-radius: 16px;
+  padding: 4px;
+}
+
+/* ---------- Kart ---------- */
+.map2Head { margin-bottom: 14px; }
+.map2 {
+  border-radius: 28px;
+  box-shadow: 0 18px 46px rgba(21,25,76,.11);
+}
+.map2Canvas .leaflet-tile-pane { filter: saturate(.94) contrast(.98) sepia(.035); }
+.map2HeadBtns .pillBtn,
+.map2Tools .chips button { border-radius: 14px; }
+.map2Sheet > .invite,
+.map2Sheet > .placeSheet,
+.map2Summary {
+  border-radius: 22px;
+  box-shadow: 0 18px 46px rgba(13,18,65,.16);
+}
+.placeSheet { padding: 18px; }
+.placeSheet h3 { font-family: var(--display); font-size: 23px; letter-spacing: -.02em; }
+
+/* ---------- Aktivitet ---------- */
+.act2 { gap: 28px; }
+.story2 {
+  min-height: 270px;
+  align-content: end;
+  padding: 26px;
+  border-radius: 28px;
+  background:
+    radial-gradient(90% 100% at 100% 0%, rgba(93,164,255,.22), transparent 58%),
+    var(--topo) right -50px bottom -30px / 380px auto no-repeat,
+    linear-gradient(145deg, #171b63, #252d88);
+  box-shadow: 0 20px 48px rgba(25,30,101,.20);
+}
+.story2 h2 { font-size: clamp(28px, 3vw, 40px); letter-spacing: -.025em; max-width: 17ch; }
+.weekBars2 { max-width: 620px; height: 96px; }
+.inlineStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.inlineStats span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.1);
+}
+.goalList { gap: 10px; }
+.goalRow {
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: 0 9px 24px rgba(21,25,76,.06);
+}
+.badgeRow { gap: 12px; }
+.badge2 {
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(21,25,76,.06);
+}
+.lockedBoard {
+  border-radius: 24px;
+  background: linear-gradient(145deg, #fffaf0, #fffdf8 55%, #f5f8ff);
+  box-shadow: 0 12px 30px rgba(21,25,76,.07);
+}
+
+/* ---------- Arrangementer ---------- */
+.events2 { gap: 20px; }
+.eventsBar { margin-bottom: 2px; }
+.eventList {
+  display: grid;
+  gap: 10px;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.eventRow {
+  border: 0;
+  border-radius: 20px;
+  padding: 14px;
+  background: var(--paper);
+  box-shadow: 0 10px 28px rgba(21,25,76,.07);
+}
+.eventRow:first-child { border-top: 0; }
+.eventRowMain b { font-family: var(--display); font-size: 18px; letter-spacing: -.01em; }
+.dateChip { border-radius: 15px; }
+
+/* ---------- Utforsk / steder ---------- */
+.explore2 { gap: 30px; }
+.placeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.place {
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #fff, #fffdf9);
+  box-shadow: 0 13px 32px rgba(21,25,76,.075);
+}
+.placeBody { padding: 18px; }
+.place h3 { font-family: var(--display); font-size: 21px; letter-spacing: -.015em; }
+.bandtvangCard {
+  border-radius: 22px;
+  box-shadow: 0 11px 28px rgba(21,25,76,.065);
+}
+.infoFold { border-radius: 18px; box-shadow: 0 8px 22px rgba(21,25,76,.05); }
+
+/* ---------- Login/onboarding-adjacent polish ---------- */
+.loginCard, .authCard, .onboardCard {
+  border-radius: 28px !important;
+  box-shadow: 0 22px 60px rgba(21,25,76,.12) !important;
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 760px) {
+  .main { background: var(--cream); }
+  .view { padding-bottom: calc(var(--bottomnav-h) + var(--safe-b) + 20px); }
+
+  .now2 { gap: 18px; }
+  .goOut { border-radius: 22px; padding: 20px 16px; }
+  .goOut h2 { font-size: 30px; }
+  .invite { border-radius: 20px; }
+
+  .dogGrid2 { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px 10px; }
+  .dog2Photo { border-radius: 20px; }
+
+  .groupRow { border-radius: 20px; }
+  .gHead { margin: 0 -14px; border-radius: 0 0 26px 26px; }
+  .gCover { min-height: 150px; }
+  .gIdentity { padding-inline: 16px; }
+  .gDesc, .gActions, .gBadge { margin-inline: 16px; }
+
+  .map2 { border-radius: 0; box-shadow: none; }
+
+  .story2 {
+    margin: 0;
+    border-radius: 24px;
+    min-height: 250px;
+    padding: 22px 18px;
+  }
+  .story2 h2 { font-size: 30px; }
+  .inlineStats { gap: 6px; }
+  .inlineStats span { font-size: 12.5px; }
+
+  .eventRow { grid-template-columns: auto minmax(0,1fr); border-radius: 18px; }
+  .eventRow .joinBtn { grid-column: 2; justify-self: start; }
+
+  .placeGrid { grid-template-columns: 1fr; }
+  .place { border-radius: 22px; }
+}
+
+@media (max-width: 390px) {
+  .dogGrid2 { gap-inline: 8px; }
+  .dog2Body b { font-size: 17px; }
+  .story2 h2 { font-size: 27px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invite, .groupRow, .place, .dog2Photo, .eventRow { transition: none !important; }
+}
