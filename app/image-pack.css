@@ -6,9 +6,9 @@
   background-image:
     linear-gradient(90deg, rgba(7,11,43,.80) 0%, rgba(7,11,43,.55) 38%, rgba(7,11,43,.08) 72%, rgba(7,11,43,.01) 100%),
     linear-gradient(0deg, rgba(7,11,43,.24), rgba(7,11,43,0) 56%),
-    url('/images/discover-place.webp') !important;
+    url('/images/discover-hero.webp') !important;
   background-size: cover !important;
-  background-position: center 48% !important;
+  background-position: center 42% !important;
   background-color: var(--indigo);
 }
 
@@ -80,7 +80,7 @@
   .hero2.walk.cold {
     background-image:
       linear-gradient(0deg, rgba(7,10,43,.86) 0%, rgba(7,10,43,.28) 54%, rgba(7,10,43,.02) 82%),
-      url('/images/discover-place.webp') !important;
+      url('/images/discover-hero.webp') !important;
     background-position: 56% center !important;
   }
   .home2:has(.hero2.walk.cold) .localStarter,

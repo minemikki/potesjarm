@@ -35,7 +35,7 @@
   background-image:
     linear-gradient(90deg, rgba(11, 15, 58, .88) 0%, rgba(11, 15, 58, .68) 38%, rgba(11, 15, 58, .14) 72%, rgba(11, 15, 58, .04) 100%),
     linear-gradient(0deg, rgba(11, 15, 58, .5), rgba(11, 15, 58, 0) 50%),
-    url('/images/potesjarm-ai-1.webp');
+    url('/images/discover-hero.webp');
   background-size: cover;
   background-position: center;
   box-shadow: 0 22px 50px rgba(24, 29, 90, .22);
@@ -105,9 +105,9 @@
   isolation: isolate;
   transition: transform .22s var(--ease), box-shadow .22s var(--ease);
 }
-.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1) { background-image: url('/images/potesjarm-ai-2.webp'); }
-.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2) { background-image: url('/images/potesjarm-ai-3.webp'); }
-.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) { background-image: url('/images/potesjarm-ai-4.webp'); }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1) { background-image: url('/images/discover-walk.webp'); }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2) { background-image: url('/images/discover-place.webp'); }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) { background-image: url('/images/discover-meetup.webp'); }
 .home2:has(.hero2.walk.cold) .exploreCard::before {
   content: '';
   position: absolute;
@@ -155,7 +155,7 @@
   color: #fff;
   background-image:
     linear-gradient(90deg, rgba(10,15,56,.84), rgba(10,15,56,.28) 68%, rgba(10,15,56,.12)),
-    url('/images/potesjarm-ai-5.webp');
+    url('/images/discover-meetup.webp');
   background-size: cover;
   background-position: center;
   box-shadow: 0 18px 36px rgba(28, 31, 102, .16);
@@ -213,7 +213,7 @@
     border-radius: 24px;
     background-image:
       linear-gradient(0deg, rgba(9,13,51,.88) 0%, rgba(9,13,51,.28) 58%, rgba(9,13,51,.02) 86%),
-      url('/images/potesjarm-ai-1.webp');
+      url('/images/discover-hero.webp');
     background-position: center;
   }
   .hero2.walk.cold h2 {
