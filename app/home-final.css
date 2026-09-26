@@ -1,0 +1,289 @@
+/* FINAL cold-start home direction.
+   One real lifestyle photo in the hero. Everything else is clean Potesjarm UI.
+   No fake profiles, meetups, places, counts or social proof. */
+
+.home2:has(.hero2.walk.cold) {
+  max-width: 1080px;
+  gap: 22px;
+}
+
+/* HERO — one emotional image, compact enough to still feel like an app. */
+.hero2.walk.cold {
+  min-height: 286px !important;
+  padding: 30px 34px !important;
+  align-items: flex-end !important;
+  border-radius: 26px !important;
+  overflow: hidden !important;
+  background:
+    linear-gradient(90deg, rgba(11,15,58,.92) 0%, rgba(11,15,58,.78) 34%, rgba(11,15,58,.42) 58%, rgba(11,15,58,.10) 100%),
+    linear-gradient(0deg, rgba(11,15,58,.32), transparent 58%),
+    url('/images/discover-hero.webp') center 52% / cover no-repeat !important;
+  box-shadow: 0 18px 42px rgba(24,29,88,.16) !important;
+}
+.hero2.walk.cold::before,
+.hero2.walk.cold::after { display: none !important; }
+.hero2.walk.cold .hero2Body {
+  max-width: 560px !important;
+  gap: 10px !important;
+}
+.hero2.walk.cold .hero2Kicker,
+.hero2.walk.cold .hero2Meta,
+.hero2.walk.cold .hero2Dog { display: none !important; }
+.hero2.walk.cold h2 {
+  margin: 0 !important;
+  max-width: 10ch !important;
+  font-size: clamp(38px, 4vw, 54px) !important;
+  line-height: .96 !important;
+  letter-spacing: -.035em !important;
+  color: #fff !important;
+  text-shadow: 0 2px 18px rgba(0,0,0,.18) !important;
+}
+.hero2.walk.cold .hero2Actions {
+  margin-top: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+}
+.hero2.walk.cold .hero2Actions .pillBtn.primary {
+  height: 46px !important;
+  padding: 0 20px !important;
+  border-radius: 15px !important;
+  box-shadow: 0 10px 24px rgba(31,100,255,.28) !important;
+}
+.hero2.walk.cold .hero2Actions .ghostLight {
+  height: 42px !important;
+  padding: 0 4px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255,255,255,.94) !important;
+}
+.hero2.walk.cold .hero2Actions .ghostLight::after { content: ' →'; }
+
+/* DISCOVERY — calm utility cards. No blobs, fake scenes or decorative clutter. */
+.home2:has(.hero2.walk.cold) .sec:has(.exploreDog) {
+  margin: 0 !important;
+}
+.home2:has(.hero2.walk.cold) .secHead {
+  margin: 0 0 10px !important;
+}
+.home2:has(.hero2.walk.cold) .secHead h2 {
+  font-size: 21px !important;
+  letter-spacing: -.02em !important;
+}
+.home2:has(.hero2.walk.cold) .exploreDog {
+  display: grid !important;
+  grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+  gap: 12px !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard {
+  min-height: 112px !important;
+  padding: 17px 18px !important;
+  display: grid !important;
+  grid-template-columns: 48px minmax(0,1fr) 26px !important;
+  grid-template-rows: 1fr !important;
+  align-items: center !important;
+  align-content: center !important;
+  justify-items: start !important;
+  gap: 12px !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(28,31,102,.08) !important;
+  background: #fff !important;
+  color: var(--indigo) !important;
+  box-shadow: 0 8px 24px rgba(25,30,90,.07) !important;
+  overflow: hidden !important;
+  transform: none !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard::before {
+  content: '' !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  width: 4px !important;
+  height: auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  opacity: 1 !important;
+  transform: none !important;
+  background: var(--accent-card) !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard::after {
+  content: '→' !important;
+  display: grid !important;
+  place-items: center !important;
+  position: static !important;
+  width: 26px !important;
+  height: 26px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  opacity: 1 !important;
+  transform: none !important;
+  background: #f4f5fb !important;
+  color: var(--indigo) !important;
+  font-size: 14px !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1) { --accent-card:#34c79a; background:#fbfffd !important; }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2) { --accent-card:#4c78ff; background:#fcfdff !important; }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) { --accent-card:#ff7a68; background:#fffdfc !important; }
+.home2:has(.hero2.walk.cold) .exploreIcon {
+  grid-column: 1 !important;
+  width: 48px !important;
+  height: 48px !important;
+  margin: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 15px !important;
+  color: var(--indigo) !important;
+  background: #f3f5ff !important;
+  box-shadow: none !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1) .exploreIcon { background:#eafaf4 !important; color:#159b73 !important; }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2) .exploreIcon { background:#eef2ff !important; color:#3568f2 !important; }
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) .exploreIcon { background:#fff0ed !important; color:#e85e4e !important; }
+.home2:has(.hero2.walk.cold) .exploreCard b {
+  grid-column: 2 !important;
+  color: var(--indigo) !important;
+  font-family: var(--display) !important;
+  font-size: 20px !important;
+  line-height: 1.05 !important;
+  text-shadow: none !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard small { display:none !important; }
+.home2:has(.hero2.walk.cold) .exploreCard:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 30px rgba(25,30,90,.10) !important;
+}
+
+/* LOCAL STARTER — one strong product card, no people/photo, no duplicated copy. */
+.home2:has(.hero2.walk.cold) .localStarter {
+  min-height: 170px !important;
+  padding: 26px 30px !important;
+  display: grid !important;
+  align-content: center !important;
+  gap: 16px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 24px !important;
+  background:
+    radial-gradient(circle at 84% 26%, rgba(94,235,196,.16) 0 5px, transparent 6px),
+    radial-gradient(circle at 76% 68%, rgba(97,146,255,.22) 0 6px, transparent 7px),
+    linear-gradient(135deg,#1b206b 0%,#252d83 58%,#183977 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 16px 36px rgba(25,30,90,.15) !important;
+}
+.home2:has(.hero2.walk.cold) .localStarter::before {
+  content:'' !important;
+  display:block !important;
+  position:absolute !important;
+  width:320px !important;
+  height:180px !important;
+  right:-70px !important;
+  top:-45px !important;
+  border:1.5px solid rgba(255,255,255,.12) !important;
+  border-radius:48% 52% 44% 56% !important;
+  transform:rotate(-10deg) !important;
+  background:transparent !important;
+  pointer-events:none !important;
+}
+.home2:has(.hero2.walk.cold) .localStarter::after {
+  content:'' !important;
+  display:block !important;
+  position:absolute !important;
+  width:270px !important;
+  height:150px !important;
+  right:-45px !important;
+  top:30px !important;
+  border:1.5px solid rgba(255,255,255,.09) !important;
+  border-radius:55% 45% 52% 48% !important;
+  transform:rotate(12deg) !important;
+  background:transparent !important;
+  pointer-events:none !important;
+}
+.home2:has(.hero2.walk.cold) .localStarterTop {
+  position:relative !important;
+  z-index:2 !important;
+  display:block !important;
+}
+.home2:has(.hero2.walk.cold) .localStarterTop::before {
+  content:'Start noe lokalt.' !important;
+  display:block !important;
+  color:#fff !important;
+  font-family:var(--display) !important;
+  font-size:clamp(30px,3vw,40px) !important;
+  line-height:1 !important;
+  letter-spacing:-.025em !important;
+}
+.home2:has(.hero2.walk.cold) .localStarterIcon,
+.home2:has(.hero2.walk.cold) .localStarterTop > div,
+.home2:has(.hero2.walk.cold) .ideaRow { display:none !important; }
+.home2:has(.hero2.walk.cold) .localStarterActions {
+  position:relative !important;
+  z-index:2 !important;
+  display:flex !important;
+  gap:10px !important;
+  margin:0 !important;
+}
+.home2:has(.hero2.walk.cold) .localStarterActions .pillBtn.primary {
+  background:#fff !important;
+  color:var(--indigo) !important;
+  box-shadow:none !important;
+}
+.home2:has(.hero2.walk.cold) .localStarterActions .pillBtn.soft {
+  background:rgba(255,255,255,.10) !important;
+  color:#fff !important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.18) !important;
+}
+
+/* Cold home stays tight: no setup checklist / week zero cards. */
+.home2:has(.hero2.walk.cold) > .sec:has(.stepList),
+.home2:has(.hero2.walk.cold) > .weekStart,
+.app:has(.hero2.walk.cold) .rightRail .challengeCard { display:none !important; }
+
+@media (min-width:1180px) {
+  .hero2.walk.cold { min-height:286px !important; }
+}
+
+@media (max-width:760px) {
+  .home2:has(.hero2.walk.cold) {
+    gap:18px !important;
+    padding-bottom:calc(var(--bottomnav-h) + var(--safe-b) + 30px) !important;
+  }
+  .hero2.walk.cold {
+    min-height:350px !important;
+    padding:24px 20px !important;
+    background:
+      linear-gradient(0deg,rgba(9,13,50,.92) 0%,rgba(9,13,50,.42) 50%,rgba(9,13,50,.10) 82%),
+      url('/images/discover-hero.webp') 62% center / cover no-repeat !important;
+  }
+  .hero2.walk.cold h2 {
+    max-width:9ch !important;
+    font-size:clamp(34px,10.5vw,45px) !important;
+  }
+  .hero2.walk.cold .hero2Actions {
+    align-items:flex-start !important;
+    flex-direction:column !important;
+    gap:4px !important;
+  }
+  .home2:has(.hero2.walk.cold) .exploreDog {
+    grid-template-columns:1fr !important;
+    gap:9px !important;
+  }
+  .home2:has(.hero2.walk.cold) .exploreCard {
+    min-height:82px !important;
+    padding:13px 15px !important;
+    grid-template-columns:44px minmax(0,1fr) 26px !important;
+    border-radius:17px !important;
+  }
+  .home2:has(.hero2.walk.cold) .exploreIcon { width:44px !important; height:44px !important; border-radius:14px !important; }
+  .home2:has(.hero2.walk.cold) .exploreCard b { font-size:18px !important; }
+  .home2:has(.hero2.walk.cold) .localStarter {
+    min-height:158px !important;
+    padding:22px !important;
+  }
+  .home2:has(.hero2.walk.cold) .localStarterTop::before { font-size:31px !important; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .home2:has(.hero2.walk.cold) .exploreCard { transition:none !important; }
+}
