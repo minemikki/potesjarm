@@ -2,6 +2,7 @@ import "./globals.css";
 import "./v2.css";
 import "./soul.css";
 import "./soul-live.css";
+import "./coldstart-live.css";
 import "./landing.css";
 
 export const metadata = {
