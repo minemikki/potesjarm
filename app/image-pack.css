@@ -1,0 +1,117 @@
+/* Potesjarm generated lifestyle imagery.
+   Editorial/brand imagery only — never represents real users, dogs, meetups or places. */
+
+/* Home cold start: image-led without inventing social activity. */
+.hero2.walk.cold {
+  background-image:
+    linear-gradient(90deg, rgba(8, 12, 48, .90) 0%, rgba(8, 12, 48, .65) 38%, rgba(8, 12, 48, .16) 72%, rgba(8, 12, 48, .04) 100%),
+    linear-gradient(0deg, rgba(8, 12, 48, .48), rgba(8, 12, 48, 0) 56%),
+    url('/images/potesjarm-life-fjord.webp') !important;
+  background-size: cover !important;
+  background-position: center 48% !important;
+  background-color: var(--indigo);
+}
+
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(1) {
+  background-image: url('/images/potesjarm-life-coast.webp') !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(2) {
+  background-image: url('/images/potesjarm-life-fjord.webp') !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) {
+  background-image: url('/images/potesjarm-life-meetup.webp') !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard {
+  background-size: cover !important;
+  background-position: center !important;
+}
+.home2:has(.hero2.walk.cold) .exploreCard:nth-child(3) {
+  background-position: 58% center !important;
+}
+
+.home2:has(.hero2.walk.cold) .localStarter {
+  background-image:
+    linear-gradient(90deg, rgba(8, 12, 48, .86) 0%, rgba(8, 12, 48, .50) 42%, rgba(8, 12, 48, .16) 76%, rgba(8, 12, 48, .08) 100%),
+    url('/images/potesjarm-life-community.webp') !important;
+  background-size: cover !important;
+  background-position: center 50% !important;
+  background-color: var(--indigo);
+}
+
+/* Generic creation surfaces may use branded mood photography, but never attach it
+   to a specific real meetup/person. */
+.now2:has(.nowCold) .goOut {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-image:
+    linear-gradient(90deg, rgba(9, 13, 52, .94), rgba(9, 13, 52, .72) 48%, rgba(9, 13, 52, .28)),
+    url('/images/potesjarm-life-meetup.webp') !important;
+  background-size: cover !important;
+  background-position: center 45% !important;
+}
+.now2:has(.nowCold) .goOut > * { position: relative; z-index: 1; }
+
+/* Cold-start discovery remains honest: photography is atmosphere, not a fake profile. */
+.tab-hunder .main .view > .inlineEmpty {
+  background-image:
+    linear-gradient(90deg, rgba(255,253,247,.97) 0%, rgba(255,253,247,.89) 52%, rgba(255,253,247,.32) 100%),
+    url('/images/potesjarm-life-fjord.webp') !important;
+  background-size: cover !important;
+  background-position: center 47% !important;
+}
+.tab-grupper .main .groups2 .inlineEmpty {
+  background-image:
+    linear-gradient(90deg, rgba(255,253,248,.97), rgba(255,253,248,.86) 58%, rgba(255,253,248,.25)),
+    url('/images/potesjarm-life-community.webp') !important;
+  background-size: cover !important;
+  background-position: center 48% !important;
+}
+.tab-arrangementer .main .events2 .inlineEmpty {
+  background-image:
+    linear-gradient(90deg, rgba(255,253,248,.97), rgba(255,253,248,.85) 56%, rgba(255,253,248,.24)),
+    url('/images/potesjarm-life-meetup.webp') !important;
+  background-size: cover !important;
+  background-position: center 44% !important;
+}
+.tab-utforsk .main .explore2 .inlineEmpty {
+  background-image:
+    linear-gradient(90deg, rgba(255,253,248,.97), rgba(255,253,248,.83) 55%, rgba(255,253,248,.20)),
+    url('/images/potesjarm-life-coast.webp') !important;
+  background-size: cover !important;
+  background-position: center 52% !important;
+}
+
+/* Darken only enough for text legibility — keep photography alive. */
+.hero2.walk.cold::after {
+  background: linear-gradient(180deg, rgba(5,8,35,.02) 35%, rgba(5,8,35,.24) 100%) !important;
+}
+
+@media (min-width: 1180px) {
+  .home2:has(.hero2.walk.cold) { max-width: 1180px; }
+  .hero2.walk.cold { min-height: 390px; }
+  .home2:has(.hero2.walk.cold) .localStarter { min-height: 270px; }
+}
+
+@media (max-width: 760px) {
+  .hero2.walk.cold {
+    background-image:
+      linear-gradient(0deg, rgba(7, 10, 43, .92) 0%, rgba(7, 10, 43, .35) 54%, rgba(7, 10, 43, .05) 82%),
+      url('/images/potesjarm-life-fjord.webp') !important;
+    background-position: 56% center !important;
+  }
+  .home2:has(.hero2.walk.cold) .localStarter {
+    background-position: 58% center !important;
+  }
+  .now2:has(.nowCold) .goOut {
+    background-position: 60% center !important;
+  }
+
+  /* On small screens, keep copy readable and don't let decorative subjects sit under text. */
+  .tab-hunder .main .view > .inlineEmpty,
+  .tab-grupper .main .groups2 .inlineEmpty,
+  .tab-arrangementer .main .events2 .inlineEmpty,
+  .tab-utforsk .main .explore2 .inlineEmpty {
+    background-position: 66% center !important;
+  }
+}
