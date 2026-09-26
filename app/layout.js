@@ -7,6 +7,7 @@ import "./visual-polish.css";
 import "./shell-polish.css";
 import "./image-pack.css";
 import "./home-identity.css";
+import "./home-final.css";
 import "./landing.css";
 
 export const metadata = {
