@@ -6,6 +6,7 @@ import "./coldstart-live.css";
 import "./visual-polish.css";
 import "./shell-polish.css";
 import "./image-pack.css";
+import "./inline-photo.css";
 import "./landing.css";
 
 export const metadata = {
