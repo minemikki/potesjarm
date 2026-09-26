@@ -39,9 +39,22 @@ where m.id = $$<MUNICIPALITY_ID>$$
   and not exists (select 1 from places p where p.municipality_id = m.id and lower(p.name) = lower($$<NAVN>$$));
 ```
 
-Bulk fra CSV (etter at CSV er lastet inn i en midlertidig tabell) er også mulig;
-hold `source='editorial'`, `status='approved'`, og utled `region` fra
-`municipalities.county_id`. Ikke sett `created_by` for redaksjonelle steder.
+### Anbefalt: generer SQL fra CSV (validert)
+Fyll ut en CSV etter malen (`docs/rogaland_places_template.csv`), så generer
+trygg, idempotent SQL:
+```bash
+node scripts/places_seed_sql.mjs docs/rogaland_places.csv > seed.sql
+# les seed.sql, lim inn i Supabase SQL Editor, kjør.
+```
+Generatoren **validerer** før den skriver noe: `municipality_id` må finnes i
+`app/lib/geo.js`, `kind` må være gyldig, `lat/lng` må ligge i Norge. Ved feil
+avbryter den (exit 2) og skriver ingenting. Den setter `source='editorial'`,
+`status='approved'`, utleder `region` fra kommunens fylke, og er idempotent på
+(kommune, navn) – så det er trygt å kjøre på nytt uten duplikater. `created_by`
+settes ikke for redaksjonelle steder.
+
+Manuell bulk-innlasting via en midlertidig tabell er også mulig; hold samme
+regler (`editorial`/`approved`/utledet region).
 
 ## Etter seeding
 - Verifiser i appen (Preview): Kart + Utforsk i hver kommune viser stedene.

@@ -978,8 +978,11 @@ export function AppProvider({ children, authUser = null }) {
     // GDPR: slett konto. Krever bekreftelsesordet «SLETT». Cascader bort alt personlig.
     deleteMyAccount: async (confirm) => {
       if (!backend) { flash("Sletting krever innlogging", "shield"); return { ok: false }; }
+      // Full GDPR-sletting via Edge Function (sletter auth-brukeren + cascade).
       const { data, error } = await dbDeleteMyAccount(confirm);
       if (error || !data?.deleted) { flash("Kunne ikke slette kontoen – prøv igjen", "alert"); return { ok: false }; }
+      // Logg ut den nå slettede sesjonen, så ingen død session henger igjen.
+      try { await getSupabase()?.auth.signOut(); } catch { /* uansett: kontoen er slettet */ }
       return { ok: true };
     },
     // Å bekrefte et sted er en førstehånds-påstand om et ekte, navngitt sted

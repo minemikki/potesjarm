@@ -1,61 +1,58 @@
-# Potesjarm – Manuell test på ekte telefon (før pilot)
+# Potesjarm – Manuell test på ekte telefon
 
-> Browser-screenshots er IKKE nok. Denne sjekklista må gjøres på ekte enheter
-> før vi inviterer de første brukerne. Kryss av det som faktisk er testet – ikke
-> påstå «real-device tested» uten at det er gjort. (Per nå: **ikke gjennomført**.)
+> Browser-screenshots er IKKE nok. Denne lista må gjøres på ekte enheter før
+> pilot. **Status: ikke gjennomført** (kan ikke gjøres fra CI). Test mot
+> Preview-URL-en (produksjon viser fortsatt venteliste). Fyll inn PASS/FAIL +
+> notat for hver rad.
 
-Test mot **Preview-URL-en** (produksjon viser fortsatt venteliste).
+Samme testsett kjøres to ganger: én kolonne for **iPhone Safari**, én for
+**Android Chrome**.
 
-## Enheter
-- [ ] iPhone – Safari (nyeste iOS)
-- [ ] iPhone – lagt til på Hjem-skjerm (PWA-lignende)
-- [ ] Android – Chrome
-- [ ] Liten skjerm (SE/375px) og stor (Pro Max/430px)
+## iPhone – Safari (nyeste iOS)
 
-## Generelt / layout
-- [ ] Ingen horisontal scroll på noen hovedskjerm
-- [ ] Safe area: bunn-nav og topp-header klemmes ikke av notch/hjemindikator
-- [ ] Tekst lesbar, touch-mål ≥ 44px
-- [ ] Mørk modus ser riktig ut (om enheten står i mørk modus)
+| # | Steg | Forventet resultat | PASS/FAIL | Notat |
+|---|------|--------------------|-----------|-------|
+| 1 | Åpne Preview-URL | Venteliste vises IKKE (dette er appen); ingen horisontal scroll | | |
+| 2 | Signup med magic link | E-post kommer, lenke åpner appen innlogget | | |
+| 3 | Onboarding: sted → hund → preferanser | Fullføres uten forvirring; lander i appen | | |
+| 4 | Tastatur i skjemafelt | Tastaturet dekker ikke feltet du skriver i | | |
+| 5 | Bunn-nav | Ikke klemt av hjemindikator; alle faner nås | | |
+| 6 | Lag treff (Nå skjer, 3 steg) | Treffet vises i «Nå skjer» | | |
+| 7 | Chat i treff | Composer synlig over tastatur; melding sendes | | |
+| 8 | Kart → «Min posisjon» | Ber om GPS kun ved trykk; sentrerer kartet | | |
+| 9 | Foreground turtracking | Start tur, gå ~200 m, distanse øker realistisk | | |
+| 10 | Skjermlås under tur | Ved gjenåpning: ingen falsk distanse; ærlig status | | |
+| 11 | Avslutt tur | Poter/streak fra server; dobbelttrykk gir ikke dobbelt | | |
+| 12 | Del (invite / share moment) | Systemets delemeny åpnes (Web Share) | | |
+| 13 | Innstillinger → Last ned data | Gyldig JSON lastes ned | | |
+| 14 | Innstillinger → Slett konto («SLETT») | Bekreftelse kreves; logges ut; data borte | | |
+| 15 | Leaderboard opt-in | Av som standard; kan slås på | | |
+| 16 | Flymodus på en skjerm | Ingen evig lasting; viser empty/feil | | |
 
-## Auth / onboarding
-- [ ] Magic link-e-post kommer frem, åpner appen innlogget
-- [ ] Onboarding: sted → hund → preferanser uten forvirring
-- [ ] Reload midt i onboarding gir ikke duplikat profil/hund
-- [ ] Founder-merke vises kun for legitim venteliste-e-post
+## Android – Chrome (nyeste)
 
-## Kjerneløkke
-- [ ] Hjem cold start viser én tydelig hovedhandling
-- [ ] Lag treff (3 steg) – lav terskel, treffet dukker opp i «Nå skjer»
-- [ ] «Jeg blir med» oppdaterer antall, ingen dobbelttelling ved dobbelttrykk
-- [ ] Treff-chat: tastatur dekker IKKE skrivefeltet
-- [ ] Meldinger sendes; feilet melding viser ærlig feil (ingen falsk «sendt»)
+| # | Steg | Forventet resultat | PASS/FAIL | Notat |
+|---|------|--------------------|-----------|-------|
+| 1 | Åpne Preview-URL | Appen vises; ingen horisontal scroll | | |
+| 2 | Signup med magic link | Lenke åpner appen innlogget | | |
+| 3 | Onboarding | Fullføres uten forvirring | | |
+| 4 | Tastatur i skjemafelt | Dekker ikke aktivt felt | | |
+| 5 | Bunn-nav | Ikke klemt av system-gestures; alle faner nås | | |
+| 6 | Lag treff | Treffet vises i «Nå skjer» | | |
+| 7 | Chat i treff | Composer synlig over tastatur; melding sendes | | |
+| 8 | Kart → «Min posisjon» | GPS kun ved trykk; sentrerer | | |
+| 9 | Foreground turtracking | Distanse øker realistisk ved gange | | |
+| 10 | Skjermlås/faneskifte under tur | Ingen falsk distanse; ærlig status | | |
+| 11 | Avslutt tur | Server-poter; ingen dobbel ved dobbelttrykk | | |
+| 12 | Del | Android delemeny åpnes | | |
+| 13 | Last ned data | Gyldig JSON lastes ned | | |
+| 14 | Slett konto | Bekreftelse; logout; data borte | | |
+| 15 | Leaderboard opt-in | Av som standard | | |
+| 16 | Flymodus | Ingen evig lasting; empty/feil | | |
 
-## Aktivitet / GPS
-- [ ] Start tur ber om posisjon kun ved trykk (ikke ved sideload)
-- [ ] Avslått posisjon: ærlig beskjed, ingen falsk distanse
-- [ ] Aktiv tur: distanse øker kun ved reell bevegelse
-- [ ] Skjermlås/bakgrunn: appen påstår IKKE pålitelig bakgrunnssporing
-- [ ] Avslutt tur: poter/streak fra server-svar; dobbelttrykk gir ikke dobbelt
-- [ ] Kort/urealistisk tur gir ingen belønning
-
-## Kart
-- [ ] «Min posisjon» sentrerer kartet (etter tillatelse)
-- [ ] Kart-gester (pan/zoom) føles greit
-- [ ] Tomt kart: ærlig cold start, ingen fake pins
-- [ ] Foreslå sted: «Forslaget er sendt til gjennomgang» kun ved ekte suksess
-
-## Personvern / konto
-- [ ] Leaderboard opt-in er AV som standard
-- [ ] Last ned data → gyldig JSON-fil lastes ned (kun egne data)
-- [ ] Slett konto: bekreftelsesord kreves; etterpå er data borte
-- [ ] Blokker: brukeren forsvinner fra oppdag/kart/DM
-- [ ] Rapporter: skjema med grunn, lander i backend
-
-## Deling / utklipp
-- [ ] Del-knapp (Web Share) åpner systemets delemeny
-- [ ] «Kopier lenke» legger riktig lenke på utklippstavla
-
-## Nett / robusthet
-- [ ] Flymodus: appen henger ikke evig på lasting; viser feil/empty
-- [ ] Gjenoppkobling etter skjermlås: Realtime kobler til igjen
+## Kritiske «må-ikke-skje» (begge enheter)
+- [ ] Ingen falsk «sendt/lagret» når noe faktisk feilet.
+- [ ] Ingen påstand om bakgrunnssporing av GPS.
+- [ ] Ingen fake pins på kartet.
+- [ ] Ingen browser-varsel-permission spørres (push er av for pilot).
+- [ ] Ingen andre brukeres data i eksport.

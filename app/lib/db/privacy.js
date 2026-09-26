@@ -35,10 +35,17 @@ export async function exportMyData() {
   return { data: data || null, error };
 }
 
-/** Slett konto (GDPR). Krever bekreftelsesordet «SLETT». Cascader bort alt personlig. */
+/**
+ * Slett konto (GDPR, full). Krever bekreftelsesordet «SLETT». Går via
+ * Edge Function `delete-account`, som verifiserer brukerens JWT og bruker
+ * service-role til å slette selve auth-brukeren – det cascader bort profilen og
+ * ALLE personlige data. functions.invoke fester brukerens token automatisk.
+ * Vi later aldri som noe lyktes: kun { deleted:true } fra funksjonen er suksess.
+ */
 export async function deleteMyAccount(confirm) {
   const sb = getSupabase();
   if (!sb) return { data: null, error: new Error("Ikke tilkoblet") };
-  const { data, error } = await sb.rpc("delete_my_account", { p_confirm: confirm });
-  return { data: data || null, error };
+  const { data, error } = await sb.functions.invoke("delete-account", { body: { confirm } });
+  if (error) return { data: null, error };
+  return { data: data || null, error: null };
 }
