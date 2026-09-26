@@ -4,6 +4,7 @@ import "./soul.css";
 import "./soul-live.css";
 import "./coldstart-live.css";
 import "./visual-polish.css";
+import "./shell-polish.css";
 import "./landing.css";
 
 export const metadata = {
